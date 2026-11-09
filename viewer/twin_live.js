@@ -553,7 +553,11 @@
       background:rgba(15,23,42,.92);border:1px solid #38bdf8;color:#e2e8f0;box-shadow:0 6px 18px rgba(0,0,0,.45);font:inherit}
   #tl-chip button:hover{background:#0c4a6e}#tl-chip b{color:#7dd3fc;font-weight:600}#tl-chip .dot{width:8px;height:8px;border-radius:50%}
   #tl-chip span{color:#94a3b8;align-self:center}
-  @media (max-width:760px){#tl{left:8px;right:8px;width:auto}#tl-toast{left:8px}}`;
+  @media (max-width:760px){#tl{left:8px;right:8px;width:auto}#tl-toast{left:8px}}
+  #tl.docked{position:static;width:auto;max-height:none;z-index:auto;box-shadow:none;backdrop-filter:none;border-radius:8px;background:rgba(10,14,21,.6)}
+  #tl.docked .bd{overflow:visible}
+  #tl.docked .tools{flex-wrap:wrap}#tl.docked .tools button,#tl.docked .tools label{white-space:nowrap}
+  #tl.docked .ax{grid-template-columns:repeat(2,1fr)}`;
 
   let toastTimer = 0;
   function toast(msg, err) {
@@ -593,7 +597,9 @@
         <div class="sec">실시간 데이터</div>
         <div class="ws" id="tl-ws"></div>
       </div>`;
-    document.body.appendChild(p);
+    // 오른쪽 사이드바(속성 탭)에 자리가 있으면 거기에 붙이고, 없으면(독립 데모 등) 왼쪽 아래 떠 있는 창으로.
+    const dock = document.getElementById('tl-dock');
+    if (dock) { p.classList.add('docked'); dock.appendChild(p); } else document.body.appendChild(p);
     const t = document.createElement('div'); t.id = 'tl-toast'; document.body.appendChild(t);
 
     p.querySelector('#tl-speed').onchange = e => { speed = parseFloat(e.target.value); };
