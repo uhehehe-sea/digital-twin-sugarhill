@@ -25,6 +25,9 @@ npm test
 | e9b6793 | 자동 클로즈업, CNC 검증(CAMotics) 창, 이벤트 500개 이후 처리 멈춤 버그, 미리보기 예외 |
 | 6ac3280 / 8f192b2 | README·작업기록·공구 교환 설계안, 테스트 정리 |
 | 86d4b39 | 카메라: 선택 오브제 중심으로 회전 |
+| (마지막 커밋) | 건물 부재 208개 선택·이동·삭제·복제·되돌리기·저장, 기즈모 실행 취소 시점 수정 |
+
+`scene_layout.json`에 `building: { removed, moved, clones }` 필드가 새로 생깁니다. 이전 형식 파일도 그대로 읽힙니다.
 
 자세한 내용: `docs/WORKLOG.md`의 2026-11-09 항목, `README.md`(환경변수 표 포함), `docs/TOOL_CHANGE.md`.
 

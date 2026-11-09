@@ -1864,10 +1864,10 @@ function init3D() {
   }
   transformControl.addEventListener('dragging-changed', (event) => {
     controls.enabled = !event.value;
-    if (!event.value && selectedObject) {
-      pushUndoState();
-      syncInspectorFromSelected();
-    }
+    // undo snapshot is taken when the drag STARTS (it used to be taken at the end, so Ctrl+Z restored
+    // the already-moved state and seemed to do nothing)
+    if (event.value && selectedObject) pushUndoState();
+    if (!event.value && selectedObject) syncInspectorFromSelected();
   });
   transformControl.addEventListener('change', () => {
     if (selectedObject) {
@@ -2211,7 +2211,7 @@ function selectAssetObject(obj) {
     transformControl.attach(obj);
     selectBoxHelper = new THREE.BoxHelper(obj, 0xf59e0b); // Unreal Engine 스타일 오렌지 골드 선택 박스
     scene.add(selectBoxHelper);
-    document.getElementById('sel-obj-badge').innerText = obj.name;
+    document.getElementById('sel-obj-badge').innerText = (isBuildingPart(obj) ? '🏗 ' : '') + obj.name;
     syncInspectorFromSelected();
     highlightSelectedMaterialSwatch(obj.userData.materialId);
   } else {
@@ -2248,6 +2248,10 @@ function syncInspectorFromSelected() {
   const wy = Math.round(baseDims[1] * s.y);
   const wz = Math.round(baseDims[2] * s.z);
   const bDim = document.getElementById('sel-bbox-dim'); if (bDim) bDim.innerText = `${wx.toLocaleString()} × ${wy.toLocaleString()} × ${wz.toLocaleString()} mm`;
+  if (isBuildingPart(selectedObject)) {
+    const sMass = document.getElementById('val-selected-mass'); if (sMass) sMass.innerText = '건물 부재';
+    return;
+  }
 
   const matSpec = INDUSTRIAL_MATERIALS[selectedObject.userData.materialId] || INDUSTRIAL_MATERIALS.SUS_304_306_Brushed_2B;
   const volM3 = (wx / 1000) * (wy / 1000) * (wz / 1000) * 0.28;
@@ -2293,8 +2297,13 @@ function scaleSelectedUniform(factor) {
 function resetSelectedTransform() {
   if (!selectedObject) return;
   pushUndoState();
-  selectedObject.scale.set(1, 1, 1);
-  selectedObject.rotation.set(0, 0, 0);
+  const orig = isBuildingPart(selectedObject) && buildingOriginals.get(selectedObject.userData.cloneOf || selectedObject.name);
+  if (orig && !selectedObject.userData.cloneOf) {             // building part: back to where it was drawn
+    selectedObject.position.copy(orig.pos); selectedObject.quaternion.copy(orig.quat); selectedObject.scale.copy(orig.scale);
+  } else {
+    selectedObject.scale.set(1, 1, 1);
+    selectedObject.rotation.set(0, 0, 0);
+  }
   if (selectBoxHelper) selectBoxHelper.update();
   syncInspectorFromSelected();
 }
@@ -2302,7 +2311,11 @@ function resetSelectedTransform() {
 function snapSelectedToFloor() {
   if (!selectedObject) return;
   pushUndoState();
-  selectedObject.position.z = 0;
+  if (isBuildingPart(selectedObject)) {
+    // origin is the part centre: lift/lower so the bottom of the part touches Z = 0
+    selectedObject.updateMatrixWorld(true);
+    selectedObject.position.z -= new THREE.Box3().setFromObject(selectedObject).min.z;
+  } else selectedObject.position.z = 0;
   if (selectBoxHelper) selectBoxHelper.update();
   syncInspectorFromSelected();
   log(`[SNAP] '${selectedObject.name}' 바닥면(Z=0mm) 밀착 완료`);
@@ -2310,6 +2323,17 @@ function snapSelectedToFloor() {
 
 function duplicateSelected() {
   if (!selectedObject) return;
+  if (isBuildingPart(selectedObject)) {
+    pushUndoState();
+    const src = selectedObject.userData.cloneOf || selectedObject.name;
+    const m = makeBuildingClone(src);
+    if (!m) return;
+    setXform(m, xformOf(selectedObject));
+    m.position.x += 600; m.position.y += 600;
+    selectAssetObject(m);
+    log(`[DUPLICATE] 건물 부재 '${src}' → '${m.name}' 복제`);
+    return;
+  }
   const u = selectedObject.userData;
   const p = selectedObject.position;
   const r = selectedObject.rotation;
@@ -2329,6 +2353,13 @@ function deleteSelected() {
   if (!selectedObject) return;
   pushUndoState();
   const name = selectedObject.name;
+  if (isBuildingPart(selectedObject)) {
+    const m = selectedObject;
+    selectAssetObject(null);
+    if (m.parent) m.parent.remove(m);
+    log(`[DELETE] 건물 부재 '${name}' 삭제 (Ctrl+Z로 복원, 레이아웃 저장 시 유지)`);
+    return;
+  }
   transformControl.detach();
   if (selectBoxHelper) {
     scene.remove(selectBoxHelper);
@@ -2393,6 +2424,127 @@ function updateOrbitPivot(dt) {
   if (g.to.distanceTo(controls.target) < 1) orbitPivot.glide = null;
 }
 window.orbitPivot = orbitPivot;
+
+// ----------------------------------------------------------------------------
+// Building parts (architecture shell from factory_precision.obj / model.obj): select each part, move it,
+// delete it, duplicate it. Edits are kept as { removed, moved, clones } in scene_layout.json ("building")
+// and in the undo stack. The floor slab and floor joints stay locked so a click on the floor selects nothing.
+// ----------------------------------------------------------------------------
+const BUILDING_LOCKED = /^(Floor_Slab|Joint_[XY]_)/;
+const buildingOriginals = new Map();   // name -> { mesh, pos, quat, scale }
+const buildingClones = new Map();      // name -> mesh
+let pendingBuildingState = null;
+let buildingCloneSeq = 1;
+
+function isBuildingPart(o) { return !!(o && o.isMesh && o.userData && o.userData.isBuildingPart); }
+
+/** Move a mesh's origin to its geometry centre without moving it in the world (gizmo appears on the part). */
+function repivotMesh(m) {
+  m.geometry.computeBoundingBox();
+  const c = m.geometry.boundingBox.getCenter(new THREE.Vector3());
+  if (c.lengthSq() < 1) return;
+  m.geometry.translate(-c.x, -c.y, -c.z);
+  m.children.forEach(k => { if (k.geometry) k.geometry.translate(-c.x, -c.y, -c.z); });
+  m.position.add(c.clone().multiply(m.scale).applyQuaternion(m.quaternion));
+  m.updateMatrixWorld(true);
+}
+
+function initBuildingParts(group) {
+  group.children.slice().forEach(m => {
+    if (!m.isMesh || !m.name || BUILDING_LOCKED.test(m.name) || buildingOriginals.has(m.name)) return;
+    repivotMesh(m);
+    m.geometry.computeBoundingBox();
+    const s = m.geometry.boundingBox.getSize(new THREE.Vector3());
+    m.userData.isBuildingPart = true;
+    m.userData.baseDims = [Math.round(s.x), Math.round(s.y), Math.round(s.z)];
+    buildingOriginals.set(m.name, { mesh: m, pos: m.position.clone(), quat: m.quaternion.clone(), scale: m.scale.clone() });
+  });
+  if (pendingBuildingState) { const st = pendingBuildingState; pendingBuildingState = null; applyBuildingState(st); }
+  log(`[BUILDING] 건물 부재 ${buildingOriginals.size}개 선택·이동·삭제·복제 가능 (바닥 슬래브는 고정)`);
+}
+
+const xformOf = m => ({
+  pos: m.position.toArray().map(v => Math.round(v * 10) / 10),
+  rot: [m.rotation.x, m.rotation.y, m.rotation.z].map(r => Math.round(THREE.MathUtils.radToDeg(r) * 100) / 100),
+  scale: m.scale.toArray().map(v => Number(v.toFixed(4)))
+});
+function setXform(m, t) {
+  if (t.pos) m.position.fromArray(t.pos);
+  if (t.rot) m.rotation.set(...t.rot.map(d => THREE.MathUtils.degToRad(d)));
+  if (t.scale) m.scale.fromArray(t.scale);
+}
+
+function serializeBuilding() {
+  const removed = [], moved = {}, clones = [];
+  buildingOriginals.forEach((o, name) => {
+    if (!o.mesh.parent) { removed.push(name); return; }
+    const m = o.mesh;
+    if (m.position.distanceTo(o.pos) > 0.05 || Math.abs(m.quaternion.angleTo(o.quat)) > 1e-5 || m.scale.distanceTo(o.scale) > 1e-5) moved[name] = xformOf(m);
+  });
+  buildingClones.forEach((m, name) => { if (m.parent) clones.push(Object.assign({ name, source: m.userData.cloneOf }, xformOf(m))); });
+  return { removed, moved, clones };
+}
+
+function makeBuildingClone(sourceName, name) {
+  const src = buildingOriginals.get(sourceName);
+  if (!src || !factoryMeshGroup) return null;
+  const m = src.mesh.clone();                                // geometry shared, materials cloned below
+  m.material = src.mesh.material.clone();
+  m.children.forEach(k => { if (k.material) k.material = k.material.clone(); });
+  let n = name;
+  while (!n || buildingClones.has(n) || buildingOriginals.has(n)) n = `${sourceName}_copy${buildingCloneSeq++}`;
+  m.name = n;
+  m.userData = { isBuildingPart: true, cloneOf: sourceName, baseDims: (src.mesh.userData.baseDims || []).slice() };
+  if (typeof exteriorCladdingMeshes !== 'undefined' && exteriorCladdingMeshes.includes(src.mesh)) exteriorCladdingMeshes.push(m);
+  factoryMeshGroup.add(m);
+  buildingClones.set(n, m);
+  return m;
+}
+
+function applyBuildingState(st) {
+  if (!factoryMeshGroup || !buildingOriginals.size) { pendingBuildingState = st || null; return; }
+  st = st || {};
+  if (isBuildingPart(selectedObject)) selectAssetObject(null);
+  const removed = new Set(st.removed || []), moved = st.moved || {};
+  buildingOriginals.forEach((o, name) => {
+    if (removed.has(name)) { if (o.mesh.parent) o.mesh.parent.remove(o.mesh); return; }
+    if (!o.mesh.parent) factoryMeshGroup.add(o.mesh);
+    if (moved[name]) setXform(o.mesh, moved[name]);
+    else { o.mesh.position.copy(o.pos); o.mesh.quaternion.copy(o.quat); o.mesh.scale.copy(o.scale); }
+  });
+  buildingClones.forEach(m => { if (m.parent) m.parent.remove(m); });
+  buildingClones.clear();
+  (st.clones || []).forEach(c => { const m = makeBuildingClone(c.source, c.name); if (m) setXform(m, c); });
+}
+
+/**
+ * Click picking over placed assets + building parts. Nearest opaque hit wins; see-through cladding and glass
+ * (opacity < 0.6) are only picked when nothing opaque lies behind them, or with Alt+click (frontmost).
+ * A hit on the locked floor ends the search.
+ */
+function pickSelectable(alt) {
+  const roots = [placedAssetsGroup];
+  if (factoryMeshGroup) roots.push(factoryMeshGroup);
+  const hits = raycaster.intersectObjects(roots, true);
+  let firstSeeThrough = null;
+  for (const h of hits) {
+    const o = h.object;
+    if (!o.isMesh || !o.visible) continue;
+    let target = null;
+    let p = o;
+    while (p && p.parent !== placedAssetsGroup && p !== placedAssetsGroup) p = p.parent;
+    if (p && p.parent === placedAssetsGroup) target = p.userData && p.userData.isEditableAsset ? p : null;
+    else if (isBuildingPart(o)) target = o;
+    else if (o.name && BUILDING_LOCKED.test(o.name)) break;     // the floor
+    if (!target) continue;
+    const mat = Array.isArray(o.material) ? o.material[0] : o.material;
+    const seeThrough = mat && mat.transparent && mat.opacity < 0.6;
+    if (alt || !seeThrough) return target;
+    if (!firstSeeThrough) firstSeeThrough = target;
+  }
+  return firstSeeThrough;
+}
+window.buildingEdits = { serialize: serializeBuilding, apply: applyBuildingState, originals: buildingOriginals, clones: buildingClones };
 
 function setTransformMode(mode) {
   transformControl.setMode(mode);
@@ -2567,7 +2719,7 @@ function serializeCurrentScene() {
 }
 
 function pushUndoState() {
-  undoStack.push(JSON.stringify(serializeCurrentScene()));
+  undoStack.push(JSON.stringify({ items: serializeCurrentScene(), building: serializeBuilding() }));
   if (undoStack.length > 25) undoStack.shift();
 }
 
@@ -2577,7 +2729,11 @@ function undoLastAction() {
     return;
   }
   const prev = JSON.parse(undoStack.pop());
-  rebuildPlacedAssetsFromList(prev);
+  if (Array.isArray(prev)) rebuildPlacedAssetsFromList(prev);       // entries from before building edits existed
+  else {
+    rebuildPlacedAssetsFromList(prev.items || []);
+    applyBuildingState(prev.building);
+  }
   log('[UNDO] 이전 배치 상태로 복원되었습니다.');
 }
 
@@ -2600,6 +2756,7 @@ function loadInitialSceneLayout() {
   fetch('/api/layout')
     .then(r => r.json())
     .then(data => {
+      if (data && data.building) applyBuildingState(data.building);   // deferred until the shell OBJ has loaded
       if (data && Array.isArray(data.items) && data.items.length > 0) {
         rebuildPlacedAssetsFromList(data.items);
         log(`[LAYOUT] 저장된 씬 레이아웃(${data.items.length}개 에셋) 로드 완료.`);
@@ -2645,7 +2802,8 @@ function saveSceneLayoutToServer() {
       positionY: 16000,
       description: '북측 하역장 전면 메인 오버헤드 섹셔널 도어 (기본값 고정)'
     },
-    items: serializeCurrentScene()
+    items: serializeCurrentScene(),
+    building: serializeBuilding()
   };
   fetch('/api/layout', {
     method: 'POST',
@@ -2715,17 +2873,8 @@ function setupInteractions(container) {
     mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(mouse, camera);
 
-    const hits = raycaster.intersectObjects(placedAssetsGroup.children, true);
-    if (hits.length > 0) {
-      let curr = hits[0].object;
-      while (curr && curr.parent !== placedAssetsGroup) {
-        curr = curr.parent;
-      }
-      if (curr && curr.userData && curr.userData.isEditableAsset) {
-        selectAssetObject(curr);
-        return;
-      }
-    }
+    const target = pickSelectable(e.altKey);
+    if (target) selectAssetObject(target);
   });
 
   container.addEventListener('mousemove', onMouseMove);
@@ -3165,6 +3314,7 @@ function loadPrecisionModel() {
 
     scene.add(obj);
     setupCargoGateAssembly(obj);
+    initBuildingParts(obj);
     const urlView = new URLSearchParams(window.location.search).get('view');
     if (urlView) setView(urlView);
     log('[PBR] 건축 쉘 메쉬(원본 SolidCraft STEP 226개 솔리드를 OBJ로 변환)에 골강판 노멀맵, 에폭시 바닥 반사, H-빔 스틸 셰이더 적용.');
