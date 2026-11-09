@@ -35,7 +35,27 @@ import json
 import math
 import bpy
 
-BASE_DIR = r"C:\Users\jaeso\.gemini\antigravity\scratch\factory_digital_twin"
+# Project root = the folder this script lives in (was a hard-coded personal path).
+# Override with the TWIN_BASE_DIR environment variable if the script is run from elsewhere.
+BASE_DIR = os.environ.get("TWIN_BASE_DIR") or os.path.dirname(os.path.abspath(__file__))
+
+
+def _script_args():
+    """Arguments after the `--` separator: --render, --samples N, --device CPU|GPU|AUTO."""
+    argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+    opts = {"render": "--render" in argv, "samples": 32, "device": "CPU"}
+    for i, a in enumerate(argv[:-1]):
+        if a == "--samples":
+            try:
+                opts["samples"] = max(1, min(4096, int(argv[i + 1])))
+            except ValueError:
+                pass
+        elif a == "--device" and argv[i + 1].upper() in ("CPU", "GPU", "AUTO"):
+            opts["device"] = argv[i + 1].upper()
+    return opts
+
+
+ARGS = _script_args()
 ARCH_OBJ_PATH = os.path.join(BASE_DIR, "factory_precision.obj")
 CNC_OBJ_PATH = os.path.join(BASE_DIR, "industrial_cnc_and_3dprinter.obj")
 LAYOUT_JSON_PATH = os.path.join(BASE_DIR, "scene_layout.json")
@@ -57,27 +77,36 @@ def setup_photoreal_render_engine():
 
     # Cycles GPU Path Tracing 기본 설정
     scene.render.engine = 'CYCLES'
-    scene.cycles.samples = 256
+    # Default 32 samples on CPU: 256 samples + OptiX needs an NVIDIA GPU and does not finish in
+    # minutes on an integrated-graphics laptop. Pass `-- --samples 256 --device GPU` on a GPU machine.
+    scene.cycles.samples = ARGS["samples"]
     scene.cycles.use_denoising = True
     scene.cycles.max_bounces = 12
     scene.cycles.glossy_bounces = 8
     scene.cycles.transmission_bounces = 8
     scene.cycles.volume_bounces = 2
 
-    try:
-        prefs = bpy.context.preferences.addons['cycles'].preferences
-        for dev_type in ('OPTIX', 'CUDA', 'HIP', 'ONEAPI'):
-            try:
-                prefs.compute_device_type = dev_type
-                prefs.get_devices()
-                for d in prefs.devices:
-                    d.use = True
-                scene.cycles.device = 'GPU'
-                break
-            except Exception:
-                continue
-    except Exception:
-        pass
+    # CPU unless GPU/AUTO was requested; GPU falls back to CPU when no compute device exists.
+    scene.cycles.device = 'CPU'
+    if ARGS["device"] in ('GPU', 'AUTO'):
+        try:
+            prefs = bpy.context.preferences.addons['cycles'].preferences
+            for dev_type in ('OPTIX', 'CUDA', 'HIP', 'ONEAPI', 'METAL'):
+                try:
+                    prefs.compute_device_type = dev_type
+                    prefs.get_devices()
+                    gpus = [d for d in prefs.devices if d.type != 'CPU']
+                    if not gpus:
+                        continue
+                    for d in prefs.devices:
+                        d.use = True
+                    scene.cycles.device = 'GPU'
+                    break
+                except Exception:
+                    continue
+        except Exception:
+            pass
+    print(f"[INFO] Cycles device={scene.cycles.device} samples={scene.cycles.samples}")
 
     # Blender 4.x AgX Filmic 컬러 매니지먼트
     try:
@@ -335,7 +364,7 @@ def assemble_digital_twin_scene():
     bpy.ops.wm.save_as_mainfile(filepath=blend_out)
     print(f"[SUCCESS] Photorealistic Blender 4.x Digital Twin saved to: {blend_out}")
 
-    if "--render" in sys.argv:
+    if ARGS["render"] or "--render" in sys.argv:
         render_path = os.path.join(RENDER_OUT_DIR, "cycles_digital_twin_render.png")
         scene = bpy.context.scene
         scene.render.filepath = render_path
