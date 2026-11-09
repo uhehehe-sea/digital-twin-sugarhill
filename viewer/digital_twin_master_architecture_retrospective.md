@@ -123,7 +123,7 @@
 | :--- | :--- | :--- |
 | **공장 디지털 트윈 V2** | [http://localhost:8088/v2](http://localhost:8088/v2) | 거시 공장 씬 + 언리얼 스타일 독립 2D/3D CAD 스튜디오 |
 | **특수 고분자 CAM 스튜디오** | [http://localhost:8088/polymer](http://localhost:8088/polymer) | PP/PVDF/FPM/PEEK 자동 CAM, 2D 네스팅, G-code 추출 |
-| **정밀 검증 하네스** | [`verification_harness.py`](file:///C:/Users/jaeso/.gemini/antigravity/scratch/blender-cad-tools/verification_harness.py) | ISO H7 및 $2\mu\text{m}$ 이내 공차 CMM 측정 코드 |
-| **Blender 자동화 엔진** | [`blender_twin_controller.py`](file:///C:/Users/jaeso/.gemini/antigravity/scratch/blender-cad-tools/blender_twin_controller.py) | 헤드리스 B-Rep 모델링 및 실사 렌더링 스크립트 |
+| **정밀 검증 하네스** | [`verification_harness.py`](file:///<home>/.gemini/antigravity/scratch/blender-cad-tools/verification_harness.py) | ISO H7 및 $2\mu\text{m}$ 이내 공차 CMM 측정 코드 |
+| **Blender 자동화 엔진** | [`blender_twin_controller.py`](file:///<home>/.gemini/antigravity/scratch/blender-cad-tools/blender_twin_controller.py) | 헤드리스 B-Rep 모델링 및 실사 렌더링 스크립트 |
 | **Google Drive 저장소** | [구글 드라이브 폴더 링크](https://drive.google.com/drive/folders/1-Fo353EoX6W85kOKwV1LgMgDThzo1zzp) | 폴더 ID: `1-Fo353EoX6W85kOKwV1LgMgDThzo1zzp` |
 | **본 마스터 회고록 문서** | `digital_twin_master_architecture_retrospective.md` | 전체 고민, 과정, 아키텍처 및 결과 총망라 |

@@ -1,8 +1,8 @@
 import fs from 'fs';
 import { execSync } from 'child_process';
 
-const SOLIDCRAFT_CLI = 'C:\\Users\\jaeso\\.gemini\\antigravity\\bin\\solidcraft-cli.exe';
-const OUT_DIR = 'C:\\Users\\jaeso\\.gemini\\antigravity\\scratch\\factory_digital_twin';
+const SOLIDCRAFT_CLI = (process.env.SOLIDCRAFT_CLI || 'solidcraft-cli');
+const OUT_DIR = (process.env.TWIN_ROOT || '.');
 
 const commands = [];
 

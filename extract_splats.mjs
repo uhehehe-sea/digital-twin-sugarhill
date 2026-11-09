@@ -1,7 +1,7 @@
 import fs from 'fs';
 
-const plyPath = 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/sugarhill_iteration_30000.ply';
-const outBinPath = 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/viewer/splat_cloud.bin';
+const plyPath = (process.env.TWIN_ROOT || '.') + '/sugarhill_iteration_30000.ply';
+const outBinPath = (process.env.TWIN_ROOT || '.') + '/viewer/splat_cloud.bin';
 
 const buf = fs.readFileSync(plyPath);
 const headerEndStr = 'end_header\n';

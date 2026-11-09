@@ -1,7 +1,7 @@
 # Phase 0 감사 보고서 (AUDIT)
 
 - 작성: 2026-11-08 (ET), Claude Code (Opus)
-- 대상: `C:\Projects\factory-digital-twin\` (원본 `C:\Users\jaeso\.gemini\antigravity\scratch\factory_digital_twin\` 및 `...\scratch\blender-cad-tools\` 의 복사본)
+- 대상: `C:\Projects\factory-digital-twin\` (원본 `<project-root>\` 및 `...\scratch\blender-cad-tools\` 의 복사본)
 - 원칙: 이 단계에서 코드 수정 없음. 아래 판정은 **코드를 읽거나 실제로 실행해 확인한 것**만 "확인됨"으로 적었다. 실행 확인은 [실행]으로 표시.
 
 ---
@@ -76,8 +76,8 @@ node viewer/server.mjs     → http://localhost:8088/v2 , /polymer , /studio , /
 
 - Node.js (확인: v26.13.0). 서버 자체는 외부 npm 의존성 없음.
 - 브라우저 측은 CDN 의존: three.js r128 (cdnjs, jsdelivr), Tailwind (`https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js` — Antigravity 개발용 URL, 언제든 사라질 수 있음). 오프라인에서는 화면이 깨진다.
-- 선택 의존: `solidcraft-cli.exe` 0.30.1 (`C:\Users\jaeso\.gemini\antigravity\bin\`, `/api/rebuild`에서 호출), Blender 5.2 포터블 (`scratch\blender-bin\`, 내장 Python 3.13.13). 시스템 Python은 없음(Store 스텁만 있음).
-- **주의 — 경로 하드코딩**: `viewer/server.mjs:7` `baseDir = 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin'`. 복사본의 서버를 띄워도 **원본 scratch 파일을 서빙**하고, `/api/layout` POST는 원본의 `scene_layout.json`을 덮어쓴다. Phase 1 첫 작업으로 상대경로화 필요.
+- 선택 의존: `solidcraft-cli.exe` 0.30.1 (`<home>\.gemini\antigravity\bin\`, `/api/rebuild`에서 호출), Blender 5.2 포터블 (`scratch\blender-bin\`, 내장 Python 3.13.13). 시스템 Python은 없음(Store 스텁만 있음).
+- **주의 — 경로 하드코딩**: `viewer/server.mjs:7` `baseDir = '<project-root>'`. 복사본의 서버를 띄워도 **원본 scratch 파일을 서빙**하고, `/api/layout` POST는 원본의 `scene_layout.json`을 덮어쓴다. Phase 1 첫 작업으로 상대경로화 필요.
 - 실행 시점에 원본 서버가 이미 8088에서 돌고 있었다 (PID 11116, 원본 `server.mjs`, 17:01 시작). 종료하지 않고 그대로 사용해 확인했다. 복사본 서버를 띄우면 `EADDRINUSE`로 실패한다.
 
 ## 4. 회고록 주장별 판정

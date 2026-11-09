@@ -22,7 +22,7 @@ import fs from 'fs';
  * 6. 바닥 노란 안전 구획선(SafetyLine) 및 적색 STOP 바닥 표지
  */
 
-const outputJsonPath = 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/factory_precision.json';
+const outputJsonPath = (process.env.TWIN_ROOT || '.') + '/factory_precision.json';
 const commands = [];
 
 function addBox(name, corner, length, width, height) {

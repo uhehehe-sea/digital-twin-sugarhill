@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const BASE_DIR = 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/nvidia_isaac_assets';
+const BASE_DIR = (process.env.TWIN_ROOT || '.') + '/nvidia_isaac_assets';
 
 // Expanded NVIDIA Isaac Sim / SimReady OpenUSD Assets:
 // 1) Fixed Factory Safety & Utility

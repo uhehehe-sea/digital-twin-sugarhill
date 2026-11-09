@@ -1,7 +1,7 @@
 import fs from 'fs';
 
-const plyPath = 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/sugarhill_iteration_30000.ply';
-const outPath = 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/viewer/true_3dgs.bin';
+const plyPath = (process.env.TWIN_ROOT || '.') + '/sugarhill_iteration_30000.ply';
+const outPath = (process.env.TWIN_ROOT || '.') + '/viewer/true_3dgs.bin';
 
 const buf = fs.readFileSync(plyPath);
 let idx = buf.indexOf('end_header\n');

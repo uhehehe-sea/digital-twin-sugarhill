@@ -6,36 +6,36 @@ import { NodeBasisEncoder } from 'ktx2-encoder';
 const textures = [
   {
     name: 'T_Steel_A1_Albedo',
-    src: 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/nvidia_isaac_assets/nvidia_material_library/Metal/Textures/T_Steel_A1_Albedo.png',
-    dest: 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/nvidia_isaac_assets/nvidia_material_library/Metal/Textures/T_Steel_A1_Albedo.ktx2',
+    src: (process.env.TWIN_ROOT || '.') + '/nvidia_isaac_assets/nvidia_material_library/Metal/Textures/T_Steel_A1_Albedo.png',
+    dest: (process.env.TWIN_ROOT || '.') + '/nvidia_isaac_assets/nvidia_material_library/Metal/Textures/T_Steel_A1_Albedo.ktx2',
     isSRGB: true,
     isUASTC: true
   },
   {
     name: 'T_Steel_A1_Normal',
-    src: 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/nvidia_isaac_assets/nvidia_material_library/Metal/Textures/T_Steel_A1_Normal.png',
-    dest: 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/nvidia_isaac_assets/nvidia_material_library/Metal/Textures/T_Steel_A1_Normal.ktx2',
+    src: (process.env.TWIN_ROOT || '.') + '/nvidia_isaac_assets/nvidia_material_library/Metal/Textures/T_Steel_A1_Normal.png',
+    dest: (process.env.TWIN_ROOT || '.') + '/nvidia_isaac_assets/nvidia_material_library/Metal/Textures/T_Steel_A1_Normal.ktx2',
     isSRGB: false,
     isUASTC: true
   },
   {
     name: 'T_Steel_A1_ORM',
-    src: 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/nvidia_isaac_assets/nvidia_material_library/Metal/Textures/T_Steel_A1_ORM.png',
-    dest: 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/nvidia_isaac_assets/nvidia_material_library/Metal/Textures/T_Steel_A1_ORM.ktx2',
+    src: (process.env.TWIN_ROOT || '.') + '/nvidia_isaac_assets/nvidia_material_library/Metal/Textures/T_Steel_A1_ORM.png',
+    dest: (process.env.TWIN_ROOT || '.') + '/nvidia_isaac_assets/nvidia_material_library/Metal/Textures/T_Steel_A1_ORM.ktx2',
     isSRGB: false,
     isUASTC: true
   },
   {
     name: 'T_Plastic_Glossy_White_A_Albedo',
-    src: 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/nvidia_isaac_assets/nvidia_material_library/Plastic/Textures/T_Plastic_Glossy_White_A_Albedo.png',
-    dest: 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/nvidia_isaac_assets/nvidia_material_library/Plastic/Textures/T_Plastic_Glossy_White_A_Albedo.ktx2',
+    src: (process.env.TWIN_ROOT || '.') + '/nvidia_isaac_assets/nvidia_material_library/Plastic/Textures/T_Plastic_Glossy_White_A_Albedo.png',
+    dest: (process.env.TWIN_ROOT || '.') + '/nvidia_isaac_assets/nvidia_material_library/Plastic/Textures/T_Plastic_Glossy_White_A_Albedo.ktx2',
     isSRGB: true,
     isUASTC: true
   },
   {
     name: 'T_Rubber_Black_Glossy_A_Normal',
-    src: 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/nvidia_isaac_assets/nvidia_material_library/Rubber/Textures/T_Rubber_Black_Glossy_A_Normal.png',
-    dest: 'C:/Users/jaeso/.gemini/antigravity/scratch/factory_digital_twin/nvidia_isaac_assets/nvidia_material_library/Rubber/Textures/T_Rubber_Black_Glossy_A_Normal.ktx2',
+    src: (process.env.TWIN_ROOT || '.') + '/nvidia_isaac_assets/nvidia_material_library/Rubber/Textures/T_Rubber_Black_Glossy_A_Normal.png',
+    dest: (process.env.TWIN_ROOT || '.') + '/nvidia_isaac_assets/nvidia_material_library/Rubber/Textures/T_Rubber_Black_Glossy_A_Normal.ktx2',
     isSRGB: false,
     isUASTC: true
   }

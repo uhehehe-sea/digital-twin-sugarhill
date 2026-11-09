@@ -8,7 +8,7 @@
 > **실증 완료: "하이브리드 CAD 기하 제어 + 블렌더 디지털 트윈 + 검증 하네스(Harness)" 파이프라인 구동 성공.**
 > 블렌더 5.2.3 LTS 헤드리스 엔진 상에서 **ISO 286 H7 정밀 공차 및 현 오차 $\le 2\ \mu\text{m}$ 조건을 만족하는 스핀들 마운트 디지털 트윈 모델**을 성공적으로 생성하고 자동 CMM(3차원 측정) 하네스 검증을 통과했습니다.
 
-![CAD Spindle Mount Digital Twin](/C:/Users/jaeso/.gemini/antigravity/brain/17220d0e-b93f-4fba-98a0-7fe1522b44c8/spindle_mount_cad_render.png)
+![CAD Spindle Mount Digital Twin](/<home>/.gemini/antigravity/brain/17220d0e-b93f-4fba-98a0-7fe1522b44c8/spindle_mount_cad_render.png)
 
 ---
 
@@ -78,7 +78,7 @@ flowchart TD
 
 ## 5. 생성 및 검증된 핵심 자산 목록
 
-* **디지털 트윈 3D 씬**: [`machined_spindle_mount.blend`](file:///C:/Users/jaeso/.gemini/antigravity/scratch/blender-cad-tools/machined_spindle_mount.blend)
-* **CMM 검증 하네스 모듈**: [`verification_harness.py`](file:///C:/Users/jaeso/.gemini/antigravity/scratch/blender-cad-tools/verification_harness.py)
-* **통합 제어 및 렌더러**: [`blender_twin_controller.py`](file:///C:/Users/jaeso/.gemini/antigravity/scratch/blender-cad-tools/blender_twin_controller.py)
-* **CAD 렌더링 스냅샷**: [`spindle_mount_cad_render.png`](file:///C:/Users/jaeso/.gemini/antigravity/scratch/blender-cad-tools/spindle_mount_cad_render.png)
+* **디지털 트윈 3D 씬**: [`machined_spindle_mount.blend`](file:///<home>/.gemini/antigravity/scratch/blender-cad-tools/machined_spindle_mount.blend)
+* **CMM 검증 하네스 모듈**: [`verification_harness.py`](file:///<home>/.gemini/antigravity/scratch/blender-cad-tools/verification_harness.py)
+* **통합 제어 및 렌더러**: [`blender_twin_controller.py`](file:///<home>/.gemini/antigravity/scratch/blender-cad-tools/blender_twin_controller.py)
+* **CAD 렌더링 스냅샷**: [`spindle_mount_cad_render.png`](file:///<home>/.gemini/antigravity/scratch/blender-cad-tools/spindle_mount_cad_render.png)

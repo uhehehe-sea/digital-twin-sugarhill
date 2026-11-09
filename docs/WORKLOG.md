@@ -7,7 +7,7 @@
 ## 2026-11-08 — Phase 0: 백업과 감사 (Opus)
 
 ### 한 일
-- 원본 `C:\Users\jaeso\.gemini\antigravity\scratch\factory_digital_twin\` → `C:\Projects\factory-digital-twin\` 복사 (797파일, 2.568 GB, 실패 0).
+- 원본 `<project-root>\` → `C:\Projects\factory-digital-twin\` 복사 (797파일, 2.568 GB, 실패 0).
 - `scratch\blender-cad-tools\` → `C:\Projects\factory-digital-twin\blender-cad-tools\` 복사 (검증 하네스가 여기 있음).
 - 브라우저 프로필 `viewer\edgetmp`, `viewer\edgetmp2`는 복사 제외 (쿠키·로그인 DB 포함). 원본엔 남아 있음.
 - `.gitignore` 작성.
