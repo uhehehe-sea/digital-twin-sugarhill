@@ -1,0 +1,40 @@
+# --- dependencies ---
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# --- large binary assets (kept on disk, not in git) ---
+# 2 GB raw video
+videos/
+*.mov
+*.mp4
+# ~513 MB third-party NVIDIA Isaac/USD assets (license: NVIDIA, re-download via download_nvidia_isaac_assets.mjs)
+nvidia_isaac_assets/
+# raw 3DGS point cloud (15 MB)
+*.ply
+
+# --- browser profiles / caches created by automation (may contain cookies/login data) ---
+edgetmp*/
+edge_profile/
+chrome_profile/
+**/edgetmp*/
+
+# --- kept locally, NOT part of the Sugar Hill factory twin repo ---
+# wet-bench (SEABatch) side experiment + roadmap that quotes internal company material
+viewer/seabatch_hmi.html
+viewer/lib/wetbench_sim.js
+tests/wetbench_sim.test.js
+docs/PLAN_roadmap.md
+
+# --- build output ---
+dist/
+
+# --- Blender autosave backups ---
+*.blend1
+
+# --- logs / OS ---
+*.log
+Thumbs.db
+.DS_Store

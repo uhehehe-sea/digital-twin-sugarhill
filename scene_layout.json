@@ -1,0 +1,10 @@
+{
+  "items": [],
+  "gateConfig": {
+    "defaultWall": "NORTH",
+    "installedWall": "NORTH",
+    "positionY": 16000,
+    "description": "북측 하역장 전면 메인 오버헤드 섹셔널 도어 (CAD 벽체 개구부 1:1 정합 - 기본값 고정)",
+    "savedAt": "2026-11-08T17:50:00.053Z"
+  }
+}

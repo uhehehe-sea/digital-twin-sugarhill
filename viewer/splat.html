@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Colab 3D Gaussian Splatting 원본 EWA 실사 렌더러 (sugarhill_iteration_30000.ply)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d1117; color: #f0f6fc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow: hidden; height: 100vh; }
+    #topbar {
+      position: absolute; top: 14px; left: 14px; right: 14px; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(17, 21, 28, 0.92); border: 1px solid #303e54; border-radius: 8px;
+      padding: 10px 18px; backdrop-filter: blur(10px);
+    }
+    .title { font-size: 14px; font-weight: 700; color: #58a6ff; }
+    .btns { display: flex; gap: 8px; align-items: center; }
+    .btn {
+      background: #1f2937; border: 1px solid #374151; color: #fff;
+      padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+    }
+    .btn:hover, .btn.active { background: #238636; border-color: #2ea043; }
+    #controls-panel {
+      position: absolute; top: 72px; right: 14px; z-index: 100;
+      background: rgba(17, 21, 28, 0.90); border: 1px solid #303e54; border-radius: 8px;
+      padding: 12px 16px; width: 290px; font-size: 12px;
+    }
+    .ctrl-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .ctrl-row label { color: #c9d1d9; }
+    .ctrl-row input[type=range] { width: 130px; }
+    #hud {
+      position: absolute; bottom: 16px; left: 16px; z-index: 100;
+      background: rgba(13, 17, 23, 0.90); border: 1px solid #303e54; border-radius: 8px;
+      padding: 10px 14px; font-size: 12px; color: #8b949e;
+    }
+    #hud b { color: #3fb950; }
+    canvas { width: 100vw; height: 100vh; display: block; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+  <div id="topbar">
+    <div>
+      <span class="title">☁️ Colab 3D Gaussian Splatting 원본 EWA 2D 공분산 렌더러 (sugarhill_iteration_30000.ply)</span>
+    </div>
+    <div class="btns">
+      <button class="btn active" id="cam1" onclick="setCam(0.5, 4.8, 11.5, 0.5, 0.0, 0.0, 'cam1')">전체 공장 스플랫 조망 (Wide)</button>
+      <button class="btn" id="cam2" onclick="setCam(-8.5, 4.2, 8.5, 0.5, 0.0, 0.0, 'cam2')">측면 대각선 시점</button>
+      <button class="btn" id="cam3" onclick="setCam(0.2, 0.8, 4.2, 0.5, 0.2, -2.5, 'cam3')">실내 보행 촬영 시점</button>
+      <button class="btn" id="cam4" onclick="setCam(8.5, 4.2, 8.5, 0.0, 0.0, 0.0, 'cam4')">우측 설비 라인 시점</button>
+      <a class="btn" href="/" style="background:#1f6feb; border-color:#388bfd;">📐 SolidCraft CAD 하이브리드 대시보드로 돌아가기</a>
+    </div>
+  </div>
+
+  <div id="controls-panel">
+    <div style="font-weight:700; color:#58a6ff; margin-bottom:10px;">🎛️ EWA 가우시안 필터링 제어</div>
+    <div class="ctrl-row">
+      <label>최대 타원체 반경 (Max Sigma)</label>
+      <input type="range" id="maxScaleSlider" min="0.02" max="0.35" step="0.01" value="0.16" oninput="rebuildFromRaw()">
+    </div>
+    <div class="ctrl-row">
+      <label>최소 불투명도 (Min Alpha)</label>
+      <input type="range" id="minAlphaSlider" min="0.02" max="0.50" step="0.02" value="0.12" oninput="rebuildFromRaw()">
+    </div>
+    <div class="ctrl-row">
+      <label>가우시안 크기 배율 (Scale)</label>
+      <input type="range" id="scaleMultSlider" min="0.2" max="1.5" step="0.05" value="0.85" oninput="updateScaleMult(this.value)">
+    </div>
+    <div id="stat-line" style="color:#8b949e; font-size:11px; margin-top:6px;">렌더링 가우시안: 계산 중...</div>
+  </div>
+
+  <div id="hud">
+    데이터 소스: <b>Colab 30,000 Iteration (sugarhill_iteration_30000.ply)</b> | 알고리즘: <b>SIGGRAPH 2023 EWA 2D Screen-Space Covariance Splatting (비등방성 3D 타원체 투영)</b>
+  </div>
+
+  <canvas id="glcanvas"></canvas>
+
+  <script>
+    let scene, camera, renderer, controls, splatMesh;
+    let rawBuffer = null;
+    let splatCount = 0;
+    let centers = null, colors = null, cov3D = null;
+
+    function init() {
+      const canvas = document.getElementById('glcanvas');
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0d1117);
+
+      // Add subtle reference grid at floor level
+      const grid = new THREE.GridHelper(16, 16, 0x30363d, 0x161b22);
+      grid.position.y = -2.2;
+      scene.add(grid);
+
+      camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+      camera.position.set(0.5, 4.8, 11.5);
+
+      renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.target.set(0.5, 0.0, 0.0);
+      controls.update();
+
+      fetch('sugarhill.splat')
+        .then(r => r.arrayBuffer())
+        .then(buf => {
+          rawBuffer = buf;
+          rebuildFromRaw();
+          animate();
+        });
+
+      controls.addEventListener('change', () => {
+        if (splatMesh) sortSplats();
+      });
+    }
+
+    function rebuildFromRaw() {
+      if (!rawBuffer) return;
+      if (splatMesh) {
+        scene.remove(splatMesh);
+        splatMesh.geometry.dispose();
+        splatMesh.material.dispose();
+      }
+
+      const maxAllowedScale = parseFloat(document.getElementById('maxScaleSlider').value);
+      const minAllowedAlpha = parseFloat(document.getElementById('minAlphaSlider').value);
+      const scaleMult = parseFloat(document.getElementById('scaleMultSlider').value);
+
+      const totalInBuf = rawBuffer.byteLength / 32;
+      const f32 = new Float32Array(rawBuffer);
+      const u8 = new Uint8Array(rawBuffer);
+
+      const validList = [];
+      for (let i = 0; i < totalInBuf; i++) {
+        const fBase = i * 8;
+        const uBase = i * 32;
+        const cx = f32[fBase + 0], cy = f32[fBase + 1], cz = f32[fBase + 2];
+        if (Math.hypot(cx, cy, cz) > 12.5) continue;
+
+        let sx = f32[fBase + 3];
+        let sy = f32[fBase + 4];
+        let sz = f32[fBase + 5];
+        const maxS = Math.max(sx, sy, sz);
+        const minS = Math.min(sx, sy, sz);
+
+        // Discard only extreme sky/background floaters (> 0.85 COLMAP units)
+        if (maxS > 0.85) continue;
+
+        // Proportionally clamp oversized splats to maxAllowedScale while preserving 3D ellipsoid shape
+        if (maxS > maxAllowedScale) {
+          const clampRatio = maxAllowedScale / maxS;
+          sx *= clampRatio;
+          sy *= clampRatio;
+          sz *= clampRatio;
+        }
+        // Prevent razor-thin needle ratio (> 5:1)
+        const clampedMax = Math.max(sx, sy, sz);
+        sx = Math.max(sx, clampedMax * 0.22);
+        sy = Math.max(sy, clampedMax * 0.22);
+        sz = Math.max(sz, clampedMax * 0.22);
+
+        const r = u8[uBase + 24] / 255;
+        const g = u8[uBase + 25] / 255;
+        const b = u8[uBase + 26] / 255;
+        const a = Math.min(1.0, (u8[uBase + 27] / 255) * 1.35);
+        if (a < minAllowedAlpha) continue;
+
+        // COLMAP -> Three.js Y-up: tx = cx, ty = -cy, tz = -cz
+        const tx = cx, ty = -cy, tz = -cz;
+
+        let qw = (u8[uBase + 28] - 128) / 128;
+        let qx = (u8[uBase + 29] - 128) / 128;
+        let qy = (u8[uBase + 30] - 128) / 128;
+        let qz = (u8[uBase + 31] - 128) / 128;
+        const qn = Math.hypot(qw, qx, qy, qz) || 1;
+        qw /= qn; qx /= qn; qy /= qn; qz /= qn;
+
+        const r00 = (1 - 2 * (qy * qy + qz * qz)) * sx;
+        const r01 = (2 * (qx * qy - qw * qz)) * sy;
+        const r02 = (2 * (qx * qz + qw * qy)) * sz;
+        const r10 = -(2 * (qx * qy + qw * qz)) * sx;
+        const r11 = -(1 - 2 * (qx * qx + qz * qz)) * sy;
+        const r12 = -(2 * (qy * qz - qw * qx)) * sz;
+        const r20 = -(2 * (qx * qz - qw * qy)) * sx;
+        const r21 = -(2 * (qy * qz + qw * qx)) * sy;
+        const r22 = -(1 - 2 * (qx * qx + qy * qy)) * sz;
+
+        const c00 = r00 * r00 + r01 * r01 + r02 * r02;
+        const c01 = r00 * r10 + r01 * r11 + r02 * r12;
+        const c02 = r00 * r20 + r01 * r21 + r02 * r22;
+        const c11 = r10 * r10 + r11 * r11 + r12 * r12;
+        const c12 = r10 * r20 + r11 * r21 + r12 * r22;
+        const c22 = r20 * r20 + r21 * r21 + r22 * r22;
+
+        validList.push({ tx, ty, tz, r, g, b, a, c00, c01, c02, c11, c12, c22 });
+      }
+
+      splatCount = validList.length;
+      document.getElementById('stat-line').innerHTML =
+        `활성 고밀도 가우시안: <b style="color:#3fb950">${splatCount.toLocaleString()}개</b> / 전체 38,302개`;
+
+      centers = new Float32Array(splatCount * 3);
+      colors = new Float32Array(splatCount * 4);
+      cov3D = new Float32Array(splatCount * 6);
+
+      for (let i = 0; i < splatCount; i++) {
+        const v = validList[i];
+        centers[i * 3 + 0] = v.tx;
+        centers[i * 3 + 1] = v.ty;
+        centers[i * 3 + 2] = v.tz;
+        colors[i * 4 + 0] = v.r;
+        colors[i * 4 + 1] = v.g;
+        colors[i * 4 + 2] = v.b;
+        colors[i * 4 + 3] = v.a;
+        cov3D[i * 6 + 0] = v.c00;
+        cov3D[i * 6 + 1] = v.c01;
+        cov3D[i * 6 + 2] = v.c02;
+        cov3D[i * 6 + 3] = v.c11;
+        cov3D[i * 6 + 4] = v.c12;
+        cov3D[i * 6 + 5] = v.c22;
+      }
+
+      const positions = new Float32Array(splatCount * 4 * 3);
+      const quadOffsets = new Float32Array(splatCount * 4 * 2);
+      const vColors = new Float32Array(splatCount * 4 * 4);
+      const vCovA = new Float32Array(splatCount * 4 * 3);
+      const vCovB = new Float32Array(splatCount * 4 * 3);
+      const indices = new Uint32Array(splatCount * 6);
+
+      const corners = [[-2, -2], [2, -2], [2, 2], [-2, 2]];
+      for (let i = 0; i < splatCount; i++) {
+        for (let c = 0; c < 4; c++) {
+          const vi = i * 4 + c;
+          positions[vi * 3 + 0] = centers[i * 3 + 0];
+          positions[vi * 3 + 1] = centers[i * 3 + 1];
+          positions[vi * 3 + 2] = centers[i * 3 + 2];
+          quadOffsets[vi * 2 + 0] = corners[c][0];
+          quadOffsets[vi * 2 + 1] = corners[c][1];
+          vColors[vi * 4 + 0] = colors[i * 4 + 0];
+          vColors[vi * 4 + 1] = colors[i * 4 + 1];
+          vColors[vi * 4 + 2] = colors[i * 4 + 2];
+          vColors[vi * 4 + 3] = colors[i * 4 + 3];
+          vCovA[vi * 3 + 0] = cov3D[i * 6 + 0];
+          vCovA[vi * 3 + 1] = cov3D[i * 6 + 1];
+          vCovA[vi * 3 + 2] = cov3D[i * 6 + 2];
+          vCovB[vi * 3 + 0] = cov3D[i * 6 + 3];
+          vCovB[vi * 3 + 1] = cov3D[i * 6 + 4];
+          vCovB[vi * 3 + 2] = cov3D[i * 6 + 5];
+        }
+        const b = i * 4;
+        indices[i * 6 + 0] = b + 0;
+        indices[i * 6 + 1] = b + 1;
+        indices[i * 6 + 2] = b + 2;
+        indices[i * 6 + 3] = b + 0;
+        indices[i * 6 + 4] = b + 2;
+        indices[i * 6 + 5] = b + 3;
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geo.setAttribute('quadOffset', new THREE.BufferAttribute(quadOffsets, 2));
+      geo.setAttribute('vColorAttr', new THREE.BufferAttribute(vColors, 4));
+      geo.setAttribute('covA', new THREE.BufferAttribute(vCovA, 3));
+      geo.setAttribute('covB', new THREE.BufferAttribute(vCovB, 3));
+      geo.setIndex(new THREE.BufferAttribute(indices, 1));
+
+      const focalY = window.innerHeight / (2.0 * Math.tan((55 * Math.PI / 180) / 2.0));
+      const mat = new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        depthTest: true,
+        side: THREE.DoubleSide,
+        uniforms: {
+          viewport: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+          focal: { value: new THREE.Vector2(focalY, focalY) },
+          scaleMult: { value: scaleMult }
+        },
+        vertexShader: `
+          attribute vec2 quadOffset;
+          attribute vec4 vColorAttr;
+          attribute vec3 covA;
+          attribute vec3 covB;
+          uniform vec2 viewport;
+          uniform vec2 focal;
+          uniform float scaleMult;
+          varying vec4 vColor;
+          varying vec2 vPos;
+
+          mat3 mat3_transpose(mat3 m) {
+            return mat3(
+              m[0][0], m[1][0], m[2][0],
+              m[0][1], m[1][1], m[2][1],
+              m[0][2], m[1][2], m[2][2]
+            );
+          }
+
+          void main() {
+            vec4 camspace = modelViewMatrix * vec4(position, 1.0);
+            vec4 pos2d = projectionMatrix * camspace;
+            if (camspace.z > -0.2) {
+              gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+              return;
+            }
+
+            mat3 Vrk = mat3(
+              covA.x, covA.y, covA.z,
+              covA.y, covB.x, covB.y,
+              covA.z, covB.y, covB.z
+            );
+
+            float tz = camspace.z;
+            // Column-major perspective Jacobian J
+            mat3 J = mat3(
+              focal.x / tz, 0.0, 0.0,
+              0.0, focal.y / tz, 0.0,
+              -(focal.x * camspace.x) / (tz * tz), -(focal.y * camspace.y) / (tz * tz), 0.0
+            );
+
+            mat3 W = mat3(modelViewMatrix);
+            mat3 T = J * W;
+            mat3 cov = T * Vrk * mat3_transpose(T);
+
+            float d1 = cov[0][0] + 0.3;
+            float off = cov[0][1];
+            float d2 = cov[1][1] + 0.3;
+
+            float mid = 0.5 * (d1 + d2);
+            float radius = length(vec2((d1 - d2) * 0.5, off));
+            float l1 = mid + radius;
+            float l2 = max(mid - radius, 0.1);
+
+            vec2 v1_dir = (d1 >= d2) ? vec2(l1 - d2, off) : vec2(off, l1 - d1);
+            float v1_len = length(v1_dir);
+            vec2 diagVec = (v1_len > 1e-6) ? (v1_dir / v1_len) : vec2(1.0, 0.0);
+
+            vec2 v1 = min(sqrt(2.0 * l1) * scaleMult, 160.0) * diagVec;
+            vec2 v2 = min(sqrt(2.0 * l2) * scaleMult, 160.0) * vec2(diagVec.y, -diagVec.x);
+
+            vColor = vColorAttr;
+            vPos = quadOffset;
+
+            vec2 screenCenter = pos2d.xy / pos2d.w;
+            vec2 offsetNDC = (quadOffset.x * v1 + quadOffset.y * v2) * 2.0 / viewport;
+            gl_Position = vec4(screenCenter + offsetNDC, pos2d.z / pos2d.w, 1.0);
+          }
+        `,
+        fragmentShader: `
+          varying vec4 vColor;
+          varying vec2 vPos;
+          void main() {
+            float A = -dot(vPos, vPos);
+            if (A < -4.0) discard;
+            float alpha = exp(A) * vColor.a;
+            if (alpha < 0.02) discard;
+            gl_FragColor = vec4(vColor.rgb, alpha);
+          }
+        `
+      });
+
+      splatMesh = new THREE.Mesh(geo, mat);
+      splatMesh.frustumCulled = false;
+      scene.add(splatMesh);
+      sortSplats();
+    }
+
+    window.updateScaleMult = (val) => {
+      if (splatMesh && splatMesh.material.uniforms) {
+        splatMesh.material.uniforms.scaleMult.value = parseFloat(val);
+      }
+    };
+
+    function sortSplats() {
+      if (!splatMesh) return;
+      const cx = camera.position.x, cy = camera.position.y, cz = camera.position.z;
+      const order = new Uint32Array(splatCount);
+      const dists = new Float32Array(splatCount);
+
+      for (let i = 0; i < splatCount; i++) {
+        order[i] = i;
+        const dx = centers[i * 3 + 0] - cx;
+        const dy = centers[i * 3 + 1] - cy;
+        const dz = centers[i * 3 + 2] - cz;
+        dists[i] = dx * dx + dy * dy + dz * dz;
+      }
+
+      order.sort((a, b) => dists[b] - dists[a]);
+
+      const idxArr = splatMesh.geometry.index.array;
+      for (let k = 0; k < splatCount; k++) {
+        const b = order[k] * 4;
+        idxArr[k * 6 + 0] = b + 0;
+        idxArr[k * 6 + 1] = b + 1;
+        idxArr[k * 6 + 2] = b + 2;
+        idxArr[k * 6 + 3] = b + 0;
+        idxArr[k * 6 + 4] = b + 2;
+        idxArr[k * 6 + 5] = b + 3;
+      }
+      splatMesh.geometry.index.needsUpdate = true;
+    }
+
+    window.setCam = (px, py, pz, lx, ly, lz, btnId) => {
+      document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+      if (btnId && document.getElementById(btnId)) document.getElementById(btnId).classList.add('active');
+      camera.position.set(px, py, pz);
+      controls.target.set(lx, ly, lz);
+      controls.update();
+      sortSplats();
+    };
+
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>

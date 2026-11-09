@@ -1,0 +1,83 @@
+{
+  "project": "Factory_Digital_Twin",
+  "units": "mm",
+  "coordinate_system": "RightHanded_Z_Up",
+  "ground_truth_origin": {
+    "description": "메자닌 계단 시작점 하단 모서리 또는 지지 H빔 기둥 전면 모서리(Z=0.00)",
+    "coordinates": [0, 0, 0]
+  },
+  "floor_grid": {
+    "slab_joint_spacing": [4500, 4500],
+    "safety_line_width": 100
+  },
+  "structures": [
+    {
+      "id": "MAIN_COLUMN_GRID",
+      "type": "Parametric_HBeam",
+      "parameters": {
+        "profile": "W10x30",
+        "flange_width": 254,
+        "depth": 267,
+        "web_thickness": 7.6,
+        "flange_thickness": 13.0,
+        "height": 7200,
+        "spacing_x": 6000,
+        "spacing_y": 15000,
+        "count_x": 5,
+        "count_y": 2
+      }
+    },
+    {
+      "id": "MEZZANINE_STRUCTURE",
+      "type": "Parametric_Mezzanine",
+      "parameters": {
+        "base_origin": [0, 0, 0],
+        "width_x": 12000,
+        "length_y": 6000,
+        "platform_height": 3200,
+        "stair": {
+          "enabled": true,
+          "width": 1000,
+          "tread_depth": 280,
+          "riser_height": 180,
+          "step_count": 18,
+          "location": "Front_Center"
+        },
+        "lower_partitions": [
+          {"name": "Restroom_1", "width": 2400, "length": 2400, "height": 2800},
+          {"name": "Restroom_2", "width": 2400, "length": 2400, "height": 2800}
+        ]
+      }
+    },
+    {
+      "id": "LOGISTICS_WALL_DOORS",
+      "type": "Parametric_Door_Set",
+      "parameters": {
+        "wall_index": "West",
+        "doors": [
+          {"type": "Overhead_Sectional", "width": 4200, "height": 4500, "offset_x": 3000},
+          {"type": "HighSpeed_Rollup", "width": 3600, "height": 4200, "offset_x": 9000}
+        ],
+        "exhaust_fans": [
+          {"size": [1200, 1200], "elevation_z": 5000, "offset_x": 1500},
+          {"size": [1200, 1200], "elevation_z": 5000, "offset_x": 7500}
+        ]
+      }
+    }
+  ],
+  "decimate_guidelines": {
+    "structures": {
+      "mode": "Planar",
+      "angle_limit_deg": 3.0,
+      "collapse_ratio": 0.08
+    },
+    "mezzanine_columns": {
+      "mode": "Collapse",
+      "collapse_ratio": 0.30
+    },
+    "small_assets": {
+      "mode": "Collapse",
+      "collapse_ratio": 0.18
+    }
+  }
+}

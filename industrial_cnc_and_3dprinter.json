@@ -1,0 +1,466 @@
+[
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "CNC_SealJet_BaseBed_CastIron",
+      "corner": [
+        0,
+        0,
+        0
+      ],
+      "length": 2450,
+      "width": 1480,
+      "height": 680
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "CNC_SealJet_ChipPan_Stainless304",
+      "corner": [
+        80,
+        80,
+        680
+      ],
+      "length": 1850,
+      "width": 1320,
+      "height": 60
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "CNC_SealJet_Enclosure_LeftTower",
+      "corner": [
+        0,
+        0,
+        680
+      ],
+      "length": 650,
+      "width": 1480,
+      "height": 1140
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "CNC_SealJet_Enclosure_RearHood",
+      "corner": [
+        650,
+        680,
+        680
+      ],
+      "length": 1300,
+      "width": 800,
+      "height": 1140
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "CNC_SealJet_Enclosure_RightTail",
+      "corner": [
+        1950,
+        0,
+        680
+      ],
+      "length": 500,
+      "width": 1480,
+      "height": 1140
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "CNC_SealJet_SlidingDoor_Frame",
+      "corner": [
+        680,
+        40,
+        740
+      ],
+      "length": 1220,
+      "width": 60,
+      "height": 1020
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "CNC_SealJet_SlidingDoor_PolycarbonateGlass",
+      "corner": [
+        740,
+        55,
+        820
+      ],
+      "length": 1100,
+      "width": 25,
+      "height": 820
+    }
+  },
+  {
+    "command": "solid.cylinder",
+    "params": {
+      "body_name": "CNC_SealJet_SpindleChuck_SUS316",
+      "base": [
+        650,
+        740,
+        1220
+      ],
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "radius": 210,
+      "height": 180
+    }
+  },
+  {
+    "command": "solid.cylinder",
+    "params": {
+      "body_name": "CNC_SealJet_Billet_FKM_Viton_Black85A",
+      "base": [
+        830,
+        740,
+        1220
+      ],
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "radius": 145,
+      "height": 220
+    }
+  },
+  {
+    "command": "solid.cylinder",
+    "params": {
+      "body_name": "CNC_SealJet_Billet_FKM_Viton_Brown80A",
+      "base": [
+        1050,
+        740,
+        1220
+      ],
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "radius": 135,
+      "height": 120
+    }
+  },
+  {
+    "command": "solid.cylinder",
+    "params": {
+      "body_name": "CNC_SealJet_Billet_PP_Natural_SealRing",
+      "base": [
+        1170,
+        740,
+        1220
+      ],
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "radius": 130,
+      "height": 95
+    }
+  },
+  {
+    "command": "solid.cylinder",
+    "params": {
+      "body_name": "CNC_SealJet_Turret_Disc",
+      "base": [
+        1420,
+        920,
+        1320
+      ],
+      "axis": [
+        1,
+        0,
+        0
+      ],
+      "radius": 175,
+      "height": 140
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "CNC_SealJet_Turret_SlideCarriage",
+      "corner": [
+        1380,
+        880,
+        1050
+      ],
+      "length": 320,
+      "width": 420,
+      "height": 270
+    }
+  },
+  {
+    "command": "solid.cylinder",
+    "params": {
+      "body_name": "CNC_SealJet_ChipExhaust_CycloneUnit",
+      "base": [
+        2200,
+        1150,
+        1820
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "radius": 160,
+      "height": 420
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "CNC_SealJet_HMI_Arm",
+      "corner": [
+        1960,
+        -180,
+        1350
+      ],
+      "length": 80,
+      "width": 220,
+      "height": 80
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "CNC_SealJet_HMI_Panel_Cabinet",
+      "corner": [
+        1820,
+        -240,
+        1120
+      ],
+      "length": 480,
+      "width": 110,
+      "height": 580
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "CNC_SealJet_HMI_TouchScreen",
+      "corner": [
+        1860,
+        -248,
+        1280
+      ],
+      "length": 400,
+      "width": 12,
+      "height": 320
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "SLM_3DPrinter_MainFrame_Base",
+      "corner": [
+        3200,
+        0,
+        0
+      ],
+      "length": 2500,
+      "width": 1300,
+      "height": 850
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "SLM_3DPrinter_ProcessChamber_SUS304",
+      "corner": [
+        3200,
+        60,
+        850
+      ],
+      "length": 1450,
+      "width": 1240,
+      "height": 1150
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "SLM_3DPrinter_ControlTower_Right",
+      "corner": [
+        4650,
+        0,
+        850
+      ],
+      "length": 1050,
+      "width": 1300,
+      "height": 1150
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "SLM_3DPrinter_LaserOptics_TopHood",
+      "corner": [
+        3350,
+        200,
+        2000
+      ],
+      "length": 1150,
+      "width": 950,
+      "height": 240
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "SLM_3DPrinter_LaserWarning_Beacon",
+      "corner": [
+        3900,
+        650,
+        2240
+      ],
+      "length": 90,
+      "width": 90,
+      "height": 140
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "SLM_3DPrinter_ChamberDoor_Frame",
+      "corner": [
+        3320,
+        0,
+        920
+      ],
+      "length": 1200,
+      "width": 60,
+      "height": 980
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "SLM_3DPrinter_LaserShield_GreenGlass",
+      "corner": [
+        3450,
+        -8,
+        1120
+      ],
+      "length": 680,
+      "width": 20,
+      "height": 520
+    }
+  },
+  {
+    "command": "solid.cylinder",
+    "params": {
+      "body_name": "SLM_3DPrinter_BuildPlate_SUS316L",
+      "base": [
+        3780,
+        580,
+        960
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "radius": 140,
+      "height": 45
+    }
+  },
+  {
+    "command": "solid.cylinder",
+    "params": {
+      "body_name": "SLM_3DPrinter_PrintedPart_SUS316L_Impeller",
+      "base": [
+        3710,
+        560,
+        1005
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "radius": 55,
+      "height": 110
+    }
+  },
+  {
+    "command": "solid.cylinder",
+    "params": {
+      "body_name": "SLM_3DPrinter_PrintedPart_SUS314_HeatNozzle",
+      "base": [
+        3860,
+        610,
+        1005
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "radius": 48,
+      "height": 135
+    }
+  },
+  {
+    "command": "solid.box",
+    "params": {
+      "body_name": "SLM_3DPrinter_ArgonFilter_Unit",
+      "corner": [
+        5850,
+        150,
+        0
+      ],
+      "length": 780,
+      "width": 950,
+      "height": 1780
+    }
+  },
+  {
+    "command": "solid.cylinder",
+    "params": {
+      "body_name": "SLM_3DPrinter_ArgonGas_Cylinder_1",
+      "base": [
+        6720,
+        350,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "radius": 115,
+      "height": 1480
+    }
+  },
+  {
+    "command": "solid.cylinder",
+    "params": {
+      "body_name": "SLM_3DPrinter_ArgonGas_Cylinder_2",
+      "base": [
+        6720,
+        650,
+        0
+      ],
+      "axis": [
+        0,
+        0,
+        1
+      ],
+      "radius": 115,
+      "height": 1480
+    }
+  }
+]

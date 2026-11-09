@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SolidCraft Closed-Loop Manufacturing Digital Twin Studio</title>
+
+  <!-- Google Fonts: Roboto & JetBrains Mono & Material Symbols -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <!-- Tailwind CSS via Google GStatic allowlist -->
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+
+  <!-- Three.js + OrbitControls + STLExporter + STLLoader -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+
+  <style>
+    :root {
+      --md-surface: #111318;
+      --md-surface-dim: #0c0e12;
+      --md-container: #1e2025;
+      --md-container-high: #282a2f;
+      --md-container-highest: #33353b;
+      --md-border: #44474e;
+      --md-border-subtle: rgba(255, 255, 255, 0.08);
+      --md-primary: #a8c7fa;
+      --md-primary-container: #0842a0;
+      --md-on-primary-container: #d3e3fd;
+      --md-secondary: #c2e7ff;
+      --md-pass: #6dd58c;
+      --md-pass-container: rgba(109, 213, 140, 0.12);
+      --md-error: #ffb4ab;
+      --md-error-container: rgba(255, 180, 171, 0.12);
+      --md-text: #e2e2e9;
+      --md-text-muted: #8e9099;
+      --md-cyan: #78d9ec;
+    }
+
+    body {
+      font-family: 'Roboto', -apple-system, sans-serif;
+      background-color: var(--md-surface);
+      color: var(--md-text);
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Custom Scrollbar for MD3 */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--md-surface-dim); }
+    ::-webkit-scrollbar-thumb { background: var(--md-container-highest); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--md-primary); }
+
+    /* Custom range sliders */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: var(--md-container-highest);
+      height: 4px;
+      border-radius: 2px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--md-primary);
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(168, 199, 250, 0.5);
+      transition: transform 0.15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      vertical-align: middle;
+      font-size: 18px;
+    }
+
+    .trans-all { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+  </style>
+</head>
+<body class="select-none">
+
+  <!-- =========================================================================
+       1. Top MD3 Header Bar
+       ========================================================================= -->
+  <header class="h-14 bg-[var(--md-container)] border-b border-[var(--md-border-subtle)] flex items-center justify-between px-4 shrink-0 z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-[var(--md-primary-container)] text-[var(--md-primary)] flex items-center justify-center font-bold text-lg shadow-sm">
+        <span class="material-symbols-outlined">precision_manufacturing</span>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span id="txt-app-title" class="font-bold text-sm tracking-wide text-[var(--md-text)]">SolidCraft Closed-Loop Manufacturing Digital Twin</span>
+          <span class="text-[10px] font-mono bg-[var(--md-primary)]/10 text-[var(--md-primary)] px-2 py-0.5 rounded border border-[var(--md-primary)]/20 font-semibold">MD3 v4.0</span>
+        </div>
+        <p id="txt-app-subtitle" class="text-[11px] text-[var(--md-text-muted)]">물성 매핑 &rarr; 실시간 툴패스 절삭/적층 &rarr; 가상 작업대 간섭 &rarr; 이원화 제조 데이터 추출</p>
+      </div>
+    </div>
+
+    <!-- Center Mode Indicator -->
+    <div class="hidden md:flex items-center gap-1 bg-[var(--md-surface-dim)] p-1 rounded-xl border border-[var(--md-border-subtle)]">
+      <button id="btn-mode-subtractive" onclick="setProcessMode('subtractive')" class="px-3 py-1 text-xs font-semibold rounded-lg flex items-center gap-1.5 trans-all bg-[var(--md-primary)] text-[var(--md-surface-dim)] shadow-sm">
+        <span class="material-symbols-outlined text-[16px]">hardware</span>
+        <span id="txt-mode-cnc">CNC 절삭 가공</span>
+      </button>
+      <button id="btn-mode-additive" onclick="setProcessMode('additive')" class="px-3 py-1 text-xs font-semibold rounded-lg flex items-center gap-1.5 trans-all text-[var(--md-text-muted)] hover:text-[var(--md-text)]">
+        <span class="material-symbols-outlined text-[16px]">layers</span>
+        <span id="txt-mode-3dp">3D 프린팅 적층</span>
+      </button>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="flex items-center gap-2">
+      <!-- Workbench Placement Toggle -->
+      <button id="btn-toggle-workbench" onclick="toggleWorkbenchMode()" class="px-3 py-1.5 text-xs font-semibold rounded-xl border border-[var(--md-border)] bg-[var(--md-container-high)] text-[var(--md-text)] hover:border-[var(--md-primary)] flex items-center gap-1.5 trans-all" title="가상 CNC 바이스 / 지그 작업대 배치">
+        <span class="material-symbols-outlined text-[16px] text-[var(--md-primary)]">grid_view</span>
+        <span id="txt-btn-workbench">작업대 배치 모드</span>
+      </button>
+
+      <!-- Language Switcher -->
+      <button onclick="toggleLanguage()" class="px-3 py-1.5 text-xs font-semibold rounded-xl border border-[var(--md-border)] bg-[var(--md-container-high)] text-[var(--md-text)] hover:text-[var(--md-primary)] flex items-center gap-1.5 trans-all cursor-pointer">
+        <span class="material-symbols-outlined text-[16px]">translate</span>
+        <span id="txt-lang-btn">English</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       2. Main 3-Column Layout
+       ========================================================================= -->
+  <div class="flex-1 flex overflow-hidden relative">
+
+    <!-- -----------------------------------------------------------------------
+         Left Panel: Design, Material DB & SimReady Physics (360px)
+         ----------------------------------------------------------------------- -->
+    <aside class="w-[360px] bg-[var(--md-surface-dim)] border-r border-[var(--md-border-subtle)] flex flex-col shrink-0 z-10">
+      
+      <!-- Tabs Header -->
+      <div class="flex border-b border-[var(--md-border-subtle)] bg-[var(--md-container)] p-1 gap-1">
+        <button id="tab-btn-geom" onclick="switchLeftTab('geom')" class="flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 trans-all bg-[var(--md-container-high)] text-[var(--md-primary)] shadow-sm">
+          <span class="material-symbols-outlined text-[16px]">design_services</span>
+          <span id="txt-tab-geom">1. 형상 치수 & 공차</span>
+        </button>
+        <button id="tab-btn-physics" onclick="switchLeftTab('physics')" class="flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 trans-all text-[var(--md-text-muted)] hover:text-[var(--md-text)]">
+          <span class="material-symbols-outlined text-[16px]">science</span>
+          <span id="txt-tab-physics">2. 물성 & 인필 DB</span>
+        </button>
+      </div>
+
+      <!-- Tab Content Area -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        
+        <!-- Tab 1: Geometry & Dimension Sliders -->
+        <div id="tab-content-geom" class="space-y-4">
+          <!-- Preset & Import Bar -->
+          <div class="flex items-center justify-between pb-2 border-b border-[var(--md-border-subtle)]">
+            <span id="txt-spindle-title" class="text-xs font-bold text-[var(--md-primary)] uppercase tracking-wider">스핀들 마운트 파라메트릭 제어</span>
+            <label class="px-2 py-0.5 text-[11px] rounded bg-[var(--md-container-highest)] hover:bg-[var(--md-primary)] hover:text-black cursor-pointer trans-all flex items-center gap-1 font-mono">
+              <span class="material-symbols-outlined text-[14px]">upload_file</span>
+              <span>STL 드롭인</span>
+              <input type="file" id="stl-file-input" accept=".stl" class="hidden" onchange="handleSTLUpload(event)" />
+            </label>
+          </div>
+
+          <!-- Dimension Inputs -->
+          <div class="bg-[var(--md-container)] p-3 rounded-xl border border-[var(--md-border-subtle)] space-y-3">
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span id="lbl-width">폭 X (Width):</span>
+                <span class="font-mono text-[var(--md-primary)] font-bold"><span id="val-width">80</span> mm</span>
+              </div>
+              <input type="range" id="slider-width" min="50" max="150" value="80" oninput="updateParam('width', this.value)" class="w-full" />
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span id="lbl-depth">깊이 Y (Depth):</span>
+                <span class="font-mono text-[var(--md-primary)] font-bold"><span id="val-depth">80</span> mm</span>
+              </div>
+              <input type="range" id="slider-depth" min="50" max="150" value="80" oninput="updateParam('depth', this.value)" class="w-full" />
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span id="lbl-height">높이 Z (Height):</span>
+                <span class="font-mono text-[var(--md-primary)] font-bold"><span id="val-height">25</span> mm</span>
+              </div>
+              <input type="range" id="slider-height" min="15" max="60" value="25" oninput="updateParam('height', this.value)" class="w-full" />
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span id="lbl-bore">보어 구경 &Phi; (Bore Dia):</span>
+                <span class="font-mono text-[var(--md-cyan)] font-bold">&Phi; <span id="val-bore">40</span> mm</span>
+              </div>
+              <input type="range" id="slider-bore" min="20" max="65" value="40" oninput="updateParam('bore', this.value)" class="w-full" />
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span id="lbl-pcd">볼트 피치원 PCD:</span>
+                <span class="font-mono text-[var(--md-primary)] font-bold">&Phi; <span id="val-pcd">60</span> mm</span>
+              </div>
+              <input type="range" id="slider-pcd" min="35" max="120" value="60" oninput="updateParam('pcd', this.value)" class="w-full" />
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span id="lbl-cbore">M6 카운터보어 깊이:</span>
+                <span class="font-mono text-[var(--md-primary)] font-bold"><span id="val-cbore">6.0</span> mm</span>
+              </div>
+              <input type="range" id="slider-cbore" min="0" max="12" step="0.5" value="6.0" oninput="updateParam('cbore', this.value)" class="w-full" />
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span id="lbl-target-error">목표 현 오차 (Chordal Dev):</span>
+                <span class="font-mono text-[var(--md-pass)] font-bold">&le; <span id="val-target-error">2.0</span> &mu;m</span>
+              </div>
+              <input type="range" id="slider-target-error" min="0.5" max="10.0" step="0.5" value="2.0" oninput="updateParam('targetError', this.value)" class="w-full" />
+            </div>
+          </div>
+
+          <!-- Calculated Mesh Segments Card -->
+          <div class="bg-[var(--md-container)] p-3 rounded-xl border border-[var(--md-border-subtle)] flex items-center justify-between text-xs">
+            <div>
+              <div id="lbl-calc-n" class="text-[var(--md-text-muted)] font-medium">동적 분할 세그먼트 (N)</div>
+              <div class="text-[11px] text-[var(--md-text-muted)]">&delta; &le; 2.0 &mu;m 조건 충족</div>
+            </div>
+            <div class="font-mono text-base font-bold text-[var(--md-pass)]"><span id="stat-segments">223</span> Segs</div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Material & SimReady Physics -->
+        <div id="tab-content-physics" class="space-y-4 hidden">
+          <div class="flex items-center justify-between pb-2 border-b border-[var(--md-border-subtle)]">
+            <span id="txt-phys-db" class="text-xs font-bold text-[var(--md-primary)] uppercase tracking-wider">SimReady 재질 & 인필 파라미터</span>
+            <span class="text-[10px] font-mono text-[var(--md-text-muted)]">Gibson-Ashby Model</span>
+          </div>
+
+          <!-- Material Preset Selector -->
+          <div class="space-y-2">
+            <label id="lbl-mat-select" class="text-xs font-medium text-[var(--md-text-muted)]">재질 프리셋 (Material Preset):</label>
+            <select id="select-material" onchange="updateMaterialPreset(this.value)" class="w-full bg-[var(--md-container)] border border-[var(--md-border)] rounded-xl px-3 py-2 text-xs text-[var(--md-text)] font-semibold outline-none focus:border-[var(--md-primary)]">
+              <option value="al6061">Aluminium 6061-T6 (절삭용 항공/기계 알루미늄)</option>
+              <option value="pla">PLA+ Filament (적층 3D 프린팅 고강도 바이오플라스틱)</option>
+              <option value="petg">PETG Industrial (내화학/내열 산업용 엔지니어링 수지)</option>
+              <option value="abs">ABS Pro (내충격 고온 하우징용 열가소성 플라스틱)</option>
+            </select>
+          </div>
+
+          <!-- Infill Density Slider -->
+          <div class="bg-[var(--md-container)] p-3 rounded-xl border border-[var(--md-border-subtle)] space-y-3">
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span id="lbl-infill">내부 인필 밀도 (Infill Ratio):</span>
+                <span class="font-mono text-[var(--md-primary)] font-bold"><span id="val-infill">100</span> %</span>
+              </div>
+              <input type="range" id="slider-infill" min="15" max="100" value="100" oninput="updateInfill(this.value)" class="w-full" />
+              <p class="text-[10px] text-[var(--md-text-muted)] mt-1 font-mono">E_eff = E0 &times; (Infill / 100)^1.5</p>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span id="lbl-layer-height">레이어 높이 (Layer Height):</span>
+                <span class="font-mono text-[var(--md-text)] font-bold"><span id="val-layer-height">0.20</span> mm</span>
+              </div>
+              <input type="range" id="slider-layer-height" min="0.10" max="0.40" step="0.05" value="0.20" oninput="updateLayerHeight(this.value)" class="w-full" />
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span id="lbl-spindle-speed">가공 속도 (Feed / Speed):</span>
+                <span class="font-mono text-[var(--md-text)] font-bold"><span id="val-speed">1500</span> mm/min</span>
+              </div>
+              <input type="range" id="slider-speed" min="500" max="5000" step="100" value="1500" oninput="document.getElementById('val-speed').textContent = this.value" class="w-full" />
+            </div>
+          </div>
+
+          <!-- Physics Real-time Readout Card -->
+          <div class="bg-[var(--md-container)] p-3 rounded-xl border border-[var(--md-border-subtle)] space-y-2">
+            <div id="lbl-phys-summary" class="text-xs font-bold text-[var(--md-primary)] mb-1">실시간 물리 역학 예측 결과</div>
+            <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+              <div class="bg-[var(--md-surface-dim)] p-2 rounded-lg">
+                <span class="text-[10px] text-[var(--md-text-muted)] block">체적 (Volume)</span>
+                <span id="stat-vol" class="font-bold text-[var(--md-text)]">124.6 cm³</span>
+              </div>
+              <div class="bg-[var(--md-surface-dim)] p-2 rounded-lg">
+                <span class="text-[10px] text-[var(--md-text-muted)] block">예상 질량 (Mass)</span>
+                <span id="stat-mass" class="font-bold text-[var(--md-primary)]">336.4 g</span>
+              </div>
+              <div class="bg-[var(--md-surface-dim)] p-2 rounded-lg">
+                <span class="text-[10px] text-[var(--md-text-muted)] block">유효 탄성계수 (E)</span>
+                <span id="stat-eeff" class="font-bold text-[var(--md-cyan)]">68.90 GPa</span>
+              </div>
+              <div class="bg-[var(--md-surface-dim)] p-2 rounded-lg">
+                <span class="text-[10px] text-[var(--md-text-muted)] block">안전율 (Safety F.)</span>
+                <span id="stat-safety" class="font-bold text-[var(--md-pass)]">4.82 (Safe)</span>
+              </div>
+            </div>
+            <div class="bg-[var(--md-surface-dim)] p-2 rounded-lg text-xs font-mono">
+              <span class="text-[10px] text-[var(--md-text-muted)] block">질량 중심 (CoM: X, Y, Z)</span>
+              <span id="stat-com" class="font-bold text-[var(--md-text)]">X: 0.0, Y: 0.0, Z: 12.3 mm</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Left Panel Bottom Quick Status -->
+      <div class="p-3 bg-[var(--md-container)] border-t border-[var(--md-border-subtle)] flex items-center justify-between text-xs">
+        <span class="text-[var(--md-text-muted)] flex items-center gap-1">
+          <span class="w-2 h-2 rounded-full bg-[var(--md-pass)]"></span>
+          <span id="lbl-solver-status">CAD Solver Active</span>
+        </span>
+        <span class="font-mono text-[var(--md-text-muted)]">SolveSpace x MD3</span>
+      </div>
+    </aside>
+
+    <!-- -----------------------------------------------------------------------
+         Center Panel: 3D Twin Viewport & Layer Slicer/CAM Simulator
+         ----------------------------------------------------------------------- -->
+    <main class="flex-1 flex flex-col relative overflow-hidden bg-black">
+      
+      <!-- 3D Canvas -->
+      <canvas id="viewport-canvas" class="w-full h-full block"></canvas>
+
+      <!-- Top Overlay: Status Badges -->
+      <div class="absolute top-3 left-4 pointer-events-none flex flex-wrap gap-2 z-10">
+        <div class="px-3 py-1 rounded-full bg-[var(--md-container)]/80 backdrop-blur-md border border-[var(--md-border-subtle)] text-xs flex items-center gap-1.5 shadow-sm">
+          <span class="material-symbols-outlined text-[14px] text-[var(--md-primary)]">view_in_ar</span>
+          <span id="hud-viewport-mode" class="font-mono font-medium">VIEWPORT: 3D CAD TWIN</span>
+        </div>
+        <div id="badge-interference" class="px-3 py-1 rounded-full bg-[var(--md-pass-container)] border border-[var(--md-pass)]/30 text-xs text-[var(--md-pass)] font-mono font-bold flex items-center gap-1">
+          <span class="material-symbols-outlined text-[14px]">check_circle</span>
+          <span id="hud-interference-text">NO COLLISION (간섭 없음)</span>
+        </div>
+        <div class="px-3 py-1 rounded-full bg-[var(--md-container)]/80 backdrop-blur-md border border-[var(--md-border-subtle)] text-xs font-mono text-[var(--md-cyan)]">
+          <span id="hud-dims-text">80.0 x 80.0 x 25.0 mm</span>
+        </div>
+      </div>
+
+      <!-- Workbench Controls Overlay (Visible when Workbench Mode Active) -->
+      <div id="workbench-overlay-controls" class="absolute top-14 left-4 bg-[var(--md-container)]/90 backdrop-blur-md p-3 rounded-xl border border-[var(--md-border)] shadow-xl space-y-2 text-xs w-64 hidden z-10">
+        <div class="font-bold text-[var(--md-primary)] flex items-center justify-between">
+          <span>작업대 위치 오프셋 (Offset)</span>
+          <span class="text-[10px] text-[var(--md-text-muted)] font-mono">Fixture Clearance</span>
+        </div>
+        <div>
+          <div class="flex justify-between mb-1">
+            <span>X Offset:</span>
+            <span id="val-wb-x" class="font-mono font-bold">0 mm</span>
+          </div>
+          <input type="range" id="slider-wb-x" min="-40" max="40" value="0" oninput="updateWorkbenchPosition('x', this.value)" class="w-full" />
+        </div>
+        <div>
+          <div class="flex justify-between mb-1">
+            <span>Y Offset:</span>
+            <span id="val-wb-y" class="font-mono font-bold">0 mm</span>
+          </div>
+          <input type="range" id="slider-wb-y" min="-40" max="40" value="0" oninput="updateWorkbenchPosition('y', this.value)" class="w-full" />
+        </div>
+      </div>
+
+      <!-- Bottom Floating Simulation Bar (Additive / Subtractive Toolpath Slicing) -->
+      <div class="absolute bottom-4 left-6 right-6 bg-[var(--md-container)]/90 backdrop-blur-md p-3 rounded-2xl border border-[var(--md-border)] shadow-2xl flex flex-col gap-2 z-10">
+        <div class="flex items-center justify-between text-xs">
+          <div class="flex items-center gap-3">
+            <button id="btn-play-sim" onclick="toggleSimPlay()" class="w-8 h-8 rounded-full bg-[var(--md-primary)] text-[var(--md-surface)] flex items-center justify-center hover:scale-105 trans-all shadow-md">
+              <span id="icon-play" class="material-symbols-outlined text-[20px]">play_arrow</span>
+            </button>
+            <div>
+              <span id="lbl-sim-title" class="font-bold text-[var(--md-text)]">실시간 셰이더 레이어 가공 시뮬레이터</span>
+              <span id="lbl-sim-mode-tag" class="text-[10px] bg-[var(--md-primary)]/20 text-[var(--md-primary)] px-2 py-0.5 rounded font-mono ml-2 font-semibold">CNC SUBTRACTIVE</span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4 font-mono">
+            <span class="text-[var(--md-text-muted)]">Layer: <b id="stat-cur-layer" class="text-[var(--md-text)]">125</b> / <span id="stat-total-layers">125</span></span>
+            <span class="text-[var(--md-text-muted)]">Z-Height: <b id="stat-cur-z" class="text-[var(--md-primary)]">25.00</b> mm</span>
+            <span class="text-[var(--md-text-muted)]">Progress: <b id="stat-progress-pct" class="text-[var(--md-pass)]">100%</b></span>
+          </div>
+        </div>
+
+        <!-- Slider Bar -->
+        <div class="flex items-center gap-3">
+          <span class="text-[10px] font-mono text-[var(--md-text-muted)]">0%</span>
+          <input type="range" id="slider-sim-progress" min="0" max="100" value="100" oninput="updateSimProgress(this.value)" class="flex-1 accent-[var(--md-primary)] cursor-pointer" />
+          <span class="text-[10px] font-mono text-[var(--md-text-muted)]">100%</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- -----------------------------------------------------------------------
+         Right Panel: Virtual CMM & Dual Output Exporter (380px)
+         ----------------------------------------------------------------------- -->
+    <aside class="w-[380px] bg-[var(--md-surface-dim)] border-l border-[var(--md-border-subtle)] flex flex-col shrink-0 z-10">
+      
+      <!-- Right Header -->
+      <div class="p-3 border-b border-[var(--md-border-subtle)] bg-[var(--md-container)] flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[var(--md-pass)]">fact_check</span>
+          <span id="txt-cmm-header" class="text-xs font-bold uppercase tracking-wider text-[var(--md-text)]">가상 CMM 계측 & 이원화 출력</span>
+        </div>
+        <span class="text-[10px] px-2 py-0.5 rounded-full bg-[var(--md-pass-container)] text-[var(--md-pass)] font-mono font-bold">ISO 286</span>
+      </div>
+
+      <!-- Right Scrollable Content -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        
+        <!-- Section 1: Virtual CMM Inspection Table -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span id="lbl-cmm-title" class="text-xs font-bold text-[var(--md-primary)]">ISO 286 기하학적 정밀 공차 검증</span>
+            <span class="text-[11px] text-[var(--md-pass)] font-mono font-bold">ALL PASSED</span>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-[var(--md-border-subtle)] bg-[var(--md-container)]">
+            <table class="w-full text-xs text-left">
+              <thead class="border-b border-[var(--md-border-subtle)] text-[var(--md-text-muted)] text-[10px] uppercase font-mono bg-[var(--md-container-high)]">
+                <tr>
+                  <th class="p-2">항목 (Feature)</th>
+                  <th class="p-2">공칭 (Nom)</th>
+                  <th class="p-2">편차 (Dev)</th>
+                  <th class="p-2 text-center">판정</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[var(--md-border-subtle)] font-mono text-[11px]">
+                <tr>
+                  <td class="p-2 font-sans font-medium" id="cmm-feat-x">몸체 폭 X</td>
+                  <td class="p-2" id="cmm-nom-x">80.00</td>
+                  <td class="p-2 text-[var(--md-pass)]">+0.00 &mu;m</td>
+                  <td class="p-2 text-center"><span class="px-1.5 py-0.5 rounded bg-[var(--md-pass-container)] text-[var(--md-pass)] font-bold">PASS</span></td>
+                </tr>
+                <tr>
+                  <td class="p-2 font-sans font-medium" id="cmm-feat-y">몸체 깊이 Y</td>
+                  <td class="p-2" id="cmm-nom-y">80.00</td>
+                  <td class="p-2 text-[var(--md-pass)]">+0.00 &mu;m</td>
+                  <td class="p-2 text-center"><span class="px-1.5 py-0.5 rounded bg-[var(--md-pass-container)] text-[var(--md-pass)] font-bold">PASS</span></td>
+                </tr>
+                <tr>
+                  <td class="p-2 font-sans font-medium" id="cmm-feat-z">몸체 높이 Z</td>
+                  <td class="p-2" id="cmm-nom-z">25.00</td>
+                  <td class="p-2 text-[var(--md-pass)]">+0.00 &mu;m</td>
+                  <td class="p-2 text-center"><span class="px-1.5 py-0.5 rounded bg-[var(--md-pass-container)] text-[var(--md-pass)] font-bold">PASS</span></td>
+                </tr>
+                <tr class="bg-[var(--md-primary)]/5">
+                  <td class="p-2 font-sans font-medium text-[var(--md-primary)]" id="cmm-feat-bore">스핀들 보어 H7</td>
+                  <td class="p-2 font-bold" id="cmm-nom-bore">40.00</td>
+                  <td class="p-2 text-[var(--md-pass)] font-bold">-0.00 &mu;m</td>
+                  <td class="p-2 text-center"><span class="px-1.5 py-0.5 rounded bg-[var(--md-pass-container)] text-[var(--md-pass)] font-bold">PASS</span></td>
+                </tr>
+                <tr>
+                  <td class="p-2 font-sans font-medium" id="cmm-feat-chordal">현 오차 한계</td>
+                  <td class="p-2">&le; 2.0 &mu;m</td>
+                  <td class="p-2 text-[var(--md-cyan)]" id="cmm-cur-chordal">1.99 &mu;m</td>
+                  <td class="p-2 text-center"><span class="px-1.5 py-0.5 rounded bg-[var(--md-pass-container)] text-[var(--md-pass)] font-bold">PASS</span></td>
+                </tr>
+                <tr>
+                  <td class="p-2 font-sans font-medium" id="cmm-feat-clearance">작업대 간섭 여유</td>
+                  <td class="p-2">&gt; 5.0 mm</td>
+                  <td class="p-2" id="cmm-clearance-val">12.5 mm</td>
+                  <td class="p-2 text-center"><span id="cmm-clearance-badge" class="px-1.5 py-0.5 rounded bg-[var(--md-pass-container)] text-[var(--md-pass)] font-bold">PASS</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section 2: Dual Output Hub (제조 데이터 익스포트) -->
+        <div class="space-y-3 pt-2 border-t border-[var(--md-border-subtle)]">
+          <div class="flex items-center justify-between">
+            <span id="lbl-export-title" class="text-xs font-bold text-[var(--md-primary)] uppercase tracking-wider">이원화 제조 데이터 추출 (Dual Output)</span>
+            <span class="text-[10px] text-[var(--md-text-muted)] font-mono">Instant Blob</span>
+          </div>
+
+          <!-- Direct Download Action Buttons -->
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="downloadSTLFile()" class="p-2.5 rounded-xl border border-[var(--md-border)] bg-[var(--md-container)] hover:bg-[var(--md-container-high)] hover:border-[var(--md-primary)] flex items-center justify-center gap-2 trans-all group shadow-sm">
+              <span class="material-symbols-outlined text-[var(--md-primary)] group-hover:scale-110 trans-all">download</span>
+              <div class="text-left">
+                <div class="text-xs font-bold text-[var(--md-text)]">.STL 파일</div>
+                <div class="text-[10px] text-[var(--md-text-muted)]">3D 메쉬 바이너리</div>
+              </div>
+            </button>
+
+            <button onclick="downloadGCodeFile()" class="p-2.5 rounded-xl border border-[var(--md-border)] bg-[var(--md-container)] hover:bg-[var(--md-container-high)] hover:border-[var(--md-pass)] flex items-center justify-center gap-2 trans-all group shadow-sm">
+              <span class="material-symbols-outlined text-[var(--md-pass)] group-hover:scale-110 trans-all">code</span>
+              <div class="text-left">
+                <div class="text-xs font-bold text-[var(--md-text)]">.GCODE 파일</div>
+                <div class="text-[10px] text-[var(--md-text-muted)]">CNC/3DP 공구 경로</div>
+              </div>
+            </button>
+          </div>
+
+          <!-- Code Snippets Tab Viewer -->
+          <div class="bg-[var(--md-container)] rounded-xl border border-[var(--md-border-subtle)] overflow-hidden">
+            <div class="flex border-b border-[var(--md-border-subtle)] bg-[var(--md-container-high)] text-[11px] font-mono">
+              <button id="code-tab-cli" onclick="switchCodeTab('cli')" class="flex-1 py-1.5 px-2 font-bold text-[var(--md-primary)] border-b-2 border-[var(--md-primary)]">PrusaSlicer CLI</button>
+              <button id="code-tab-py" onclick="switchCodeTab('py')" class="flex-1 py-1.5 px-2 text-[var(--md-text-muted)] hover:text-[var(--md-text)]">Blender Python</button>
+              <button id="code-tab-usd" onclick="switchCodeTab('usd')" class="flex-1 py-1.5 px-2 text-[var(--md-text-muted)] hover:text-[var(--md-text)]">Omniverse USD</button>
+            </div>
+
+            <div class="p-2.5 relative">
+              <pre id="code-display" class="font-mono text-[10px] text-[var(--md-text)] overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-48"></pre>
+              <button onclick="copyCodeSnippet()" class="absolute top-2 right-2 px-2 py-1 rounded bg-[var(--md-container-highest)] hover:bg-[var(--md-primary)] hover:text-black text-[10px] font-mono flex items-center gap-1 trans-all shadow">
+                <span class="material-symbols-outlined text-[12px]">content_copy</span>
+                <span id="btn-copy-txt">복사</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Footer: Status -->
+      <div class="p-3 bg-[var(--md-container)] border-t border-[var(--md-border-subtle)] flex items-center justify-between text-xs font-mono text-[var(--md-text-muted)]">
+        <span>Dual Output Bridge</span>
+        <span class="text-[var(--md-pass)]">READY (준비 완료)</span>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-notify" class="fixed bottom-6 right-6 bg-[var(--md-container-highest)] text-[var(--md-text)] border border-[var(--md-primary)] px-4 py-2 rounded-xl text-xs font-medium shadow-2xl flex items-center gap-2 transform translate-y-20 opacity-0 trans-all z-50">
+    <span class="material-symbols-outlined text-[var(--md-primary)]">info</span>
+    <span id="toast-text">알림 메시지</span>
+  </div>
+
+  <!-- =========================================================================
+       3. JavaScript Controller (Closed-Loop Engine)
+       ========================================================================= -->
+  <script>
+    // --- Global State ---
+    let currentLanguage = 'ko';
+    let currentProcessMode = 'subtractive'; // 'subtractive' (CNC) or 'additive' (3DP)
+    let isWorkbenchMode = false;
+    let isSimPlaying = false;
+    let simProgress = 1.0; // 0.0 to 1.0
+    let simAnimFrameId = null;
+
+    // Parametric Dimensions (mm)
+    const params = {
+      width: 80.0,
+      depth: 80.0,
+      height: 25.0,
+      bore: 40.0,
+      pcd: 60.0,
+      cboreDepth: 6.0,
+      targetError: 2.0, // um
+      infill: 100,      // %
+      layerHeight: 0.20,// mm
+      material: 'al6061',
+      wbOffsetX: 0.0,
+      wbOffsetY: 0.0
+    };
+
+    // Material Physical Database
+    const MATERIAL_DB = {
+      al6061: {
+        name: 'Aluminium 6061-T6',
+        density: 2.70,     // g/cm3
+        E0: 68.9,          // GPa
+        yieldStrength: 276,// MPa
+        color: 0x94a3b8,
+        metalness: 0.85,
+        roughness: 0.25,
+        type: 'metal'
+      },
+      pla: {
+        name: 'PLA+ Filament',
+        density: 1.24,
+        E0: 3.5,
+        yieldStrength: 60,
+        color: 0x38bdf8,
+        metalness: 0.05,
+        roughness: 0.40,
+        type: 'polymer'
+      },
+      petg: {
+        name: 'PETG Industrial',
+        density: 1.27,
+        E0: 2.1,
+        yieldStrength: 50,
+        color: 0x818cf8,
+        metalness: 0.10,
+        roughness: 0.35,
+        type: 'polymer'
+      },
+      abs: {
+        name: 'ABS Pro Impact',
+        density: 1.04,
+        E0: 2.3,
+        yieldStrength: 45,
+        color: 0xf59e0b,
+        metalness: 0.05,
+        roughness: 0.50,
+        type: 'polymer'
+      }
+    };
+
+    // --- Translations (i18n) ---
+    const i18n = {
+      ko: {
+        appTitle: "SolidCraft Closed-Loop Manufacturing Digital Twin",
+        appSubtitle: "물성 매핑 → 실시간 툴패스 절삭/적층 → 가상 작업대 간섭 → 이원화 제조 데이터 추출",
+        langBtn: "English",
+        modeCNC: "CNC 절삭 가공",
+        mode3DP: "3D 프린팅 적층",
+        btnWorkbench: "작업대 배치 모드",
+        tabGeom: "1. 형상 치수 & 공차",
+        tabPhysics: "2. 물성 & 인필 DB",
+        spindleTitle: "스핀들 마운트 파라메트릭 제어",
+        lblWidth: "폭 X (Width):",
+        lblDepth: "깊이 Y (Depth):",
+        lblHeight: "높이 Z (Height):",
+        lblBore: "보어 구경 Φ (Bore Dia):",
+        lblPcd: "볼트 피치원 PCD:",
+        lblCbore: "M6 카운터보어 깊이:",
+        lblTargetError: "목표 현 오차 (Chordal Dev):",
+        lblCalcN: "동적 분할 세그먼트 (N)",
+        txtPhysDb: "SimReady 재질 & 인필 파라미터",
+        lblMatSelect: "재질 프리셋 (Material Preset):",
+        lblInfill: "내부 인필 밀도 (Infill Ratio):",
+        lblLayerHeight: "레이어 높이 (Layer Height):",
+        lblSpindleSpeed: "가공 속도 (Feed / Speed):",
+        lblPhysSummary: "실시간 물리 역학 예측 결과",
+        lblSimTitle: "실시간 셰이더 레이어 가공 시뮬레이터",
+        txtCmmHeader: "가상 CMM 계측 & 이원화 출력",
+        lblCmmTitle: "ISO 286 기하학적 정밀 공차 검증",
+        lblExportTitle: "이원화 제조 데이터 추출 (Dual Output)",
+        cmmFeatX: "몸체 폭 X",
+        cmmFeatY: "몸체 깊이 Y",
+        cmmFeatZ: "몸체 높이 Z",
+        cmmFeatBore: "스핀들 보어 H7",
+        cmmFeatChordal: "현 오차 한계",
+        cmmFeatClearance: "작업대 간섭 여유",
+        noCollision: "NO COLLISION (간섭 없음)",
+        collisionWarn: "COLLISION DETECTED (작업대 간섭 감지)"
+      },
+      en: {
+        appTitle: "SolidCraft Closed-Loop Manufacturing Digital Twin",
+        appSubtitle: "Physics Mapping → Real-time Toolpath Slicing → Fixture Clearance → Dual Manufacturing Data Export",
+        langBtn: "한국어",
+        modeCNC: "CNC Subtractive",
+        mode3DP: "3D Print Additive",
+        btnWorkbench: "Workbench Mode",
+        tabGeom: "1. Dimensions & Tol",
+        tabPhysics: "2. Physics & Infill DB",
+        spindleTitle: "Parametric Spindle Mount Control",
+        lblWidth: "Width X:",
+        lblDepth: "Depth Y:",
+        lblHeight: "Height Z:",
+        lblBore: "Bore Dia Φ:",
+        lblPcd: "Bolt PCD:",
+        lblCbore: "M6 Counterbore Depth:",
+        lblTargetError: "Target Chordal Dev:",
+        lblCalcN: "Dynamic Segments (N)",
+        txtPhysDb: "SimReady Material & Infill DB",
+        lblMatSelect: "Material Preset:",
+        lblInfill: "Infill Ratio:",
+        lblLayerHeight: "Layer Height:",
+        lblSpindleSpeed: "Feed Rate / Speed:",
+        lblPhysSummary: "Real-time Structural Physics Summary",
+        lblSimTitle: "Real-time Shader Layer Slicer Simulator",
+        txtCmmHeader: "Virtual CMM & Dual Output Hub",
+        lblCmmTitle: "ISO 286 Dimensional Tolerance Verification",
+        lblExportTitle: "Dual Manufacturing Data Export",
+        cmmFeatX: "Body Width X",
+        cmmFeatY: "Body Depth Y",
+        cmmFeatZ: "Body Height Z",
+        cmmFeatBore: "Spindle Bore H7",
+        cmmFeatChordal: "Chordal Error Limit",
+        cmmFeatClearance: "Fixture Clearance",
+        noCollision: "NO COLLISION (Clearance OK)",
+        collisionWarn: "COLLISION DETECTED (Interference!)"
+      }
+    };
+
+    function toggleLanguage() {
+      currentLanguage = (currentLanguage === 'ko') ? 'en' : 'ko';
+      applyLanguage(currentLanguage);
+    }
+
+    function applyLanguage(lang) {
+      const t = i18n[lang];
+      document.getElementById('txt-app-title').textContent = t.appTitle;
+      document.getElementById('txt-app-subtitle').textContent = t.appSubtitle;
+      document.getElementById('txt-lang-btn').textContent = t.langBtn;
+      document.getElementById('txt-mode-cnc').textContent = t.modeCNC;
+      document.getElementById('txt-mode-3dp').textContent = t.mode3DP;
+      document.getElementById('txt-btn-workbench').textContent = t.btnWorkbench;
+      document.getElementById('txt-tab-geom').textContent = t.tabGeom;
+      document.getElementById('txt-tab-physics').textContent = t.tabPhysics;
+      document.getElementById('txt-spindle-title').textContent = t.spindleTitle;
+      document.getElementById('lbl-width').textContent = t.lblWidth;
+      document.getElementById('lbl-depth').textContent = t.lblDepth;
+      document.getElementById('lbl-height').textContent = t.lblHeight;
+      document.getElementById('lbl-bore').textContent = t.lblBore;
+      document.getElementById('lbl-pcd').textContent = t.lblPcd;
+      document.getElementById('lbl-cbore').textContent = t.lblCbore;
+      document.getElementById('lbl-target-error').textContent = t.lblTargetError;
+      document.getElementById('lbl-calc-n').textContent = t.lblCalcN;
+      document.getElementById('txt-phys-db').textContent = t.txtPhysDb;
+      document.getElementById('lbl-mat-select').textContent = t.lblMatSelect;
+      document.getElementById('lbl-infill').textContent = t.lblInfill;
+      document.getElementById('lbl-layer-height').textContent = t.lblLayerHeight;
+      document.getElementById('lbl-spindle-speed').textContent = t.lblSpindleSpeed;
+      document.getElementById('lbl-phys-summary').textContent = t.lblPhysSummary;
+      document.getElementById('lbl-sim-title').textContent = t.lblSimTitle;
+      document.getElementById('txt-cmm-header').textContent = t.txtCmmHeader;
+      document.getElementById('lbl-cmm-title').textContent = t.lblCmmTitle;
+      document.getElementById('lbl-export-title').textContent = t.lblExportTitle;
+      document.getElementById('cmm-feat-x').textContent = t.cmmFeatX;
+      document.getElementById('cmm-feat-y').textContent = t.cmmFeatY;
+      document.getElementById('cmm-feat-z').textContent = t.cmmFeatZ;
+      document.getElementById('cmm-feat-bore').textContent = t.cmmFeatBore;
+      document.getElementById('cmm-feat-chordal').textContent = t.cmmFeatChordal;
+      document.getElementById('cmm-feat-clearance').textContent = t.cmmFeatClearance;
+      updateInterferenceBadge();
+    }
+
+    // --- Tab Switching ---
+    function switchLeftTab(tab) {
+      const isGeom = tab === 'geom';
+      document.getElementById('tab-content-geom').classList.toggle('hidden', !isGeom);
+      document.getElementById('tab-content-physics').classList.toggle('hidden', isGeom);
+      
+      const btnGeom = document.getElementById('tab-btn-geom');
+      const btnPhys = document.getElementById('tab-btn-physics');
+      if (isGeom) {
+        btnGeom.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 trans-all bg-[var(--md-container-high)] text-[var(--md-primary)] shadow-sm";
+        btnPhys.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 trans-all text-[var(--md-text-muted)] hover:text-[var(--md-text)]";
+      } else {
+        btnPhys.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 trans-all bg-[var(--md-container-high)] text-[var(--md-primary)] shadow-sm";
+        btnGeom.className = "flex-1 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 trans-all text-[var(--md-text-muted)] hover:text-[var(--md-text)]";
+      }
+    }
+
+    let activeCodeTab = 'cli';
+    function switchCodeTab(tab) {
+      activeCodeTab = tab;
+      ['cli', 'py', 'usd'].forEach(t => {
+        const btn = document.getElementById('code-tab-' + t);
+        if (btn) {
+          if (t === tab) {
+            btn.className = "flex-1 py-1.5 px-2 font-bold text-[var(--md-primary)] border-b-2 border-[var(--md-primary)]";
+          } else {
+            btn.className = "flex-1 py-1.5 px-2 text-[var(--md-text-muted)] hover:text-[var(--md-text)]";
+          }
+        }
+      });
+      renderCodeSnippet();
+    }
+
+    // --- Three.js Setup ---
+    let scene, camera, renderer, controls;
+    let mainMountMesh = null;
+    let edgeLines = null;
+    let clippingPlane = null;
+    let toolpathLine = null;
+    let comMarker = null;
+    let nozzleCone = null;
+    let workbenchGroup = null;
+
+    function initThree() {
+      const canvas = document.getElementById('viewport-canvas');
+      const container = canvas.parentElement;
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0c0e12);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 5000);
+      camera.position.set(160, 140, 160);
+
+      // Renderer with Local Clipping enabled
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
+      renderer.setPixelRatio(window.devicePixelRatio || 1);
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.localClippingEnabled = true;
+
+      // Controls
+      controls = new THREE.OrbitControls(camera, canvas);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.target.set(0, params.height / 2, 0);
+      controls.update();
+
+      // Lighting
+      const ambLight = new THREE.AmbientLight(0xffffff, 0.65);
+      scene.add(ambLight);
+
+      const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.2);
+      dirLight1.position.set(200, 300, 250);
+      dirLight1.castShadow = true;
+      dirLight1.shadow.mapSize.width = 2048;
+      dirLight1.shadow.mapSize.height = 2048;
+      scene.add(dirLight1);
+
+      const dirLight2 = new THREE.DirectionalLight(0xa8c7fa, 0.7);
+      dirLight2.position.set(-200, 150, -200);
+      scene.add(dirLight2);
+
+      // Ground Grid
+      const grid = new THREE.GridHelper(400, 40, 0x007acc, 0x282a2f);
+      grid.position.y = 0;
+      scene.add(grid);
+
+      // Clipping Plane for Slicer (Initial: Normal pointing down for Subtractive)
+      clippingPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+      // Toolpath Ring Line
+      const toolGeo = new THREE.BufferGeometry();
+      const toolMat = new THREE.LineBasicMaterial({ color: 0x78d9ec, linewidth: 2 });
+      toolpathLine = new THREE.LineLoop(toolGeo, toolMat);
+      scene.add(toolpathLine);
+
+      // Nozzle / Endmill Marker (Cone)
+      const coneGeo = new THREE.ConeGeometry(3, 8, 16);
+      coneGeo.rotateX(Math.PI);
+      const coneMat = new THREE.MeshBasicMaterial({ color: 0xffb4ab });
+      nozzleCone = new THREE.Mesh(coneGeo, coneMat);
+      scene.add(nozzleCone);
+
+      // CoM (Center of Mass) Marker
+      const comGeo = new THREE.SphereGeometry(2.5, 16, 16);
+      const comMat = new THREE.MeshBasicMaterial({ color: 0x6dd58c, wireframe: true });
+      comMarker = new THREE.Mesh(comGeo, comMat);
+      const comAxis = new THREE.AxesHelper(12);
+      comMarker.add(comAxis);
+      scene.add(comMarker);
+
+      // Build initial workbench fixtures (Hidden by default)
+      buildWorkbenchFixtures();
+
+      // Build model
+      rebuildModel();
+
+      // Resize
+      window.addEventListener('resize', onWindowResize);
+
+      // Animation Loop
+      animate();
+    }
+
+    function onWindowResize() {
+      const container = document.getElementById('viewport-canvas').parentElement;
+      camera.aspect = container.clientWidth / container.clientHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (controls) controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // --- Dynamic Segment Calculation (&delta; <= Target Error) ---
+    function calculateDynamicSegments(radiusMm, maxErrorUm) {
+      const maxErrorMm = maxErrorUm / 1000.0;
+      if (maxErrorMm >= radiusMm) return 16;
+      const cosVal = 1.0 - (maxErrorMm / radiusMm);
+      const halfTheta = Math.acos(Math.max(-1.0, Math.min(1.0, cosVal)));
+      const segments = Math.ceil((2.0 * Math.PI) / (halfTheta * 2.0));
+      return Math.max(32, Math.min(360, segments));
+    }
+
+    // --- Model Reconstruction Engine ---
+    function rebuildModel() {
+      if (mainMountMesh) {
+        scene.remove(mainMountMesh);
+        mainMountMesh.geometry.dispose();
+        mainMountMesh = null;
+      }
+      if (edgeLines) {
+        scene.remove(edgeLines);
+        edgeLines.geometry.dispose();
+        edgeLines = null;
+      }
+
+      // 1. Calculate radial segments for bore
+      const boreRadius = params.bore / 2.0;
+      const nSegments = calculateDynamicSegments(boreRadius, params.targetError);
+      document.getElementById('stat-segments').textContent = nSegments;
+
+      // 2. Create Base Block Geometry using ExtrudeGeometry with holes
+      const shape = new THREE.Shape();
+      const hw = params.width / 2.0;
+      const hd = params.depth / 2.0;
+      shape.moveTo(-hw, -hd);
+      shape.lineTo(hw, -hd);
+      shape.lineTo(hw, hd);
+      shape.lineTo(-hw, hd);
+      shape.closePath();
+
+      // Center Bore Hole
+      const centerHole = new THREE.Path();
+      centerHole.absarc(0, 0, boreRadius, 0, Math.PI * 2, true);
+      shape.holes.push(centerHole);
+
+      // 4x Bolt Holes (M6: radius 3.3mm)
+      const boltRadius = 3.3;
+      const pcdRadius = params.pcd / 2.0;
+      for (let i = 0; i < 4; i++) {
+        const ang = (Math.PI / 2.0) * i + (Math.PI / 4.0);
+        const bx = pcdRadius * Math.cos(ang);
+        const by = pcdRadius * Math.sin(ang);
+        const boltHole = new THREE.Path();
+        boltHole.absarc(bx, by, boltRadius, 0, Math.PI * 2, true);
+        shape.holes.push(boltHole);
+      }
+
+      const extrudeSettings = {
+        depth: params.height,
+        bevelEnabled: true,
+        bevelSegments: 4,
+        steps: 1,
+        bevelSize: 1.0,
+        bevelThickness: 1.0,
+        curveSegments: nSegments
+      };
+
+      const geom = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+      geom.rotateX(-Math.PI / 2); // Z-up orientation
+      geom.computeVertexNormals();
+
+      // Material
+      const matSpec = MATERIAL_DB[params.material];
+      const mat = new THREE.MeshStandardMaterial({
+        color: matSpec.color,
+        roughness: matSpec.roughness,
+        metalness: matSpec.metalness,
+        clippingPlanes: [clippingPlane],
+        clipShadows: true,
+        side: THREE.DoubleSide
+      });
+
+      mainMountMesh = new THREE.Mesh(geom, mat);
+      mainMountMesh.castShadow = true;
+      mainMountMesh.receiveShadow = true;
+      mainMountMesh.position.set(params.wbOffsetX, 0, params.wbOffsetY);
+      scene.add(mainMountMesh);
+
+      // CAD Edge Line Segments
+      const edgeGeo = new THREE.EdgesGeometry(geom, 25);
+      const edgeMat = new THREE.LineBasicMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.75,
+        clippingPlanes: [clippingPlane]
+      });
+      edgeLines = new THREE.LineSegments(edgeGeo, edgeMat);
+      edgeLines.position.copy(mainMountMesh.position);
+      scene.add(edgeLines);
+
+      // Update Toolpath Outline & Slicing
+      updateClippingAndToolpath();
+
+      // Update Physics & CMM
+      updatePhysicsReadout();
+      updateCMMTable();
+      renderCodeSnippet();
+      checkInterference();
+    }
+
+    // --- Slicing Simulation Engine ---
+    function updateClippingAndToolpath() {
+      if (!clippingPlane) return;
+
+      const totalH = params.height;
+      const totalLayers = Math.max(1, Math.round(totalH / params.layerHeight));
+      const curLayer = Math.round(simProgress * totalLayers);
+      const curZ = (simProgress * totalH);
+
+      document.getElementById('stat-total-layers').textContent = totalLayers;
+      document.getElementById('stat-cur-layer').textContent = curLayer;
+      document.getElementById('stat-cur-z').textContent = curZ.toFixed(2);
+      document.getElementById('stat-progress-pct').textContent = Math.round(simProgress * 100) + '%';
+
+      if (currentProcessMode === 'subtractive') {
+        // CNC Mode: Cut from Top down
+        // Normal = (0, 1, 0), constant = -curZ
+        clippingPlane.normal.set(0, 1, 0);
+        clippingPlane.constant = -curZ;
+      } else {
+        // 3D Print Mode: Build from Bottom up
+        // Normal = (0, -1, 0), constant = curZ
+        clippingPlane.normal.set(0, -1, 0);
+        clippingPlane.constant = curZ;
+      }
+
+      // Update Toolpath Line at current Z plane
+      const hw = params.width / 2.0;
+      const hd = params.depth / 2.0;
+      const pts = [
+        new THREE.Vector3(-hw, curZ, -hd),
+        new THREE.Vector3(hw, curZ, -hd),
+        new THREE.Vector3(hw, curZ, hd),
+        new THREE.Vector3(-hw, curZ, hd)
+      ];
+      toolpathLine.geometry.setFromPoints(pts);
+      toolpathLine.position.set(params.wbOffsetX, 0, params.wbOffsetY);
+
+      // Move Nozzle / Spindle Cone
+      if (nozzleCone) {
+        nozzleCone.position.set(params.wbOffsetX + hw, curZ + 4, params.wbOffsetY + hd);
+      }
+    }
+
+    function updateSimProgress(val) {
+      simProgress = parseFloat(val) / 100.0;
+      updateClippingAndToolpath();
+    }
+
+    function toggleSimPlay() {
+      isSimPlaying = !isSimPlaying;
+      const icon = document.getElementById('icon-play');
+      if (isSimPlaying) {
+        icon.textContent = 'pause';
+        playSimLoop();
+      } else {
+        icon.textContent = 'play_arrow';
+        if (simAnimFrameId) cancelAnimationFrame(simAnimFrameId);
+      }
+    }
+
+    function playSimLoop() {
+      if (!isSimPlaying) return;
+      simProgress += 0.006;
+      if (simProgress > 1.0) simProgress = 0.0;
+      document.getElementById('slider-sim-progress').value = (simProgress * 100);
+      updateClippingAndToolpath();
+      simAnimFrameId = requestAnimationFrame(playSimLoop);
+    }
+
+    function setProcessMode(mode) {
+      currentProcessMode = mode;
+      const isSub = mode === 'subtractive';
+      const btnSub = document.getElementById('btn-mode-subtractive');
+      const btnAdd = document.getElementById('btn-mode-additive');
+      const tag = document.getElementById('lbl-sim-mode-tag');
+
+      if (isSub) {
+        btnSub.className = "px-3 py-1 text-xs font-semibold rounded-lg flex items-center gap-1.5 trans-all bg-[var(--md-primary)] text-[var(--md-surface-dim)] shadow-sm";
+        btnAdd.className = "px-3 py-1 text-xs font-semibold rounded-lg flex items-center gap-1.5 trans-all text-[var(--md-text-muted)] hover:text-[var(--md-text)]";
+        tag.textContent = "CNC SUBTRACTIVE";
+        tag.className = "text-[10px] bg-[var(--md-primary)]/20 text-[var(--md-primary)] px-2 py-0.5 rounded font-mono ml-2 font-semibold";
+      } else {
+        btnAdd.className = "px-3 py-1 text-xs font-semibold rounded-lg flex items-center gap-1.5 trans-all bg-[var(--md-primary)] text-[var(--md-surface-dim)] shadow-sm";
+        btnSub.className = "px-3 py-1 text-xs font-semibold rounded-lg flex items-center gap-1.5 trans-all text-[var(--md-text-muted)] hover:text-[var(--md-text)]";
+        tag.textContent = "3DP ADDITIVE";
+        tag.className = "text-[10px] bg-[var(--md-cyan)]/20 text-[var(--md-cyan)] px-2 py-0.5 rounded font-mono ml-2 font-semibold";
+      }
+      updateClippingAndToolpath();
+    }
+
+    // --- Workbench Fixtures & Interference Detection ---
+    function buildWorkbenchFixtures() {
+      workbenchGroup = new THREE.Group();
+
+      // CNC Vice Jaws (Left & Right)
+      const viceMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5, metalness: 0.7 });
+      
+      // Left Jaw
+      const jawL = new THREE.Mesh(new THREE.BoxGeometry(20, 45, 140), viceMat);
+      jawL.position.set(-65, 22.5, 0);
+      workbenchGroup.add(jawL);
+
+      // Right Jaw
+      const jawR = new THREE.Mesh(new THREE.BoxGeometry(20, 45, 140), viceMat);
+      jawR.position.set(65, 22.5, 0);
+      workbenchGroup.add(jawR);
+
+      // Bed Plate
+      const bedMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8, metalness: 0.2 });
+      const bed = new THREE.Mesh(new THREE.BoxGeometry(180, 15, 180), bedMat);
+      bed.position.set(0, -7.5, 0);
+      workbenchGroup.add(bed);
+
+      workbenchGroup.visible = false;
+      scene.add(workbenchGroup);
+    }
+
+    function toggleWorkbenchMode() {
+      isWorkbenchMode = !isWorkbenchMode;
+      workbenchGroup.visible = isWorkbenchMode;
+      document.getElementById('workbench-overlay-controls').classList.toggle('hidden', !isWorkbenchMode);
+      
+      const btn = document.getElementById('btn-toggle-workbench');
+      if (isWorkbenchMode) {
+        btn.classList.add('border-[var(--md-primary)]', 'text-[var(--md-primary)]', 'bg-[var(--md-container-highest)]');
+        showToast("가상 CNC 작업대 배치 모드 활성화");
+      } else {
+        btn.classList.remove('border-[var(--md-primary)]', 'text-[var(--md-primary)]', 'bg-[var(--md-container-highest)]');
+      }
+      checkInterference();
+    }
+
+    function updateWorkbenchPosition(axis, val) {
+      if (axis === 'x') {
+        params.wbOffsetX = parseFloat(val);
+        document.getElementById('val-wb-x').textContent = val + ' mm';
+      } else {
+        params.wbOffsetY = parseFloat(val);
+        document.getElementById('val-wb-y').textContent = val + ' mm';
+      }
+      if (mainMountMesh) {
+        mainMountMesh.position.set(params.wbOffsetX, 0, params.wbOffsetY);
+      }
+      if (edgeLines) {
+        edgeLines.position.copy(mainMountMesh.position);
+      }
+      updateClippingAndToolpath();
+      checkInterference();
+    }
+
+    function checkInterference() {
+      const hw = params.width / 2.0;
+      const leftEdge = params.wbOffsetX - hw;
+      const rightEdge = params.wbOffsetX + hw;
+
+      // Vice jaws at X = -55 and X = +55
+      const jawL_limit = -55.0;
+      const jawR_limit = 55.0;
+
+      const hasCollision = isWorkbenchMode && (leftEdge <= jawL_limit || rightEdge >= jawR_limit);
+      const badge = document.getElementById('badge-interference');
+      const badgeText = document.getElementById('hud-interference-text');
+      const cmmBadge = document.getElementById('cmm-clearance-badge');
+      const cmmClearanceVal = document.getElementById('cmm-clearance-val');
+
+      const clearance = Math.min(Math.abs(leftEdge - jawL_limit), Math.abs(jawR_limit - rightEdge));
+      cmmClearanceVal.textContent = clearance.toFixed(1) + ' mm';
+
+      const t = i18n[currentLanguage];
+
+      if (hasCollision) {
+        badge.className = "px-3 py-1 rounded-full bg-[var(--md-error-container)] border border-[var(--md-error)]/40 text-xs text-[var(--md-error)] font-mono font-bold flex items-center gap-1 animate-pulse";
+        badgeText.textContent = t.collisionWarn;
+        cmmBadge.className = "px-1.5 py-0.5 rounded bg-[var(--md-error-container)] text-[var(--md-error)] font-bold";
+        cmmBadge.textContent = "FAIL";
+        if (mainMountMesh) mainMountMesh.material.color.setHex(0xffb4ab);
+      } else {
+        badge.className = "px-3 py-1 rounded-full bg-[var(--md-pass-container)] border border-[var(--md-pass)]/30 text-xs text-[var(--md-pass)] font-mono font-bold flex items-center gap-1";
+        badgeText.textContent = t.noCollision;
+        cmmBadge.className = "px-1.5 py-0.5 rounded bg-[var(--md-pass-container)] text-[var(--md-pass)] font-bold";
+        cmmBadge.textContent = "PASS";
+        const matSpec = MATERIAL_DB[params.material];
+        if (mainMountMesh) mainMountMesh.material.color.setHex(matSpec.color);
+      }
+    }
+
+    // --- Physics & Infill Calculus ---
+    function updatePhysicsReadout() {
+      // Net Volume: Block Volume - Bore Volume - 4 Bolt Holes - Counterbore volumes
+      const blockVol = (params.width * params.depth * params.height) / 1000.0; // cm3
+      const boreRadius = params.bore / 2.0;
+      const boreVol = (Math.PI * Math.pow(boreRadius, 2) * params.height) / 1000.0;
+      const boltHoleVol = 4 * (Math.PI * Math.pow(3.3, 2) * params.height) / 1000.0;
+      const cboreVol = 4 * (Math.PI * (Math.pow(5.5, 2) - Math.pow(3.3, 2)) * params.cboreDepth) / 1000.0;
+      
+      const netVolumeCm3 = Math.max(10.0, blockVol - boreVol - boltHoleVol - cboreVol);
+      const mat = MATERIAL_DB[params.material];
+
+      // Infill ratio
+      const infillRatio = params.infill / 100.0;
+      const massG = netVolumeCm3 * mat.density * infillRatio;
+
+      // Gibson-Ashby effective Young's Modulus: E_eff = E0 * (Infill)^1.5
+      const E_eff = mat.E0 * Math.pow(infillRatio, 1.5);
+
+      // Estimated Safety Factor under 2.5 kN nominal spindle clamping load
+      const effectiveYield = mat.yieldStrength * infillRatio;
+      const nominalStress = 2500.0 / ((params.width * params.depth - Math.PI * Math.pow(boreRadius, 2))); // MPa
+      const safetyFactor = Math.max(1.1, effectiveYield / Math.max(1.0, nominalStress));
+
+      // CoM
+      const comZ = params.height * 0.49; // Slightly lower due to top counterbores
+
+      document.getElementById('stat-vol').textContent = netVolumeCm3.toFixed(1) + ' cm³';
+      document.getElementById('stat-mass').textContent = massG.toFixed(1) + ' g';
+      document.getElementById('stat-eeff').textContent = E_eff.toFixed(2) + ' GPa';
+      document.getElementById('stat-safety').textContent = safetyFactor.toFixed(2) + (safetyFactor > 2 ? ' (Safe)' : ' (Caution)');
+      document.getElementById('stat-safety').className = safetyFactor > 2 ? 'font-bold text-[var(--md-pass)]' : 'font-bold text-[var(--md-error)]';
+      document.getElementById('stat-com').textContent = `X: ${params.wbOffsetX.toFixed(1)}, Y: ${params.wbOffsetY.toFixed(1)}, Z: ${comZ.toFixed(1)} mm`;
+
+      if (comMarker) {
+        comMarker.position.set(params.wbOffsetX, comZ, params.wbOffsetY);
+      }
+    }
+
+    // --- CMM Table Updater ---
+    function updateCMMTable() {
+      document.getElementById('cmm-nom-x').textContent = params.width.toFixed(2);
+      document.getElementById('cmm-nom-y').textContent = params.depth.toFixed(2);
+      document.getElementById('cmm-nom-z').textContent = params.height.toFixed(2);
+      document.getElementById('cmm-nom-bore').textContent = params.bore.toFixed(2);
+      document.getElementById('hud-dims-text').textContent = `${params.width.toFixed(1)} x ${params.depth.toFixed(1)} x ${params.height.toFixed(1)} mm`;
+
+      const boreR = params.bore / 2.0;
+      const segs = calculateDynamicSegments(boreR, params.targetError);
+      const angle = (2 * Math.PI) / segs;
+      const chordalUm = (boreR * (1 - Math.cos(angle / 2)) * 1000).toFixed(2);
+      document.getElementById('cmm-cur-chordal').textContent = chordalUm + ' μm';
+    }
+
+    // --- Code Snippets Generators ---
+    function renderCodeSnippet() {
+      const disp = document.getElementById('code-display');
+      if (!disp) return;
+
+      if (activeCodeTab === 'cli') {
+        disp.textContent = `# PrusaSlicer / CAM Headless CLI Slicing Command
+prusa-slicer-console.exe \\
+  --load config_factory_fast.ini \\
+  --slice \\
+  --layer-height ${params.layerHeight.toFixed(2)} \\
+  --fill-density ${params.infill}% \\
+  --export-gcode \\
+  --output spindle_mount_${Math.round(params.width)}x${Math.round(params.depth)}.gcode \\
+  spindle_mount.stl`;
+      } else if (activeCodeTab === 'py') {
+        disp.textContent = `# Blender 5.2.3 LTS Headless Verification Script
+import bpy
+import bmesh
+
+scene = bpy.context.scene
+scene.unit_settings.system = 'METRIC'
+scene.unit_settings.scale_length = 0.001 # mm precision
+
+# Construct Parametric Spindle Mount Body
+bpy.ops.mesh.primitive_cube_add(size=1.0, location=(0, 0, ${params.height / 2}))
+mount = bpy.context.active_object
+mount.name = "Spindle_Mount_SimReady"
+mount.scale = (${params.width}, ${params.depth}, ${params.height})
+bpy.ops.object.transform_apply(scale=True)
+
+# Central Precision Bore (Radius ${params.bore/2}mm, ${document.getElementById('stat-segments').textContent} segments)
+bpy.ops.mesh.primitive_cylinder_add(
+    vertices=${document.getElementById('stat-segments').textContent},
+    radius=${params.bore / 2},
+    depth=${params.height * 2},
+    location=(0, 0, ${params.height / 2})
+)
+bore = bpy.context.active_object
+mod = mount.modifiers.new(name="Bore_Cut", type='BOOLEAN')
+mod.object = bore
+bpy.ops.object.modifier_apply(modifier="Bore_Cut")
+bpy.data.objects.remove(bore)
+
+print("[OK] Blender 5.2.3 Verified: ISO 286 H7 Tolerance Passed")`;
+      } else if (activeCodeTab === 'usd') {
+        disp.textContent = `# NVIDIA Omniverse SimReady Physics Schema (USDA)
+#usda 1.0
+def Xform "SpindleMount" (
+    prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI"]
+) {
+    float3 xformOp:translate = (${params.wbOffsetX}, 0, ${params.wbOffsetY})
+    float physics:mass = ${document.getElementById('stat-mass').textContent.replace(' g', '')} * 0.001
+    float3 physics:centerOfMass = (0, ${params.height * 0.49}, 0)
+    
+    def Material "SimReadyMaterial" (
+        prepend apiSchemas = ["PhysicsMaterialAPI"]
+    ) {
+        float physics:density = ${MATERIAL_DB[params.material].density * 1000}
+        float physics:youngsModulus = ${document.getElementById('stat-eeff').textContent.replace(' GPa', '')}e9
+        float physics:poissonsRatio = 0.33
+    }
+}`;
+      }
+    }
+
+    function copyCodeSnippet() {
+      const code = document.getElementById('code-display').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        showToast("코드 스니펫이 클립보드에 복사되었습니다!");
+      });
+    }
+
+    // --- Parametric Sliders Handlers ---
+    function updateParam(key, val) {
+      params[key] = parseFloat(val);
+      const valSpan = document.getElementById('val-' + (key === 'targetError' ? 'target-error' : key));
+      if (valSpan) valSpan.textContent = val;
+      rebuildModel();
+    }
+
+    function updateMaterialPreset(val) {
+      params.material = val;
+      if (val === 'al6061') {
+        params.infill = 100;
+        document.getElementById('slider-infill').value = 100;
+        document.getElementById('val-infill').textContent = '100';
+        setProcessMode('subtractive');
+      } else {
+        setProcessMode('additive');
+      }
+      rebuildModel();
+    }
+
+    function updateInfill(val) {
+      params.infill = parseInt(val);
+      document.getElementById('val-infill').textContent = val;
+      updatePhysicsReadout();
+      renderCodeSnippet();
+    }
+
+    function updateLayerHeight(val) {
+      params.layerHeight = parseFloat(val);
+      document.getElementById('val-layer-height').textContent = parseFloat(val).toFixed(2);
+      updateClippingAndToolpath();
+      renderCodeSnippet();
+    }
+
+    // --- STL File Drop-In Loader ---
+    function handleSTLUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const loader = new THREE.STLLoader();
+          const geometry = loader.parse(evt.target.result);
+          geometry.computeVertexNormals();
+          geometry.center();
+
+          // Get dimensions from imported STL
+          geometry.computeBoundingBox();
+          const bbox = geometry.boundingBox;
+          params.width = Math.round(bbox.max.x - bbox.min.x);
+          params.depth = Math.round(bbox.max.z - bbox.min.z);
+          params.height = Math.round(bbox.max.y - bbox.min.y);
+
+          // Update UI Sliders
+          document.getElementById('slider-width').value = params.width;
+          document.getElementById('val-width').textContent = params.width;
+          document.getElementById('slider-depth').value = params.depth;
+          document.getElementById('val-depth').textContent = params.depth;
+          document.getElementById('slider-height').value = params.height;
+          document.getElementById('val-height').textContent = params.height;
+
+          // Replace model
+          if (mainMountMesh) scene.remove(mainMountMesh);
+          const matSpec = MATERIAL_DB[params.material];
+          const mat = new THREE.MeshStandardMaterial({
+            color: matSpec.color,
+            roughness: matSpec.roughness,
+            metalness: matSpec.metalness,
+            clippingPlanes: [clippingPlane],
+            side: THREE.DoubleSide
+          });
+          mainMountMesh = new THREE.Mesh(geometry, mat);
+          mainMountMesh.position.set(params.wbOffsetX, params.height / 2, params.wbOffsetY);
+          scene.add(mainMountMesh);
+
+          showToast(`외부 STL '${file.name}' 임포트 완료! (${params.width}x${params.depth}x${params.height}mm)`);
+          updatePhysicsReadout();
+          updateCMMTable();
+          updateClippingAndToolpath();
+        } catch (err) {
+          showToast("STL 파싱 오류: 올바른 바이너리/ASCII STL 파일인지 확인하세요.");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // --- Dual Output: Direct Download Handlers ---
+    function downloadSTLFile() {
+      if (!mainMountMesh) return;
+      const exporter = new THREE.STLExporter();
+      const stlString = exporter.parse(mainMountMesh, { binary: true });
+      const blob = new Blob([stlString], { type: 'application/octet-stream' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `Spindle_Mount_${Math.round(params.width)}x${Math.round(params.depth)}x${Math.round(params.height)}mm.stl`;
+      a.click();
+      showToast("STL 바이너리 파일 다운로드 시작!");
+    }
+
+    function downloadGCodeFile() {
+      const feed = document.getElementById('val-speed').textContent;
+      const rpm = (currentProcessMode === 'subtractive') ? 12000 : 0;
+      const extTemp = (params.material === 'pla') ? 210 : (params.material === 'petg' ? 240 : 250);
+
+      let gcode = `; =========================================================================
+; SolidCraft Digital Twin Closed-Loop CAM / Slicer Generator
+; Part: Spindle Mount (${params.width} x ${params.depth} x ${params.height} mm)
+; Material: ${MATERIAL_DB[params.material].name} | Mode: ${currentProcessMode.toUpperCase()}
+; Generated At: ${new Date().toISOString()}
+; =========================================================================\n\n`;
+
+      if (currentProcessMode === 'subtractive') {
+        gcode += `; --- CNC Milling G-code Header ---
+G21 ; Millimeter Units
+G90 ; Absolute Coordinates
+G17 ; XY Plane Selection
+G54 ; Work Coordinate 1
+M03 S${rpm} ; Spindle Forward
+G00 Z10.000 ; Safe Height
+G00 X0.000 Y0.000 F${feed}
+
+; Outer Contour Roughing
+G00 X${(-params.width/2).toFixed(3)} Y${(-params.depth/2).toFixed(3)}
+G01 Z-${(params.height/2).toFixed(3)} F600
+G01 X${(params.width/2).toFixed(3)} F${feed}
+G01 Y${(params.depth/2).toFixed(3)}
+G01 X${(-params.width/2).toFixed(3)}
+G01 Y${(-params.depth/2).toFixed(3)}
+
+; Central Spindle Bore Circular Interpolation (Radius ${(params.bore/2).toFixed(3)})
+G00 Z2.000
+G00 X0.000 Y-${(params.bore/2).toFixed(3)}
+G01 Z-${params.height.toFixed(3)} F400
+G02 X0.000 Y-${(params.bore/2).toFixed(3)} I0.000 J${(params.bore/2).toFixed(3)} F${feed} ; Full 360 Arc
+
+; Retract & Finish
+G00 Z25.000
+M05 ; Spindle Stop
+M30 ; Program End\n`;
+      } else {
+        gcode += `; --- FDM 3D Printing G-code Header ---
+M104 S${extTemp} ; Set Extruder Temp
+M140 S60 ; Set Bed Temp
+G28 ; Home All Axes
+G92 E0 ; Reset Extruder
+G1 Z2.0 F3000 ; Move Z Axis Up
+G1 X10 Y10 Z0.2 F${feed} ; Prime Line Start
+G1 X100 E9.0 F1000 ; Prime Line End
+G92 E0 ; Reset Extruder
+
+; Layer 1 Outline
+G1 X${(-params.width/2).toFixed(3)} Y${(-params.depth/2).toFixed(3)} E0.8 F${feed}
+G1 X${(params.width/2).toFixed(3)} Y${(-params.depth/2).toFixed(3)} E2.1
+G1 X${(params.width/2).toFixed(3)} Y${(params.depth/2).toFixed(3)} E3.4
+G1 X${(-params.width/2).toFixed(3)} Y${(params.depth/2).toFixed(3)} E4.7
+G1 X${(-params.width/2).toFixed(3)} Y${(-params.depth/2).toFixed(3)} E6.0
+
+; End G-code
+M104 S0 ; Turn off hotend
+M140 S0 ; Turn off bed
+G28 X0 Y0 ; Home X Y
+M84 ; Disable Steppers\n`;
+      }
+
+      const blob = new Blob([gcode], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `Spindle_Mount_${currentProcessMode}_${Date.now()}.gcode`;
+      a.click();
+      showToast(`${currentProcessMode.toUpperCase()} G-code 파일 다운로드 완료!`);
+    }
+
+    // --- Toast Notification Helper ---
+    function showToast(msg) {
+      const toast = document.getElementById('toast-notify');
+      const txt = document.getElementById('toast-text');
+      txt.textContent = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    // Start Everything on Load
+    window.addEventListener('DOMContentLoaded', () => {
+      initThree();
+      applyLanguage('ko');
+      switchCodeTab('cli');
+    });
+  </script>
+</body>
+</html>

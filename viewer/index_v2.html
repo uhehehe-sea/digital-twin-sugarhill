@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SolidCraft Twin Studio v2 — 공간 편집 스튜디오 (UE5 Slate × Linear Dark)</title>
+  
+  <style>
+    /* ==========================================================================
+       Linear & Unreal Engine 5 Dark Design System Foundations
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    :root {
+      --bg-floor: #08090a;
+      --bg-surface: #0f1115;
+      --bg-surface-elevated: #161a22;
+      --bg-surface-hover: #1f2430;
+      --border-hairline: rgba(255, 255, 255, 0.08);
+      --border-focus: #38bdf8;
+      --accent-primary: #38bdf8;
+      --accent-indigo: #5e6ad2;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-red: #ef4444;
+      --text-primary: #f7f8f8;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, "Berkeley Mono", Menlo, Consolas, monospace;
+      --header-h: 42px;
+      --footer-h: 30px;
+      --sidebar-w: 390px;
+      --drawer-h: 340px;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: var(--bg-floor);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      position: relative;
+    }
+
+    /* --------------------------------------------------------------------------
+       Top Header Toolbar (42px)
+       -------------------------------------------------------------------------- */
+    #top-toolbar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: var(--header-h);
+      background: rgba(15, 17, 21, 0.94);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      z-index: 200;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+    }
+
+    .tb-left, .tb-center, .tb-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 4px 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-hairline);
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 11.5px;
+      color: var(--text-primary);
+      letter-spacing: -0.2px;
+    }
+    .brand-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-primary);
+      box-shadow: 0 0 8px var(--accent-primary);
+    }
+
+    .btn-tb {
+      background: var(--bg-surface-elevated);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-hairline);
+      padding: 4px 9px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn-tb:hover {
+      background: var(--bg-surface-hover);
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+    .btn-tb.active {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--accent-primary);
+      color: var(--accent-primary);
+    }
+    .btn-tb.active-green {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+    .btn-tb.active-amber {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: var(--accent-amber);
+      color: var(--accent-amber);
+    }
+
+    .tb-select {
+      background: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      border: 1px solid var(--border-hairline);
+      padding: 4px 8px;
+      border-radius: 5px;
+      font-size: 11px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .tb-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border-hairline);
+      margin: 0 4px;
+    }
+
+    /* --------------------------------------------------------------------------
+       Fullscreen 3D Viewport
+       -------------------------------------------------------------------------- */
+    #viewport-container {
+      position: absolute;
+      top: var(--header-h);
+      left: 0;
+      width: 100vw;
+      height: calc(100vh - var(--header-h) - var(--footer-h));
+      background: radial-gradient(circle at 50% 40%, #151c28 0%, #080a10 100%);
+      overflow: hidden;
+      outline: none;
+      z-index: 1;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    body.sidebar-open #viewport-container {
+      width: calc(100vw - var(--sidebar-w));
+    }
+    body.zen-mode #viewport-container {
+      top: 0;
+      width: 100vw !important;
+      height: 100vh !important;
+    }
+
+    #canvas3d {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Subtle Viewport HUD Overlay */
+    #viewport-overlay-hud {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10;
+    }
+    .hud-pill {
+      background: rgba(15, 17, 21, 0.82);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-hairline);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 10.5px;
+      color: var(--text-secondary);
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+    }
+
+    #drop-banner {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(56, 189, 248, 0.92);
+      color: #030712;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 11.5px;
+      z-index: 100;
+      display: none;
+      box-shadow: 0 4px 20px rgba(56, 189, 248, 0.4);
+      pointer-events: none;
+    }
+
+    /* --------------------------------------------------------------------------
+       Right Docking Sidebar (Unified Tabbed Inspector, 390px)
+       -------------------------------------------------------------------------- */
+    #right-sidebar {
+      position: absolute;
+      top: var(--header-h);
+      right: 0;
+      width: var(--sidebar-w);
+      height: calc(100vh - var(--header-h) - var(--footer-h));
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border-hairline);
+      display: flex;
+      flex-direction: column;
+      z-index: 120;
+      transform: translateX(100%);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    body.sidebar-open #right-sidebar {
+      transform: translateX(0);
+    }
+    body.zen-mode #right-sidebar {
+      transform: translateX(100%) !important;
+    }
+
+    /* Sidebar Top Header & Menu Switcher */
+    .sidebar-top-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background: #090d16;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      gap: 6px;
+    }
+    .sidebar-dropdown-select {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 6px;
+      outline: none;
+      cursor: pointer;
+    }
+    .sidebar-dropdown-select:hover {
+      border-color: #38bdf8;
+    }
+    .sidebar-collapse-btn {
+      background: rgba(255, 255, 255, 0.06);
+      color: #94a3b8;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .sidebar-collapse-btn:hover {
+      color: #f8fafc;
+      background: rgba(56, 189, 248, 0.15);
+      border-color: #38bdf8;
+    }
+    .floating-sidebar-expand {
+      position: absolute;
+      top: calc(var(--header-h) + 16px);
+      right: 0;
+      z-index: 125;
+      background: #0f172a;
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      border-right: none;
+      padding: 8px 14px;
+      border-radius: 6px 0 0 6px;
+      box-shadow: -4px 0 16px rgba(0, 0, 0, 0.5);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .floating-sidebar-expand:hover {
+      background: #1e293b;
+      color: #7dd3fc;
+      transform: translateX(-4px);
+    }
+
+    /* Collapsible Card Accordion */
+    .sb-card-title {
+      cursor: pointer;
+      user-select: none;
+    }
+    .sb-card-title::after {
+      content: '▾';
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-left: auto;
+      transition: transform 0.2s ease;
+    }
+    .sb-card.collapsed .sb-card-title::after {
+      transform: rotate(-90deg);
+    }
+    .sb-card.collapsed > *:not(.sb-card-title) {
+      display: none !important;
+    }
+
+    .sidebar-tabs {
+      display: flex;
+      align-items: center;
+      background: var(--bg-surface-elevated);
+      border-bottom: 1px solid var(--border-hairline);
+      padding: 0 4px;
+      overflow-x: auto;
+    }
+    .sidebar-tab-btn {
+      flex: 1;
+      padding: 8px 6px;
+      background: transparent;
+      color: var(--text-muted);
+      border: none;
+      border-bottom: 2px solid transparent;
+      font-size: 10.5px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .sidebar-tab-btn:hover {
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .sidebar-tab-btn.active {
+      color: var(--accent-primary);
+      border-bottom-color: var(--accent-primary);
+      background: rgba(56, 189, 248, 0.04);
+    }
+
+    .sidebar-content-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .tab-pane {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .tab-pane.active {
+      display: flex;
+    }
+
+    /* Common Card Styling in Sidebar */
+    .sb-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-hairline);
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sb-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .vec3-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .vec3-label {
+      width: 48px;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .vec3-field {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      background: var(--bg-floor);
+      border: 1px solid var(--border-hairline);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .vec3-axis {
+      width: 18px;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: #fff;
+      padding: 3px 0;
+    }
+    .axis-x { background: #dc2626; }
+    .axis-y { background: #16a34a; }
+    .axis-z { background: #2563eb; }
+    .vec3-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 3px 6px;
+      outline: none;
+      min-width: 0;
+    }
+
+    /* --------------------------------------------------------------------------
+       Bottom Content Drawer (Unreal Engine 5 Style, Slide-Up, 340px)
+       -------------------------------------------------------------------------- */
+    #content-drawer {
+      position: absolute;
+      bottom: var(--footer-h);
+      left: 0;
+      width: 100vw;
+      height: var(--drawer-h);
+      background: rgba(15, 17, 21, 0.96);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border-hairline);
+      z-index: 150;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #content-drawer.open {
+      transform: translateY(0);
+    }
+    body.zen-mode #content-drawer {
+      transform: translateY(100%) !important;
+    }
+
+    .drawer-header {
+      height: 38px;
+      background: var(--bg-surface-elevated);
+      border-bottom: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+    }
+    .drawer-cats {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .drawer-search {
+      background: var(--bg-floor);
+      border: 1px solid var(--border-hairline);
+      color: var(--text-primary);
+      padding: 3px 9px;
+      border-radius: 5px;
+      font-size: 11px;
+      outline: none;
+      width: 180px;
+    }
+    .drawer-grid {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 10px;
+    }
+
+    .asset-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-hairline);
+      border-radius: 6px;
+      padding: 10px;
+      cursor: grab;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .asset-card:hover {
+      background: var(--bg-surface-hover);
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    }
+    .asset-icon-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .asset-icon { font-size: 18px; }
+    .asset-badge {
+      font-size: 9.5px;
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .asset-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.3;
+    }
+    .asset-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .asset-dim {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 9.5px;
+      color: var(--text-muted);
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding-top: 4px;
+      font-family: var(--font-mono);
+    }
+
+    /* --------------------------------------------------------------------------
+       Bottom Status Strip Footer (30px)
+       -------------------------------------------------------------------------- */
+    #bottom-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100vw;
+      height: var(--footer-h);
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-hairline);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      z-index: 180;
+      font-size: 11px;
+      color: var(--text-muted);
+      transition: transform 0.25s ease;
+    }
+    body.zen-mode #bottom-bar {
+      transform: translateY(100%) !important;
+    }
+
+    .footer-drawer-btn {
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--accent-primary);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 10.5px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .footer-drawer-btn:hover {
+      background: rgba(56, 189, 248, 0.22);
+    }
+
+    .footer-pills {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .footer-pill-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+    }
+
+    /* --------------------------------------------------------------------------
+       Modal Overlays (SimReady & Cycles Headless Render)
+       -------------------------------------------------------------------------- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 7, 10, 0.82);
+      backdrop-filter: blur(12px);
+      z-index: 500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-card {
+      background: var(--bg-surface);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* --------------------------------------------------------------------------
+       Runtime Error Banner
+       -------------------------------------------------------------------------- */
+    #runtime-error-banner {
+      display: none;
+      position: fixed;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #b91c1c;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 11.5px;
+      z-index: 99999;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.8);
+      border: 1px solid #f87171;
+    }
+  </style>
+
+  <!-- Three.js + OrbitControls + TransformControls + OBJLoader + PostProcessing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Reflector.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+</head>
+
+<body class="sidebar-open">
+  <!-- 실시간 자바스크립트 런타임 오류 감지 배너 -->
+  <div id="runtime-error-banner"></div>
+  <script>
+    window.addEventListener('error', function(e) {
+      var b = document.getElementById('runtime-error-banner');
+      if (b) {
+        b.style.display = 'block';
+        b.innerHTML = '⚠️ <b>[뷰포트 런타임 오류]</b> ' + e.message + '<br><span style="font-size:10px; color:#fecaca;">' + e.filename + ':' + e.lineno + '</span>';
+      }
+    });
+  </script>
+
+  <!-- =========================================================================
+       1. Top Header Toolbar (42px)
+       ========================================================================= -->
+  <header id="top-toolbar">
+    <div class="tb-left">
+      <div class="brand-pill">
+        <span class="brand-dot"></span>
+        <span>SolidCraft Twin Studio</span>
+        <span style="font-size:10px; color:var(--text-muted); font-weight:400;">v2.5</span>
+      </div>
+
+      <div class="tb-divider"></div>
+
+      <!-- Transform Gizmo Modes -->
+      <button class="btn-tb" id="btn-mode-select" onclick="setTransformMode('select')" title="선택 모드 (Q)">
+        <span>↖ 선택 (Q)</span>
+      </button>
+      <button class="btn-tb active" id="btn-mode-translate" onclick="setTransformMode('translate')" title="이동 기즈모 (G)">
+        <span>✥ 이동 (G)</span>
+      </button>
+      <button class="btn-tb" id="btn-mode-rotate" onclick="setTransformMode('rotate')" title="회전 기즈모 (R)">
+        <span>↻ 회전 (R)</span>
+      </button>
+      <button class="btn-tb" id="btn-mode-scale" onclick="setTransformMode('scale')" title="스케일 기즈모 (T)">
+        <span>⤢ 크기 (T)</span>
+      </button>
+
+      <div class="tb-divider"></div>
+
+      <!-- Grid Snap -->
+      <select class="tb-select" id="select-grid-snap" onchange="setGridSnap(this.value)" title="이동 그리드 스냅 (mm)">
+        <option value="10">스냅: 10mm</option>
+        <option value="50" selected>스냅: 50mm</option>
+        <option value="100">스냅: 100mm</option>
+        <option value="500">스냅: 500mm</option>
+        <option value="0">스냅: OFF</option>
+      </select>
+
+      <!-- Camera Speed -->
+      <div class="btn-tb" style="padding:2px 8px; cursor:default;" title="카메라 이동 속도 (단축키: [ 감속, ] 가속)">
+        <span style="color:var(--text-muted); font-size:10px;">속도</span>
+        <input type="range" id="slider-cam-speed" min="0.2" max="5.0" step="0.1" value="1.0" oninput="setCameraSpeedMultiplier(this.value)" style="width:65px; accent-color:#38bdf8; cursor:pointer;">
+        <span id="label-cam-speed" style="font-family:var(--font-mono); font-size:10.5px; color:#38bdf8; font-weight:700;">1.0x</span>
+      </div>
+    </div>
+
+    <!-- Center Quick Trigger Group -->
+    <div class="tb-center">
+      <!-- Viewport Shading Dropdown -->
+      <select class="tb-select" id="select-viewport-mode" onchange="switchViewportPreset(this.value)" title="렌더링 셰이딩 및 시각화 모드">
+        <option value="pbr" selected>⚡ UE5 실사 PBR (AgX IBL + SSR)</option>
+        <option value="cad_edges">📐 정밀 CAD 와이어 외곽선</option>
+        <option value="xray">🩻 실내 투시 (X-Ray Cutaway)</option>
+        <option value="wireframe">🕸️ 메쉬 와이어프레임</option>
+        <option value="splat">☁️ 3DGS 가우시안 스플랫</option>
+      </select>
+
+      <!-- Camera Views Dropdown -->
+      <select class="tb-select" id="select-camera-view" onchange="setView(this.value)" title="공장 주요 설비 시점 바로가기">
+        <option value="iso" selected>📷 전체 조감도 (Isometric)</option>
+        <option value="cargo_gate">🚪 화물 게이트 듀얼 존</option>
+        <option value="cnc_cell">🏭 CNC & 3D 프린터 제조셀</option>
+        <option value="restroom_stairs">🚻 듀얼 도어 화장실 & 계단</option>
+        <option value="office">💼 1층 엔지니어링 오피스</option>
+        <option value="mezzanine">🪜 메자닌 복층 & 계단</option>
+        <option value="lounge">☕ 라운지 & 케이지 존</option>
+      </select>
+
+      <!-- Master Gate Toggle Action Button -->
+      <!-- Exterior Wall Transparency Control (View inside from afar) -->
+      <div style="display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.35); padding:3px 10px; border-radius:4px; border:1px solid var(--border-color);" title="건물 외관 투명도 조절: 슬라이더를 줄이면 멀리서도 내부 설비와 화물문이 투명하게 보입니다">
+        <span style="font-size:11px; color:#cbd5e1; font-weight:600; white-space:nowrap;">🏛️ 외벽 투명도</span>
+        <input type="range" id="slider-wall-opacity" min="0" max="100" value="35" step="5" oninput="setExteriorWallOpacity(this.value / 100, true)" style="width:75px; accent-color:var(--accent-blue); cursor:pointer;">
+        <span id="label-wall-opacity" style="font-size:11px; color:var(--accent-blue); font-family:var(--font-mono); font-weight:600; min-width:32px;">35%</span>
+        <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setExteriorWallOpacity(0.15, true)" title="투명 X-Ray (15%)">투명</button>
+        <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setExteriorWallOpacity(0.40, true)" title="반투명 고스트 (40%)">반투명</button>
+        <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setExteriorWallOpacity(1.0, true)" title="완전 불투명 (100%)">불투명</button>
+      </div>
+
+      <!-- Master Gate Toggle Action Button -->
+      <button class="btn-tb active-amber" id="btn-tb-gate-toggle" onclick="triggerGateAction('TOGGLE')" title="화물 게이트 원터치 개폐 (클릭 시 즉시 열기/닫기)">
+        <span>🚪 게이트: 열기</span>
+      </button>
+    </div>
+
+    <!-- Right Controls Group -->
+    <div class="tb-right">
+      <button class="btn-tb" onclick="undoLastAction()" title="실행 취소 (Ctrl+Z)">
+        <span>↩ 취소</span>
+      </button>
+      <button class="btn-tb active-green" onclick="saveSceneLayoutToServer()" title="레이아웃 저장 (scene_layout.json 동기화)">
+        <span>💾 저장</span>
+      </button>
+      <button class="btn-tb" onclick="openBlenderRenderModal()" style="border-color:#7c3aed; color:#c084fc;" title="Blender Cycles GPU 렌더링">
+        <span>⚡ Cycles</span>
+      </button>
+      <button class="btn-tb" onclick="openSolidCraftStudioModal()" style="border-color:#38bdf8; color:#38bdf8; background:rgba(56,189,248,0.08);" title="언리얼 블루프린트 스타일 독립 3D CAD 모델링 스튜디오 창 열기">
+        <span>🛠️ CAD 모델링 창</span>
+      </button>
+
+      <div class="tb-divider"></div>
+
+      <!-- Zen Mode & Right Sidebar Toggle -->
+      <button class="btn-tb" id="btn-toggle-zen" onclick="toggleZenMode()" title="순수 3D 뷰포트 몰입 모드 (단축키: Tab)">
+        <span>🖥️ Zen (Tab)</span>
+      </button>
+      <button class="btn-tb active" id="btn-toggle-sidebar" onclick="toggleRightSidebar()" title="우측 통합 인스펙터 패널 토글 (단축키: F4)">
+        <span>📐 패널 (F4)</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       2. Fullscreen Central 3D Viewport
+       ========================================================================= -->
+  <main id="viewport-container" tabindex="0">
+    <div id="viewport-overlay-hud">
+      <div class="hud-pill">
+        <span>🎮 조작: <b>WASD</b> 이동 | <b>QE</b> 승강 | <b>Shift</b> 부스트 | 마우스 우클릭: 회전</span>
+      </div>
+      <div class="hud-pill" id="hud-selected-pill" style="display:none; color:#38bdf8;">
+        <span>선택: <b id="hud-selected-name">None</b></span>
+      </div>
+    </div>
+
+    <div id="drop-banner">✨ 3D 공간의 원하는 바닥/작업대 위치에 마우스를 놓아 에셋을 배치하세요 (ESC: 취소)</div>
+    <div id="tooltip"></div>
+    <canvas id="canvas3d"></canvas>
+  </main>
+
+  <!-- =========================================================================
+       3. Right Docking Sidebar (Unified Tabbed Inspector, 390px)
+       ========================================================================= -->
+  <aside id="right-sidebar">
+    <!-- Sidebar Top Header & Menu Switcher -->
+    <div class="sidebar-top-header">
+      <div style="display:flex; align-items:center; gap:6px; flex:1; min-width:0;">
+        <span style="font-weight:700; color:#38bdf8; font-size:11px; white-space:nowrap;">🛠️ 작업 메뉴:</span>
+        <select id="sidebar-menu-dropdown" class="sidebar-dropdown-select" onchange="switchRightSidebarTab(this.value)" style="flex:1; min-width:0;" title="작업 패널 바로가기 선택">
+          <option value="inspector">📐 1. 속성 & 트랜스폼</option>
+          <option value="modeling">🛠️ 2. SolidCraft CAD 모델링</option>
+          <option value="gates">🚪 3. 화물 게이트 제어</option>
+          <option value="plc">⚡ 4. 가상 PLC 신호 버스</option>
+          <option value="layout">🏭 5. 팩토리 씬 레이아웃</option>
+        </select>
+      </div>
+      <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="사이드바 접기 (3D 화면 극대화)">
+        <span id="sidebar-collapse-icon">▶ 접기</span>
+      </button>
+    </div>
+
+    <!-- Tab Navigation Header (5 Dedicated Engineering Workspaces) -->
+    <div class="sidebar-tabs">
+      <button class="sidebar-tab-btn active" id="tab-btn-inspector" onclick="switchRightSidebarTab('inspector')" title="오브젝트 트랜스폼 및 재질 속성">
+        <span>📐 속성</span>
+      </button>
+      <button class="sidebar-tab-btn" id="tab-btn-modeling" onclick="switchRightSidebarTab('modeling')" style="color:#60a5fa;" title="형상 편집 (Three.js 메쉬)">
+        <span>🛠️ CAD 모델링</span>
+      </button>
+      <button class="sidebar-tab-btn" id="tab-btn-gates" onclick="switchRightSidebarTab('gates')" title="화물 게이트 개폐 제어">
+        <span>🚪 화물 도어</span>
+      </button>
+      <button class="sidebar-tab-btn" id="tab-btn-plc" onclick="switchRightSidebarTab('plc')" title="가상 PLC 래더 신호">
+        <span>⚡ 가상 PLC</span>
+      </button>
+      <button class="sidebar-tab-btn" id="tab-btn-layout" onclick="switchRightSidebarTab('layout')" title="팩토리 씬 에셋 배치 및 저장">
+        <span>🏭 레이아웃</span>
+      </button>
+    </div>
+
+    <div class="sidebar-content-area">
+      <!-- -------------------------------------------------------------------
+           Tab 1: Transform & Material Studio (Inspector)
+           ------------------------------------------------------------------- -->
+      <div class="tab-pane active" id="pane-inspector">
+        <div class="sb-card">
+          <div class="sb-card-title">
+            <span>선택 오브젝트 트랜스폼</span>
+            <span id="sel-obj-badge" style="color:var(--accent-green); font-size:10px;">선택 없음</span>
+          </div>
+
+          <div class="vec3-row">
+            <span class="vec3-label">위치 (mm)</span>
+            <div class="vec3-field"><span class="vec3-axis axis-x">X</span><input class="vec3-input" type="number" step="50" id="inp-pos-x" onchange="applyNumericTransform()"></div>
+            <div class="vec3-field"><span class="vec3-axis axis-y">Y</span><input class="vec3-input" type="number" step="50" id="inp-pos-y" onchange="applyNumericTransform()"></div>
+            <div class="vec3-field"><span class="vec3-axis axis-z">Z</span><input class="vec3-input" type="number" step="50" id="inp-pos-z" onchange="applyNumericTransform()"></div>
+          </div>
+
+          <div class="vec3-row">
+            <span class="vec3-label">회전 (°)</span>
+            <div class="vec3-field"><span class="vec3-axis axis-x">X</span><input class="vec3-input" type="number" step="15" id="inp-rot-x" onchange="applyNumericTransform()"></div>
+            <div class="vec3-field"><span class="vec3-axis axis-y">Y</span><input class="vec3-input" type="number" step="15" id="inp-rot-y" onchange="applyNumericTransform()"></div>
+            <div class="vec3-field"><span class="vec3-axis axis-z">Z</span><input class="vec3-input" type="number" step="15" id="inp-rot-z" onchange="applyNumericTransform()"></div>
+          </div>
+
+          <div class="vec3-row">
+            <span class="vec3-label">스케일</span>
+            <div class="vec3-field"><span class="vec3-axis axis-x">X</span><input class="vec3-input" type="number" step="0.1" id="inp-scl-x" onchange="applyNumericTransform()"></div>
+            <div class="vec3-field"><span class="vec3-axis axis-y">Y</span><input class="vec3-input" type="number" step="0.1" id="inp-scl-y" onchange="applyNumericTransform()"></div>
+            <div class="vec3-field"><span class="vec3-axis axis-z">Z</span><input class="vec3-input" type="number" step="0.1" id="inp-scl-z" onchange="applyNumericTransform()"></div>
+          </div>
+
+          <!-- BBox Dimensions & Physics Readout -->
+          <div style="margin-top:8px; padding:6px 8px; background:rgba(0,0,0,0.3); border-radius:4px; border:1px solid var(--border-color); font-size:11px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+              <span style="color:#94a3b8;">바운딩 크기:</span>
+              <span id="sel-bbox-dim" style="color:#e2e8f0; font-family:var(--font-mono); font-weight:600;">- × - × - mm</span>
+            </div>
+            <div style="display:flex; justify-content:space-between;">
+              <span style="color:#94a3b8;">추정 중량:</span>
+              <span id="val-selected-mass" style="color:var(--accent-green); font-family:var(--font-mono); font-weight:600;">- kg</span>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; margin-top:4px;">
+            <button class="btn-tb" onclick="duplicateSelectedAsset()" style="flex:1; margin-right:4px;">📋 복제 (Ctrl+D)</button>
+            <button class="btn-tb" onclick="deleteSelectedAsset()" style="color:#ef4444; border-color:rgba(239,68,68,0.3);">🗑️ 삭제 (Del)</button>
+          </div>
+        </div>
+
+        <!-- Streamlined Quick Gate Control Card -->
+        <div class="sb-card" style="border: 1px solid rgba(56, 189, 248, 0.3); background: linear-gradient(180deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.6) 100%);">
+          <div class="sb-card-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#38bdf8; font-weight:600;">🚪 화물 게이트 (섹셔널)</span>
+            <span id="quick-gate-status" style="font-size:11px; color:#10b981; font-weight:600;">CLOSED</span>
+          </div>
+          <button class="btn-tb active-amber" id="btn-quick-gate-toggle" onclick="triggerGateAction('TOGGLE')" style="width:100%; justify-content:center; padding:9px; font-weight:700; font-size:12px;" title="클릭 시 화물 게이트 즉시 열기/닫기">
+            <span>🚪 화물 게이트 열기 (OPEN)</span>
+          </button>
+        </div>
+
+        <!-- Material Studio -->
+        <div class="sb-card">
+          <div class="sb-card-title">
+            <span>엔지니어링 재질 스튜디오 (PBR Spec)</span>
+          </div>
+          <div id="material-swatch-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:6px;"></div>
+        </div>
+      </div>
+
+      <!-- -------------------------------------------------------------------
+           Tab 2: Dual Cargo Gates Control
+           ------------------------------------------------------------------- -->
+      
+      <!-- -------------------------------------------------------------------
+           Tab: SolidCraft CAD Modeling Studio Panel (Dedicated Modeling Workspace)
+           ------------------------------------------------------------------- -->
+      <div class="tab-pane" id="pane-modeling">
+        <!-- Hero: Unreal Blueprint Style Studio Launcher Card -->
+        <div class="sb-card" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.16) 0%, rgba(99, 102, 241, 0.16) 100%); border: 1px solid rgba(56, 189, 248, 0.4); padding: 12px; margin-bottom: 12px; box-shadow: 0 4px 14px rgba(14, 165, 233, 0.15);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-weight:700; color:#38bdf8; font-size:13px; display:flex; align-items:center; gap:6px;">
+              <span>🚀 독립 창 CAD 스튜디오</span>
+            </span>
+            <span style="font-size:10px; color:#38bdf8; background:rgba(56,189,248,0.2); border:1px solid rgba(56,189,248,0.3); padding:1px 6px; border-radius:4px; font-weight:600;">UNREAL BLUEPRINT</span>
+          </div>
+          <p style="font-size:11px; color:#94a3b8; line-height:1.4; margin-bottom:10px;">
+            공장 메인 씬과 분리된 <b>독립 3D 뷰포트 창</b>에서 실시간 360° 턴테이블 회전 및 치수 가공 후 공장 씬에 즉시 인스턴스로 배치합니다.
+          </p>
+          <button class="btn-tb active-green" onclick="openSolidCraftStudioModal()" style="width:100%; justify-content:center; padding:9px 12px; font-weight:700; font-size:12px; background:linear-gradient(135deg, #0284c7, #2563eb); color:#fff; border:none; box-shadow:0 4px 12px rgba(37,99,235,0.4);">
+            <span>⬡ 언리얼 스타일 전용 CAD 창 띄우기</span>
+          </button>
+        </div>
+
+        <!-- Header Info -->
+        <div class="sb-card" style="background: linear-gradient(180deg, rgba(30, 58, 138, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%); border-color: rgba(59, 130, 246, 0.3);">
+          <div class="sb-card-title">
+            <span style="color:#60a5fa; font-weight:700;">🛠️ 형상 편집 (메쉬)</span>
+            <span style="font-size:10px; color:#f59e0b; background:rgba(245,158,11,0.15); padding:2px 6px; border-radius:3px;">Three.js 메쉬 · B-Rep 아님</span>
+          </div>
+          <p style="font-size:11px; color:#cbd5e1; line-height:1.4; margin-top:2px;">
+            씬에 기본 형상을 놓고 크기를 바꿔 보는 도구입니다. 아래 챔퍼·필렛·타공은 근사 미리보기이며 실제 가공 형상이 아닙니다. 정밀 형상은 Phase 2의 B-Rep 파이프라인(STEP)에서 다룹니다.
+          </p>
+        </div>
+
+        <!-- 1. Parametric Primitives Generator -->
+        <div class="sb-card">
+          <div class="sb-card-title">
+            <span>1. 파라메트릭 솔리드 생성기 (Primitives)</span>
+          </div>
+
+          <!-- Primitive Type Selector -->
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:4px; margin-bottom:8px;">
+            <button class="btn-tb active-green" id="btn-prim-box" onclick="selectPrimitiveType('box')">박스</button>
+            <button class="btn-tb" id="btn-prim-cyl" onclick="selectPrimitiveType('cylinder')">원통</button>
+            <button class="btn-tb" id="btn-prim-pipe" onclick="selectPrimitiveType('pipe')">파이프</button>
+            <button class="btn-tb" id="btn-prim-hbeam" onclick="selectPrimitiveType('hbeam')">H-형강</button>
+          </div>
+
+          <!-- Dynamic Parameter Fields Container -->
+          <div id="cad-primitive-fields" style="background:rgba(0,0,0,0.25); padding:8px; border-radius:4px; border:1px solid var(--border-color); margin-bottom:8px;">
+            <!-- Box Parameters (Default) -->
+            <div id="fields-box">
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
+                <div><span style="font-size:10px; color:#94a3b8;">폭 (X mm)</span><input class="vec3-input" type="number" id="sc-box-w" value="1000" step="50" style="width:100%;"></div>
+                <div><span style="font-size:10px; color:#94a3b8;">깊이 (Y mm)</span><input class="vec3-input" type="number" id="sc-box-d" value="800" step="50" style="width:100%;"></div>
+                <div><span style="font-size:10px; color:#94a3b8;">높이 (Z mm)</span><input class="vec3-input" type="number" id="sc-box-h" value="600" step="50" style="width:100%;"></div>
+              </div>
+              <div style="display:flex; gap:4px; margin-bottom:4px;">
+                <span style="font-size:10px; color:#64748b; align-self:center;">규격 프리셋:</span>
+                <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setBoxPreset(1200, 800, 144)">유로 팔레트</button>
+                <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setBoxPreset(800, 600, 1800)">제어반 캐비닛</button>
+                <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setBoxPreset(1000, 1000, 50)">스틸 베이스</button>
+              </div>
+            </div>
+
+            <!-- Cylinder Parameters -->
+            <div id="fields-cylinder" style="display:none;">
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
+                <div><span style="font-size:10px; color:#94a3b8;">반경 (R mm)</span><input class="vec3-input" type="number" id="sc-cyl-r" value="150" step="10" style="width:100%;"></div>
+                <div><span style="font-size:10px; color:#94a3b8;">높이 (H mm)</span><input class="vec3-input" type="number" id="sc-cyl-h" value="800" step="50" style="width:100%;"></div>
+                <div>
+                  <span style="font-size:10px; color:#94a3b8;">축 방향</span>
+                  <select class="tb-select" id="sc-cyl-axis" style="width:100%; height:26px;">
+                    <option value="Z" selected>Z (수직)</option>
+                    <option value="X">X (수평)</option>
+                    <option value="Y">Y (전후)</option>
+                  </select>
+                </div>
+              </div>
+              <div style="display:flex; gap:4px; margin-bottom:4px;">
+                <span style="font-size:10px; color:#64748b; align-self:center;">규격 프리셋:</span>
+                <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setCylPreset(25, 200, 'Z')">샤프트 핀</button>
+                <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setCylPreset(60, 1200, 'X')">롤러 축</button>
+                <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setCylPreset(200, 400, 'Z')">플랜지 허브</button>
+              </div>
+            </div>
+
+            <!-- Pipe Parameters -->
+            <div id="fields-pipe" style="display:none;">
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
+                <div><span style="font-size:10px; color:#94a3b8;">외경 (OD mm)</span><input class="vec3-input" type="number" id="sc-pipe-od" value="114.3" step="5" style="width:100%;"></div>
+                <div><span style="font-size:10px; color:#94a3b8;">내경 (ID mm)</span><input class="vec3-input" type="number" id="sc-pipe-id" value="105.3" step="5" style="width:100%;"></div>
+                <div><span style="font-size:10px; color:#94a3b8;">길이 (L mm)</span><input class="vec3-input" type="number" id="sc-pipe-l" value="1500" step="100" style="width:100%;"></div>
+              </div>
+              <div style="display:flex; gap:4px; margin-bottom:4px;">
+                <span style="font-size:10px; color:#64748b; align-self:center;">규격 프리셋:</span>
+                <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setPipePreset(60.5, 52.7, 1000)">50A 강관</button>
+                <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setPipePreset(114.3, 105.3, 2000)">100A 배관</button>
+              </div>
+            </div>
+
+            <!-- H-Beam Parameters -->
+            <div id="fields-hbeam" style="display:none;">
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:6px;">
+                <div><span style="font-size:10px; color:#94a3b8;">플랜지 (B mm)</span><input class="vec3-input" type="number" id="sc-beam-b" value="250" step="10" style="width:100%;"></div>
+                <div><span style="font-size:10px; color:#94a3b8;">웹 높이 (H mm)</span><input class="vec3-input" type="number" id="sc-beam-h" value="250" step="10" style="width:100%;"></div>
+                <div><span style="font-size:10px; color:#94a3b8;">길이 (L mm)</span><input class="vec3-input" type="number" id="sc-beam-l" value="3000" step="500" style="width:100%;"></div>
+              </div>
+              <div style="display:flex; gap:4px; margin-bottom:4px;">
+                <span style="font-size:10px; color:#64748b; align-self:center;">규격 프리셋:</span>
+                <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setHBeamPreset(200, 200, 2500)">H-200x200</button>
+                <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setHBeamPreset(250, 250, 4000)">H-250x250</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Material Selection & Creation Button -->
+          <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
+            <span style="font-size:11px; color:#94a3b8; white-space:nowrap;">PBR 재질:</span>
+            <select class="tb-select" id="sc-prim-material" style="flex:1;">
+              <option value="SUS_304_306_Brushed_2B" selected>SUS 304/306 브러시드 스테인리스</option>
+              <option value="SUS_316L_Sanitary_Mirror">SUS 316L 새니터리 미러</option>
+              <option value="PP_Natural_SealGrade">PP 내화학성 엔지니어링 플라스틱</option>
+              <option value="FKM_FPM_Viton_Brown_80A">FKM/FPM 내열 불소고무 (80A)</option>
+              <option value="Structural_Steel_Dark">산업용 구조강 (Dark Steel)</option>
+            </select>
+          </div>
+
+          <button class="btn-tb active-green" style="width:100%; justify-content:center; padding:9px; font-weight:700; font-size:12px;" onclick="executeCreateSolidCraftPrimitive()">
+            <span>➕ 3D 뷰포트에 솔리드 생성 (solidcraft.create)</span>
+          </button>
+        </div>
+
+        <!-- 2. Machining & Feature Tree Operations -->
+        <div class="sb-card">
+          <div class="sb-card-title">
+            <span>2. 형상 근사 미리보기 (실제 가공 형상 아님)</span>
+            <span style="font-size:10px; color:#f59e0b;" title="챔퍼·필렛은 부재를 더 작은 직육면체로 바꾸고, 볼트 타공은 위치 마커만 붙입니다. 메쉬에서 실제로 깎거나 빼지 않습니다.">⚠ 근사</span>
+          </div>
+
+          <!-- Chamfer (모따기) -->
+          <div style="margin-bottom:8px; padding:6px; background:rgba(0,0,0,0.25); border-radius:4px; border:1px solid var(--border-color);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <span style="font-size:11px; font-weight:600; color:#38bdf8;">✂️ 챔퍼 근사 (외곽 축소 박스)</span>
+              <span style="font-size:10px; color:#94a3b8;">C값 mm</span>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+              <input type="range" id="slider-chamfer-c" min="1" max="25" value="5" step="1" oninput="document.getElementById('val-chamfer-c').value = this.value" style="flex:1; accent-color:var(--accent-blue); cursor:pointer;">
+              <input class="vec3-input" type="number" id="val-chamfer-c" value="5" min="1" max="25" style="width:45px;" onchange="document.getElementById('slider-chamfer-c').value = this.value">
+              <button class="btn-tb active-blue" style="padding:4px 10px;" onclick="applySolidCraftChamfer()">가공 적용</button>
+            </div>
+            <div style="display:flex; gap:4px;">
+              <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setChamferQuick(1)">C1</button>
+              <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setChamferQuick(2)">C2</button>
+              <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setChamferQuick(5)">C5</button>
+              <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setChamferQuick(10)">C10</button>
+              <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setChamferQuick(15)">C15</button>
+            </div>
+          </div>
+
+          <!-- Fillet (라운딩) -->
+          <div style="margin-bottom:8px; padding:6px; background:rgba(0,0,0,0.25); border-radius:4px; border:1px solid var(--border-color);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <span style="font-size:11px; font-weight:600; color:#a78bfa;">⭕ 필렛 근사 (외곽 축소 박스)</span>
+              <span style="font-size:10px; color:#94a3b8;">R값 mm</span>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center; margin-bottom:6px;">
+              <input type="range" id="slider-fillet-r" min="1" max="25" value="5" step="1" oninput="document.getElementById('val-fillet-r').value = this.value" style="flex:1; accent-color:#a78bfa; cursor:pointer;">
+              <input class="vec3-input" type="number" id="val-fillet-r" value="5" min="1" max="25" style="width:45px;" onchange="document.getElementById('slider-fillet-r').value = this.value">
+              <button class="btn-tb" style="padding:4px 10px; background:#7c3aed; color:#fff;" onclick="applySolidCraftFillet()">가공 적용</button>
+            </div>
+            <div style="display:flex; gap:4px;">
+              <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setFilletQuick(1)">R1</button>
+              <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setFilletQuick(2)">R2</button>
+              <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setFilletQuick(5)">R5</button>
+              <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setFilletQuick(10)">R10</button>
+              <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setFilletQuick(20)">R20</button>
+            </div>
+          </div>
+
+          <!-- Counterbore Drill Hole -->
+          <div style="margin-bottom:8px; padding:6px; background:rgba(0,0,0,0.25); border-radius:4px; border:1px solid var(--border-color);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <span style="font-size:11px; font-weight:600; color:#34d399;">🔩 카운터보어 위치 마커 (구멍 안 뚫림)</span>
+              <span style="font-size:10px; color:#94a3b8;">규격 볼트홀</span>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <select class="tb-select" id="sc-bolt-size" style="flex:1;">
+                <option value="M4_4.5mm">M4 (관통 Ø4.5 / 자리파기 Ø8.0)</option>
+                <option value="M6_6.6mm">M6 (관통 Ø6.6 / 자리파기 Ø11.0)</option>
+                <option value="M8_9.0mm" selected>M8 (관통 Ø9.0 / 자리파기 Ø14.0)</option>
+                <option value="M10_11.0mm">M10 (관통 Ø11.0 / 자리파기 Ø17.5)</option>
+                <option value="M12_13.5mm">M12 (관통 Ø13.5 / 자리파기 Ø20.0)</option>
+                <option value="M16_17.5mm">M16 (관통 Ø17.5 / 자리파기 Ø26.0)</option>
+              </select>
+              <button class="btn-tb active-green" style="padding:4px 10px;" onclick="applySolidCraftCounterbore()">타공 실행</button>
+            </div>
+          </div>
+
+          <button class="btn-tb" style="width:100%; justify-content:center; padding:6px; color:#f87171; border-color:rgba(239,68,68,0.3);" onclick="resetSelectedSolidCraftGeometry()">
+            <span>🔄 가공 형상 원본 복원 (solid.reset_stock)</span>
+          </button>
+        </div>
+
+        <!-- 3. Interactive 3D Measurement & Inspection -->
+        <div class="sb-card">
+          <div class="sb-card-title">
+            <span>3. 3D 거리 측정 (화면상 메쉬 기준)</span>
+          </div>
+
+          <div style="display:flex; gap:6px; margin-bottom:8px;">
+            <button class="btn-tb" id="btn-toggle-laser-measure" style="flex:1; justify-content:center; padding:7px;" onclick="toggleLaserMeasurementTool()">
+              <span>📏 3D 레이저 거리 계측기: OFF</span>
+            </button>
+            <button class="btn-tb" style="padding:7px 10px;" onclick="clearLaserMeasurements()" title="측정선 초기화">지우기</button>
+          </div>
+
+          <!-- Measurement Readout Display -->
+          <div style="background:rgba(0,0,0,0.35); padding:8px; border-radius:4px; border:1px solid var(--border-color); font-size:11px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <span style="color:#94a3b8;">측정 직선 거리 (Dist):</span>
+              <b id="meas-val-dist" style="color:var(--accent-green); font-family:var(--font-mono); font-size:12px;">- mm</b>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; font-size:10px; color:#94a3b8; font-family:var(--font-mono);">
+              <div>ΔX: <span id="meas-val-dx" style="color:#f87171;">-</span></div>
+              <div>ΔY: <span id="meas-val-dy" style="color:#4ade80;">-</span></div>
+              <div>ΔZ: <span id="meas-val-dz" style="color:#60a5fa;">-</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. SolidCraft Script & CAD Export -->
+        <div class="sb-card">
+          <div class="sb-card-title">
+            <span>4. SolidCraft 스크립트 & 내보내기</span>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+            <button class="btn-tb" style="justify-content:center; padding:7px;" onclick="exportSolidCraftCommandScript()" title="SolidCraft JSON 명령어 복사">
+              <span>📋 SolidCraft 스크립트</span>
+            </button>
+            <button class="btn-tb" style="justify-content:center; padding:7px;" onclick="exportCurrentModelAsOBJ()" title="현재 CAD 모델링 OBJ 다운로드">
+              <span>📤 OBJ 지오메트리</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane" id="pane-gates">
+        <!-- Gate Progress -->
+        <div class="sb-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <div style="font-weight:700; color:var(--text-primary); font-size:11px;">🚪 화물 게이트 (오버헤드 섹셔널 도어)</div>
+              <div style="font-size:10px; color:var(--text-muted);" id="gate1-detail-text">닫힘 상태 (0.0m / 4.1m)</div>
+            </div>
+            <span id="gate1-percent-text" style="font-weight:800; font-family:var(--font-mono); color:var(--accent-primary);">0%</span>
+          </div>
+          <div style="height:8px; background:var(--bg-floor); border-radius:4px; overflow:hidden; border:1px solid var(--border-hairline); margin-top:8px;">
+            <div id="gate1-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg, #38bdf8, #10b981); transition:width 0.08s linear;"></div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+          <button class="btn-tb active-green" style="justify-content:center; padding:7px;" onclick="triggerGateAction('OPEN')">▲ 열기 (OPEN)</button>
+          <button class="btn-tb" style="justify-content:center; padding:7px; color:#ef4444;" onclick="triggerGateAction('STOP')">■ 정지 (STOP)</button>
+          <button class="btn-tb active-amber" style="justify-content:center; padding:7px;" onclick="triggerGateAction('CLOSE')">▼ 닫기 (CLOSE)</button>
+        </div>
+
+        <!-- Wall Relocation & Default Persistence -->
+        <div class="sb-card">
+          <div class="sb-card-title">
+            <span>설치 벽면 (Wall Position)</span>
+            <span id="label-gate-wall" style="color:var(--accent-green); font-size:10px;">북측 벽 (Y=16m, 기본값 고정 ✓)</span>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:4px; margin-bottom:8px;">
+            <button class="btn-tb active-green" id="btn-wall-north" onclick="relocateCargoGate('NORTH')">북측 (기본값)</button>
+            <button class="btn-tb" id="btn-wall-south" onclick="relocateCargoGate('SOUTH')">남측 (Y=0)</button>
+            <button class="btn-tb" id="btn-wall-west" onclick="relocateCargoGate('WEST')">서측 (X=0)</button>
+            <button class="btn-tb" id="btn-wall-east" onclick="relocateCargoGate('EAST')">동측 (X=24)</button>
+          </div>
+          <button class="btn-tb active-green" onclick="saveGateWallAsDefault('NORTH')" style="width:100%; justify-content:center; padding:7px; font-weight:700;" title="현재 북측 설치 위치를 영구 디폴트로 저장">
+            <span>💾 북측(Y=16m)을 기본값으로 영구 저장</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- -------------------------------------------------------------------
+           Tab 3: Virtual PLC S7-1500 Ladder Logic & I/O
+           ------------------------------------------------------------------- -->
+      <div class="tab-pane" id="pane-plc">
+        <div class="sb-card">
+          <div class="sb-card-title">
+            <span>가상 PLC 신호 버스 (S7-1500)</span>
+            <span style="color:var(--accent-green); font-family:var(--font-mono); font-size:10px;">50Hz RUN</span>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-family:var(--font-mono); font-size:10.5px;">
+            <div style="background:var(--bg-floor); padding:6px; border-radius:4px; border:1px solid var(--border-hairline);">
+              <div style="color:var(--text-muted); font-size:9.5px;">스핀들 회전수</div>
+              <div id="plc-val-rpm" style="font-size:13px; font-weight:700; color:var(--accent-primary);">12,000 RPM</div>
+            </div>
+            <div style="background:var(--bg-floor); padding:6px; border-radius:4px; border:1px solid var(--border-hairline);">
+              <div style="color:var(--text-muted); font-size:9.5px;">챔버 산소 분압</div>
+              <div id="plc-val-o2" style="font-size:13px; font-weight:700; color:var(--accent-green);">16 PPM</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sb-card">
+          <div class="sb-card-title"><span>디지털 입력 (DI: 인터록 & 센서)</span></div>
+          <div id="plc-di-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:4px;"></div>
+        </div>
+
+        <div class="sb-card">
+          <div class="sb-card-title"><span>디지털 출력 (DO: 모터 & 밸브)</span></div>
+          <div id="plc-do-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:4px;"></div>
+        </div>
+
+        <div class="sb-card">
+          <div class="sb-card-title"><span>실시간 래더 로직 (Ladder Rungs)</span></div>
+          <div id="plc-ladder-rungs" style="font-family:var(--font-mono); font-size:9.5px; line-height:1.6;"></div>
+        </div>
+      </div>
+
+      <!-- -------------------------------------------------------------------
+           Tab 4: Scene Layout & Architecture
+           ------------------------------------------------------------------- -->
+      <div class="tab-pane" id="pane-layout">
+        <div class="sb-card">
+          <div class="sb-card-title"><span>배치 에셋 목록 & 통계</span></div>
+          <div id="scene-instances-list" style="display:flex; flex-direction:column; gap:4px; max-height:220px; overflow-y:auto;"></div>
+        </div>
+
+        <div class="sb-card">
+          <div class="sb-card-title"><span>데이터 동기화 & 내보내기</span></div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <button class="btn-tb active-green" onclick="saveSceneLayoutToServer()">💾 서버에 씬 레이아웃 동기화</button>
+            <button class="btn-tb" onclick="exportSceneJSON()">📥 JSON 파일 내보내기</button>
+            <button class="btn-tb" onclick="clearAllPlacedAssets()" style="color:#ef4444; border-color:rgba(239,68,68,0.3);">⚠️ 전체 배치 에셋 초기화</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Floating Sidebar Expand Pill (Appears when sidebar is collapsed) -->
+  <button id="btn-floating-sidebar-expand" class="floating-sidebar-expand" onclick="toggleSidebarCollapse(true)" style="display:none;" title="사이드바 메뉴 펼치기">
+    <span>◀ 작업 패널 펼치기</span>
+  </button>
+
+  <!-- =========================================================================
+       4. Bottom Content Drawer (Unreal Engine 5 Style, Slide-Up, 340px)
+       ========================================================================= -->
+  <section id="content-drawer">
+    <div class="drawer-header">
+      <div class="drawer-cats">
+        <span style="font-weight:700; color:var(--text-primary); font-size:11.5px; margin-right:6px;">🗂️ 콘텐츠 드로어</span>
+        <button class="btn-tb active" onclick="renderAssetDrawer('ALL', this)">전체 (28)</button>
+        <button class="btn-tb" onclick="renderAssetDrawer('CNC_3DP', this)">CNC & 3D프린터</button>
+        <button class="btn-tb" onclick="renderAssetDrawer('ROBOT_LOGISTICS', this)">물류 로봇</button>
+        <button class="btn-tb" onclick="renderAssetDrawer('STORAGE_RACK', this)">보관 설비</button>
+        <button class="btn-tb" onclick="renderAssetDrawer('OFFICE_STATION', this)">오피스</button>
+        <button class="btn-tb" onclick="renderAssetDrawer('SAFETY_FACILITY', this)">안전 환경</button>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:6px;">
+        <input type="text" class="drawer-search" id="input-asset-search" placeholder="에셋 검색 (예: 5축 CNC, Carter...)" oninput="filterAssetsBySearch(this.value)">
+        <button class="btn-tb" onclick="openSimReadyCatalogModal()" style="border-color:#76b900; color:#a3e635;" title="NVIDIA SimReady 정밀 CAD 카탈로그">
+          <span>📦 NVIDIA SimReady</span>
+        </button>
+        <button class="btn-tb" onclick="toggleContentDrawer()" title="드로어 닫기 (Ctrl+Space)">✕</button>
+      </div>
+    </div>
+
+    <div class="drawer-grid" id="asset-drawer-cards"></div>
+  </section>
+
+  <!-- =========================================================================
+       5. Bottom Status Strip Footer (30px)
+       ========================================================================= -->
+  <footer id="bottom-bar">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button class="footer-drawer-btn" onclick="toggleContentDrawer()" title="콘텐츠 드로어 슬라이드 토글 (단축키: Ctrl + Space)">
+        <span>🗂️ 콘텐츠 드로어 (Ctrl+Space)</span>
+      </button>
+      <div class="tb-divider" style="height:14px;"></div>
+      <div class="footer-pills">
+        <div class="footer-pill-item">
+          <span>🚪 화물 게이트:</span>
+          <b id="footer-pill-g1" style="color:var(--accent-green);">CLOSED</b>
+        </div>
+        <div class="footer-pill-item">
+          <span>⚡ PLC:</span>
+          <b style="color:var(--accent-primary);">50Hz NORMAL</b>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span class="footer-pill-item" id="footer-speed-pill" style="color:var(--accent-primary);">🏃 1.0x (7.5 m/s)</span>
+      <span class="footer-pill-item" id="hud-coords" style="color:var(--text-secondary);">X: 22,000, Y: -16,000, Z: 14,500 mm</span>
+    </div>
+  </footer>
+
+  <!-- =========================================================================
+       6. Modals (SimReady Catalog & Blender Cycles Render)
+       ========================================================================= -->
+  <div id="modal-nvidia-catalog" class="modal-overlay">
+    <div class="modal-card" style="width:880px; max-width:92vw; height:640px;">
+      <div style="padding:12px 16px; background:var(--bg-surface-elevated); border-bottom:1px solid var(--border-hairline); display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-weight:700; color:#a3e635; font-size:13px;">📦 NVIDIA Isaac SimReady™ 디지털 트윈 에셋 뱅크</span>
+        <button class="btn-tb" onclick="closeSimReadyCatalogModal()">✕ 닫기</button>
+      </div>
+      <div id="simready-catalog-body" style="flex:1; overflow-y:auto; padding:16px;"></div>
+    </div>
+  </div>
+
+  <div id="render-modal-overlay" class="modal-overlay">
+    <div class="modal-card" style="width:880px; max-width:92vw; height:680px;">
+      <div style="padding:12px 16px; background:var(--bg-surface-elevated); border-bottom:1px solid var(--border-hairline); display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-weight:700; color:#c084fc; font-size:13px;">⚡ Blender 4.x Headless Cycles 패스트레이싱 (AgX Color Space)</span>
+        <button class="btn-tb" onclick="closeBlenderRenderModal()">✕ 닫기</button>
+      </div>
+      <div style="flex:1; padding:16px; display:flex; flex-direction:column; gap:12px; overflow-y:auto;">
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="input-blender-path" class="drawer-search" style="flex:1;" placeholder="Blender 경로 (비워둘 시 자동 탐색)">
+          <button class="btn-tb active-green" id="btn-start-render" onclick="executeBlenderHeadlessRender()">⚡ 지금 렌더링 시작</button>
+        </div>
+        <div style="flex:1; background:#000; border-radius:6px; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid var(--border-hairline);">
+          <img id="render-result-img" src="/renders_cycles/cycles_digital_twin_render.png" style="max-width:100%; max-height:100%; object-fit:contain;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-solidcraft-studio" class="modal-overlay">
+    <div class="modal-card" style="width: 1280px; max-width: 96vw; height: 88vh; display: flex; flex-direction: column; background: #0c1017; border: 1px solid #1f293d; box-shadow: 0 25px 60px rgba(0,0,0,0.85); border-radius: 12px; overflow: hidden;">
+      
+      <!-- Studio Header Bar (Unreal Engine Blueprint style) -->
+      <div style="padding: 10px 18px; background: #131a26; border-bottom: 1px solid #233047; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, #0ea5e9, #6366f1); color: #fff; font-size: 15px; font-weight: bold;">⬡</span>
+          <div>
+            <div style="font-weight: 700; color: #f1f5f9; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+              <span>빠른 스케치·견적 모드</span>
+              <span style="font-size: 10px; background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); padding: 2px 6px; border-radius: 4px; font-weight: 600;">메쉬 · 가공 공차 미검증</span>
+            </div>
+            <div style="font-size: 11px; color: #64748b;">2D 스케치 → 메쉬 익스트루드로 형상·크기를 빠르게 확인하는 용도입니다. 정밀 형상 기준(SSoT)이 아닙니다.</div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <!-- 2D Sketch / 3D Solid Mode Switcher -->
+          <div style="display: flex; background: #0c1017; border: 1px solid #233047; border-radius: 6px; padding: 2px; gap: 2px;">
+            <button class="btn-tb active-green" id="btn-cad-view-sketch" onclick="cadStudioSwitchMode('sketch')" style="font-size: 11px; padding: 4px 10px; font-weight: 700;">
+              ✏️ 2D 모눈 스케처
+            </button>
+            <button class="btn-tb" id="btn-cad-view-3d" onclick="cadStudioSwitchMode('3d')" style="font-size: 11px; padding: 4px 10px; font-weight: 700;">
+              🧊 3D 솔리드 뷰
+            </button>
+          </div>
+          <div style="width: 1px; height: 20px; background: #334155; margin: 0 2px;"></div>
+          <button class="btn-tb" onclick="cadStudioResetCamera()" title="뷰포트 카메라 프레이밍 초기화" style="background: #1e293b; color: #94a3b8; border-color: #334155;">
+            <span>⟲ 카메라/화면 리셋</span>
+          </button>
+          <button class="btn-tb" onclick="cadStudioToggleWireframe()" id="btn-cad-wireframe" title="와이어프레임 토글" style="background: #1e293b; color: #38bdf8; border-color: #334155;">
+            <span>▦ 와이어프레임</span>
+          </button>
+          <div style="width: 1px; height: 20px; background: #334155; margin: 0 4px;"></div>
+          <button class="btn-tb active-green" onclick="cadStudioApplyToFactoryScene()" style="padding: 6px 14px; font-weight: 700; background: linear-gradient(135deg, #059669, #10b981); color: #fff; border: none; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
+            <span>🚀 공장 씬에 적용 및 배치</span>
+          </button>
+          <button class="btn-tb" onclick="closeSolidCraftStudioModal()" style="background: #1e293b; color: #ef4444; border-color: #334155; padding: 6px 10px;">
+            <span>✕ 닫기</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Studio Body (Split View: Left Viewport, Right Controls) -->
+      <div style="flex: 1; display: flex; overflow: hidden;">
+        
+        <!-- Left: Dedicated Viewport (Switchable 2D Sketch / 3D Canvas) -->
+        <div id="cad-studio-viewport-area" style="flex: 1; position: relative; background: #080b11; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+          <!-- 2D Interactive Metric Grid Canvas -->
+          <canvas id="cad-sketch-canvas" style="width: 100%; height: 100%; display: block; background: #06090f; cursor: crosshair;"></canvas>
+          
+          <!-- 3D Three.js WebGL Viewport Canvas -->
+          <canvas id="cad-studio-canvas" style="width: 100%; height: 100%; display: none;"></canvas>
+          
+          <!-- Viewport HUD Overlay -->
+          <div style="position: absolute; top: 12px; left: 14px; pointer-events: none; display: flex; flex-direction: column; gap: 4px;">
+            <div id="cad-studio-mode-hud" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); border: 1px solid rgba(56, 189, 248, 0.35); padding: 4px 10px; border-radius: 6px; font-size: 11px; color: #38bdf8; font-family: monospace; font-weight: 700;">
+              <span>빠른 스케치·견적 모드 — 2D 스케치</span>
+            </div>
+            <div id="cad-studio-dim-hud" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); border: 1px solid rgba(255, 255, 255, 0.15); padding: 4px 10px; border-radius: 6px; font-size: 11px; color: #e2e8f0; font-family: monospace;">
+              외곽 bbox: 300 × 250 × 40 mm (사다리꼴 프리셋)
+            </div>
+            <div id="cad-studio-precision-hud" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); border: 1px solid rgba(245, 158, 11, 0.35); padding: 4px 10px; border-radius: 6px; font-size: 10px; color: #fbbf24; font-family: monospace; line-height: 1.5;">
+              화면 표시: 메쉬 (익스트루드 후 계산)<br>모델 수치: 입력 좌표 → 브라우저 Float32 메쉬 (정밀 형상 기준 아님)<br>가공 공차: 미검증
+            </div>
+            <div id="cad-sketch-coords-hud" style="background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: 6px; font-size: 11px; color: #34d399; font-family: monospace;">
+              CURSOR: X: 0.0 mm | Y: 0.0 mm (SNAP: 10mm)
+            </div>
+          </div>
+
+          <!-- Bottom Viewport Guide -->
+          <div id="cad-viewport-guide-text" style="position: absolute; bottom: 12px; left: 14px; pointer-events: none; font-size: 11px; color: #94a3b8; background: rgba(15, 23, 42, 0.75); padding: 4px 10px; border-radius: 4px; border: 1px solid #1e293b;">
+            ✏️ 마우스 좌클릭: 점 추가 / 원 그리기 | 우클릭 드래그: 모눈 이동(팬) | 휠: 줌 인/아웃
+          </div>
+        </div>
+
+        <!-- Right: CAD Tool Parameters Panel -->
+        <div style="width: 380px; background: #0e141f; border-left: 1px solid #1f293d; display: flex; flex-direction: column; overflow-y: auto;">
+          
+          <!-- TAB A: 2D Sketch Controls Panel -->
+          <div id="cad-sketch-panel" style="padding: 16px; display: flex; flex-direction: column; gap: 14px;">
+            
+            <!-- 1. Drawing Tools -->
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">1. 스케치 도구 (DRAWING TOOLS)</div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 6px;">
+                <button class="btn-tb active-green" id="btn-sketch-tool-point" onclick="cadSketchSetTool('point')" style="justify-content: center; padding: 6px 0; font-size: 11px;">✏️ 점/외곽선</button>
+                <button class="btn-tb" id="btn-sketch-tool-circle" onclick="cadSketchSetTool('circle')" style="justify-content: center; padding: 6px 0; font-size: 11px;">◯ 원 그리기</button>
+                <button class="btn-tb" id="btn-sketch-tool-subtract" onclick="cadSketchSetTool('subtract')" style="justify-content: center; padding: 6px 0; font-size: 11px; color: #f43f5e; font-weight: 700;">✂️ 구멍 빼기</button>
+              </div>
+              <div style="display: flex; gap: 4px;">
+                <button class="btn-tb" id="btn-sketch-snap" onclick="cadSketchToggleSnap()" style="flex: 1; justify-content: center; font-size: 11px; color: #38bdf8;">🧲 그리드 스냅: 10mm (ON)</button>
+                <select class="tb-select" id="sel-sketch-snap-step" onchange="cadSketchSetSnapStep(this.value)" title="스냅 간격 (mm)" style="width: 74px; font-size: 11px;">
+                  <option value="0.1">0.1 mm</option>
+                  <option value="1">1 mm</option>
+                  <option value="10" selected>10 mm</option>
+                </select>
+                <button class="btn-tb" onclick="cadSketchCloseLoopToggle()" id="btn-sketch-loop-toggle" style="flex: 1; justify-content: center; font-size: 11px; color: #10b981;">🔄 루프: 닫힘 (Closed)</button>
+              </div>
+            </div>
+
+            <!-- 2. Fast Shape Presets -->
+            <div style="background: #141c2b; border: 1px solid #233047; border-radius: 8px; padding: 10px;">
+              <div style="font-size: 11px; font-weight: 700; color: #38bdf8; margin-bottom: 6px;">📐 빠른 판재 형상 프리셋 (PRESETS)</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
+                <button class="btn-tb active-green" onclick="cadSketchLoadPreset('trapezoid')" style="justify-content: center; font-size: 11px;">
+                  사다리꼴 (300×180×250)
+                </button>
+                <button class="btn-tb" onclick="cadSketchLoadPreset('rect')" style="justify-content: center; font-size: 11px;">
+                  직사각형 (300×200)
+                </button>
+              </div>
+              <div style="display: flex; justify-content: flex-end;">
+                <button class="btn-tb" onclick="cadSketchClear()" style="font-size: 10px; color: #ef4444; padding: 2px 8px;">
+                  ⟲ 스케치 전체 초기화
+                </button>
+              </div>
+            </div>
+
+            <!-- 3. Dynamic Vertices Coordinates Table (Bi-Directional) -->
+            <div style="background: #141c2b; border: 1px solid #233047; border-radius: 8px; padding: 10px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 11px; font-weight: 700; color: #f1f5f9;">📍 외곽 정점 좌표 수치 기입 (VERTICES)</span>
+                <button class="btn-tb" onclick="cadSketchAddVertex()" style="font-size: 10px; padding: 2px 6px; color: #38bdf8;">+ 점 추가</button>
+              </div>
+              <div style="font-size: 10px; color: #64748b; margin-bottom: 6px;">* 마우스 드래그 또는 아래 X, Y 수치를 타이핑하여 수정 가능</div>
+              <div id="cad-sketch-vertices-table" style="max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+                <!-- Dynamically generated rows -->
+              </div>
+            </div>
+
+            <!-- 4. Holes & Boolean Subtraction Table -->
+            <div style="background: #141c2b; border: 1px solid rgba(244, 63, 94, 0.4); border-radius: 8px; padding: 10px; background: linear-gradient(180deg, rgba(244,63,94,0.06), #141c2b);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="font-size: 11px; font-weight: 700; color: #f43f5e;">🎯 타공 원 및 빼기 (HOLES & SUBTRACTION)</span>
+                <button class="btn-tb" onclick="cadSketchAddHole()" style="font-size: 10px; padding: 2px 6px; color: #f43f5e; border-color: #f43f5e;">+ 원 추가</button>
+              </div>
+              <div id="cad-sketch-holes-table" style="max-height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;">
+                <!-- Dynamically generated hole rows -->
+              </div>
+            </div>
+
+            <!-- 5. 3D Extrusion Execution -->
+            <div style="background: #131d2e; border: 1px solid #0284c7; border-radius: 8px; padding: 12px; margin-top: auto;">
+              <div style="font-size: 12px; font-weight: 700; color: #38bdf8; margin-bottom: 8px;">🧊 3D 입체 변환 (EXTRUSION)</div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 11px; color: #94a3b8; font-weight: 600;">판넬 두께 (Thickness):</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <input type="number" id="cad-sketch-extrude-thickness" value="40" min="0.1" max="1000" step="0.1" oninput="cadSketchUpdateThickness(this.value)" style="width: 80px; background: #0c1017; border: 1px solid #38bdf8; color: #38bdf8; font-weight: 700; padding: 4px 6px; border-radius: 4px; font-family: monospace; text-align: right; font-size: 12px;">
+                  <span style="font-size: 11px; color: #38bdf8; font-weight: 700;">mm</span>
+                </div>
+              </div>
+              <button class="btn-tb active-green" onclick="cadSketchExecuteExtrude()" style="width: 100%; justify-content: center; padding: 12px; font-size: 13px; font-weight: 800; background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; border: none; box-shadow: 0 4px 16px rgba(37,99,235,0.45);">
+                <span>🧊 입력 두께로 익스트루드 (메쉬 미리보기)</span>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- TAB B: 3D Solid Controls Panel -->
+          <div id="cad-3d-panel" style="padding: 16px; display: none; flex-direction: column; gap: 14px;">
+            <button class="btn-tb" onclick="cadStudioSwitchMode('sketch')" style="justify-content: center; padding: 8px; font-size: 12px; color: #38bdf8; border-color: #38bdf8; background: rgba(56,189,248,0.1);">
+              <span>✏️ 2D 모눈 스케처로 돌아가기 (Edit Sketch)</span>
+            </button>
+
+            <!-- Primitive Selector -->
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">1. 파라메트릭 프리미티브 (PRIMITIVES)</div>
+              <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;">
+                <button class="btn-tb active-green" id="cad-btn-box" onclick="cadStudioSelectPrimitive('box')" style="justify-content: center; padding: 6px 0; font-size: 11px;">박스</button>
+                <button class="btn-tb" id="cad-btn-cylinder" onclick="cadStudioSelectPrimitive('cylinder')" style="justify-content: center; padding: 6px 0; font-size: 11px;">원통</button>
+                <button class="btn-tb" id="cad-btn-pipe" onclick="cadStudioSelectPrimitive('pipe')" style="justify-content: center; padding: 6px 0; font-size: 11px;">파이프</button>
+                <button class="btn-tb" id="cad-btn-hbeam" onclick="cadStudioSelectPrimitive('hbeam')" style="justify-content: center; padding: 6px 0; font-size: 11px;">H-형강</button>
+                <button class="btn-tb" id="cad-btn-trapezoid" onclick="cadStudioSelectPrimitive('trapezoid')" style="justify-content: center; padding: 6px 0; font-size: 11px; color: #38bdf8; font-weight: 700;">사다리꼴</button>
+              </div>
+            </div>
+
+            <!-- Parameters Inputs Container -->
+            <div id="cad-studio-params-container" style="background: #141c2b; border: 1px solid #233047; border-radius: 8px; padding: 12px;">
+              <!-- Dynamic fields updated by script -->
+            </div>
+
+            <!-- Material Selector -->
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px;">2. PBR 재질 선택</div>
+              <select id="cad-studio-material" onchange="cadStudioUpdateMaterial()" class="drawer-search" style="width: 100%; background: #141c2b; border-color: #233047; color: #f1f5f9; padding: 6px 8px;">
+                <option value="SUS_304_306_Brushed_2B">SUS 304/306 브러시드 스테인리스</option>
+                <option value="SUS_316L_Electropolished">SUS 316L 전해연마 미러</option>
+                <option value="SUS_316L_SLM_RoughPrint">SUS 316L 금속 3D 프린팅</option>
+                <option value="SUS_314_HeatResistant_Wrought">SUS 314 초내열 스테인리스</option>
+                <option value="PP_Natural_SealGrade">PP 내화학 폴리프로필렌</option>
+                <option value="PP_GF30_Structural_Grey">PP-GF30 유리섬유 복합재</option>
+                <option value="FKM_Viton_Black75">FKM 불소고무 (내열/진공 실링)</option>
+              </select>
+            </div>
+
+            <!-- Machining Operations -->
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">3. 형상 근사 미리보기 (실제 가공 형상 아님)</div>
+              
+              <!-- Chamfer -->
+              <div style="background: #141c2b; border: 1px solid #233047; border-radius: 8px; padding: 10px; margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <span style="font-size: 12px; font-weight: 600; color: #38bdf8;">✂ 45° 챔퍼 모따기</span>
+                  <div style="display: flex; gap: 4px;">
+                    <button class="btn-tb" onclick="cadStudioSetChamfer(1)" style="padding: 1px 5px; font-size: 10px;">C1</button>
+                    <button class="btn-tb" onclick="cadStudioSetChamfer(2)" style="padding: 1px 5px; font-size: 10px;">C2</button>
+                    <button class="btn-tb" onclick="cadStudioSetChamfer(5)" style="padding: 1px 5px; font-size: 10px;">C5</button>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                  <input type="number" id="cad-chamfer-val" value="2" min="0.5" max="30" step="0.5" style="width: 60px; background: #0c1017; border: 1px solid #233047; color: #fff; padding: 4px; border-radius: 4px; text-align: center; font-family: monospace;">
+                  <span style="font-size: 11px; color: #64748b;">mm</span>
+                  <button class="btn-tb" onclick="cadStudioApplyChamfer()" style="flex: 1; justify-content: center; padding: 4px 8px; background: #0284c7; color: #fff; border: none;">모따기 적용</button>
+                </div>
+              </div>
+
+              <!-- Fillet -->
+              <div style="background: #141c2b; border: 1px solid #233047; border-radius: 8px; padding: 10px; margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <span style="font-size: 12px; font-weight: 600; color: #a855f7;">⌒ R-필렛 라운딩</span>
+                  <div style="display: flex; gap: 4px;">
+                    <button class="btn-tb" onclick="cadStudioSetFillet(1)" style="padding: 1px 5px; font-size: 10px;">R1</button>
+                    <button class="btn-tb" onclick="cadStudioSetFillet(2)" style="padding: 1px 5px; font-size: 10px;">R2</button>
+                    <button class="btn-tb" onclick="cadStudioSetFillet(5)" style="padding: 1px 5px; font-size: 10px;">R5</button>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                  <input type="number" id="cad-fillet-val" value="2" min="0.5" max="30" step="0.5" style="width: 60px; background: #0c1017; border: 1px solid #233047; color: #fff; padding: 4px; border-radius: 4px; text-align: center; font-family: monospace;">
+                  <span style="font-size: 11px; color: #64748b;">mm</span>
+                  <button class="btn-tb" onclick="cadStudioApplyFillet()" style="flex: 1; justify-content: center; padding: 4px 8px; background: #7c3aed; color: #fff; border: none;">라운딩 적용</button>
+                </div>
+              </div>
+
+              <!-- Custom Coordinate Hole Drill (지정 좌표 정밀 타공) -->
+              <div style="background: #141c2b; border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; padding: 10px; background: linear-gradient(180deg, rgba(56,189,248,0.06), #141c2b);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-size: 12px; font-weight: 700; color: #38bdf8;" title="스케치로 만든 판넬: 스케치에 구멍을 추가하고 메쉬를 다시 만듭니다 (외곽 밖·테두리 겹침은 거부). 그 밖의 형상: 위치 마커만 붙습니다.">🎯 지정 좌표 관통 구멍 (스케치 판넬)</span>
+                  <button class="btn-tb" id="btn-cad-pick-point" onclick="cadStudioTogglePickMode()" style="font-size: 10px; padding: 2px 6px; border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.1);">
+                    🖱️ 표면 클릭 좌표 픽
+                  </button>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
+                  <div>
+                    <span style="font-size: 10px; color: #94a3b8;">X 좌표 (mm):</span>
+                    <input type="number" id="cad-hole-x" value="40" step="5" style="width: 100%; background: #0c1017; border: 1px solid #233047; color: #fff; padding: 3px 6px; border-radius: 4px; font-family: monospace; font-size: 11px;">
+                  </div>
+                  <div>
+                    <span style="font-size: 10px; color: #94a3b8;">Y 좌표 (mm):</span>
+                    <input type="number" id="cad-hole-y" value="20" step="5" style="width: 100%; background: #0c1017; border: 1px solid #233047; color: #fff; padding: 3px 6px; border-radius: 4px; font-family: monospace; font-size: 11px;">
+                  </div>
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 6px;">
+                  <div style="flex: 1;">
+                    <span style="font-size: 10px; color: #94a3b8;">홀 직경 Ø (mm):</span>
+                    <input type="number" id="cad-hole-dia" value="16" min="1" max="100" step="1" style="width: 100%; background: #0c1017; border: 1px solid #233047; color: #fff; padding: 3px 6px; border-radius: 4px; font-family: monospace; font-size: 11px;">
+                  </div>
+                  <div style="flex: 1;">
+                    <span style="font-size: 10px; color: #94a3b8;">타공 깊이 (mm):</span>
+                    <input type="number" id="cad-hole-depth" value="50" min="1" max="200" step="5" style="width: 100%; background: #0c1017; border: 1px solid #233047; color: #fff; padding: 3px 6px; border-radius: 4px; font-family: monospace; font-size: 11px;">
+                  </div>
+                </div>
+                <button class="btn-tb active-green" onclick="cadStudioApplyCustomHole()" style="width: 100%; justify-content: center; padding: 6px 0; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #0284c7, #06b6d4); color: #fff; border: none; box-shadow: 0 2px 8px rgba(6,182,212,0.3);">
+                  ⚡ 지정 좌표 관통홀 타공 실행
+                </button>
+              </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div style="margin-top: auto; padding-top: 10px; border-top: 1px solid #233047; display: flex; flex-direction: column; gap: 8px;">
+              <button class="btn-tb active-green" onclick="cadStudioApplyToFactoryScene()" style="width: 100%; justify-content: center; padding: 10px; font-size: 13px; font-weight: 700; background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; border: none; box-shadow: 0 4px 14px rgba(37,99,235,0.4);">
+                <span>🚀 공장 씬에 적용 및 배치 (Apply to Scene)</span>
+              </button>
+              <button class="btn-tb" onclick="cadStudioExportOBJ()" style="width: 100%; justify-content: center; padding: 7px; background: #1e293b; color: #94a3b8; border-color: #334155; font-size: 11px;">
+                <span>💾 모델 OBJ 파일 다운로드</span>
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <script src="lib/sketch_core.js"></script>
+  <script src="lib/twin_runtime.js"></script>
+  <script src="lib/machine_kinematics.js"></script>
+  <script src="lib/nesting.js"></script>
+  <script src="lib/nc_program.js"></script>
+  <script src="lib/sheet_carve.js"></script>
+  <script src="lib/dxf_import.js"></script>
+  <script src="editor_v2.js"></script>
+  <script src="twin_live.js"></script>
+  <script src="twin_nest.js"></script>
+</body>
+</html>

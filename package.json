@@ -1,0 +1,18 @@
+{
+  "name": "factory-digital-twin",
+  "private": true,
+  "scripts": {
+    "dev": "node viewer/server.mjs --port=8089",
+    "start": "node viewer/server.mjs",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "ktx-parse": "^2.0.0",
+    "ktx2-encoder": "^0.6.0",
+    "sharp": "^0.35.5",
+    "ws": "^8.22.2"
+  },
+  "devDependencies": {
+    "three": "0.128.0"
+  }
+}

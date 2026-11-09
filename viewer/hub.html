@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Factory Digital Twin 허브</title>
+<style>
+  :root { --bg:#0b0f16; --panel:#121925; --line:#243042; --text:#e2e8f0; --muted:#8a98ab; --accent:#38bdf8; --ok:#22c55e; --warn:#f59e0b; --bad:#ef4444; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 16px 40px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .lead { color: var(--muted); margin: 0 0 22px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+  a.card { display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: inherit; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  a.card:hover { border-color: var(--accent); }
+  .card h2 { font-size: 16px; margin: 0; }
+  .card p { margin: 0; color: var(--muted); font-size: 13px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid; }
+  .t-ok { color: var(--ok); border-color: rgba(34,197,94,.4); }
+  .t-warn { color: var(--warn); border-color: rgba(245,158,11,.4); }
+  .t-bad { color: var(--bad); border-color: rgba(239,68,68,.4); }
+  .path { font: 12px ui-monospace, Consolas, monospace; color: var(--accent); }
+  .foot { margin-top: 26px; color: var(--muted); font-size: 12px; }
+  code { font-family: ui-monospace, Consolas, monospace; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Factory Digital Twin</h1>
+  <p class="lead">각 모듈이 무엇을 하는지와 <b>무엇이 검증됐고 무엇이 아닌지</b>를 함께 적었습니다. 근거는 <code>docs/AUDIT.md</code>, 테스트는 <code>npm test</code>.</p>
+
+  <div class="grid">
+    <a class="card" href="/v2">
+      <span class="path">/v2</span>
+      <h2>슈가힐 공장 디지털 트윈</h2>
+      <p>공장 공간 편집 · 빠른 스케치 모델링 → 공장 배치 → CNC 라우터/금속 3D 프린터 배정 → 실제 축(X·Y·Z·스핀들 / 레이저·리코터·플랫폼) 동작, 내부 보기, 가상 PLC 인터락, 실시간 데이터 송신.</p>
+      <div class="tags"><span class="tag t-ok">런타임·축·중계 테스트</span><span class="tag t-warn">공정 시간 가정값</span><span class="tag t-warn">메쉬 · B-Rep 아님</span></div>
+    </a>
+    <a class="card" href="/monitor">
+      <span class="path">/monitor</span>
+      <h2>실시간 모니터</h2>
+      <p>트윈이 WebSocket으로 보내는 설비 상태·축 신호·PLC 데이터를 다른 화면에서 받아 표시 (읽기 전용). 최신 JSON: <code>/api/telemetry</code></p>
+      <div class="tags"><span class="tag t-ok">중계 테스트</span><span class="tag t-warn">/v2 화면이 열려 있어야 데이터 발생</span></div>
+    </a>
+    <a class="card" href="/polymer">
+      <span class="path">/polymer</span>
+      <h2>구버전 CAM 페이지 (고정 템플릿)</h2>
+      <p>이전 에이전트의 고정 부품 템플릿 CAM. <b>모델링 부품용 네스팅·G-code는 /v2 생산 패널의 ‘📐 네스팅 · G-code’</b>로 대체됨.</p>
+      <div class="tags"><span class="tag t-ok">DXF 좌표 테스트</span><span class="tag t-bad">G-code 결함 알려짐 (Phase 3)</span><span class="tag t-warn">절삭 조건 출처 없음</span></div>
+    </a>
+    <a class="card" href="/studio">
+      <span class="path">/studio</span>
+      <h2>테셀레이션 오차 스튜디오</h2>
+      <p>메쉬 원 분할 수에 따른 현 오차 계산과 출력 스니펫.</p>
+      <div class="tags"><span class="tag t-warn">가공 공차 검증 아님</span></div>
+    </a>
+    <a class="card" href="/v1">
+      <span class="path">/v1</span>
+      <h2>v1 공장 뷰어 (보존본)</h2>
+      <p>이전 에이전트의 첫 버전. 비교용으로만 남겨 둠.</p>
+      <div class="tags"><span class="tag t-warn">유지보수 안 함</span></div>
+    </a>
+  </div>
+
+  <p class="foot">로드맵: <code>docs/PLAN_roadmap.md</code> · 작업 기록: <code>docs/WORKLOG.md</code> · G-code는 파일까지만 출력하며 기계로 전송하지 않습니다.</p>
+</div>
+</body>
+</html>

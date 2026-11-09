@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Polymer Auto-CAM & Nesting Studio</title>
+
+  <!-- Google Fonts: Roboto & JetBrains Mono & Material Symbols -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+  <!-- Tailwind CSS via Google GStatic allowlist -->
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+
+  <!-- Three.js + OrbitControls + STLExporter -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/STLExporter.js"></script>
+  <script src="lib/cam_core.js"></script>
+
+  <style>
+    :root {
+      --md-surface: #111318;
+      --md-surface-dim: #0c0e12;
+      --md-container: #1e2025;
+      --md-container-high: #282a2f;
+      --md-container-highest: #33353b;
+      --md-border: #44474e;
+      --md-border-subtle: rgba(255, 255, 255, 0.08);
+      --md-primary: #a8c7fa;
+      --md-primary-container: #0842a0;
+      --md-on-primary-container: #d3e3fd;
+      --md-secondary: #c2e7ff;
+      --md-pass: #6dd58c;
+      --md-pass-container: rgba(109, 213, 140, 0.12);
+      --md-error: #ffb4ab;
+      --md-error-container: rgba(255, 180, 171, 0.14);
+      --md-warn: #ffd279;
+      --md-warn-container: rgba(255, 210, 121, 0.12);
+      --md-text: #e2e2e9;
+      --md-text-muted: #8e9099;
+      --md-cyan: #78d9ec;
+    }
+
+    body {
+      font-family: 'Roboto', -apple-system, sans-serif;
+      background-color: var(--md-surface);
+      color: var(--md-text);
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: var(--md-surface-dim); }
+    ::-webkit-scrollbar-thumb { background: var(--md-container-highest); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--md-primary); }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      background: var(--md-container-highest);
+      height: 4px;
+      border-radius: 2px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--md-primary);
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(168, 199, 250, 0.5);
+      transition: transform 0.15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      vertical-align: middle;
+      font-size: 18px;
+    }
+
+    .trans-all { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+  </style>
+</head>
+<body class="select-none">
+
+  <!-- =========================================================================
+       1. Top Header Bar (MD3)
+       ========================================================================= -->
+  <header class="h-14 bg-[var(--md-container)] border-b border-[var(--md-border-subtle)] flex items-center justify-between px-4 shrink-0 z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-[var(--md-primary-container)] text-[var(--md-primary)] flex items-center justify-center font-bold text-lg shadow-sm">
+        <span class="material-symbols-outlined">polymer</span>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span id="txt-app-title" class="font-bold text-sm tracking-wide text-[var(--md-text)]">Polymer Auto-CAM & Nesting Studio</span>
+          <span class="text-[10px] font-mono bg-[var(--md-primary)]/10 text-[var(--md-primary)] px-2 py-0.5 rounded border border-[var(--md-primary)]/20 font-semibold">PP / PVDF / PEEK · FPM(가스켓, 밀링 비대상)</span>
+        </div>
+        <p id="txt-app-subtitle" class="text-[11px] text-[var(--md-text-muted)]">소재별 초안 파라미터(미검증) &rarr; 2D 격자 네스팅 &rarr; G-code 초안 생성 (기계 투입 전 시뮬레이션·사람 검토 필수)</p>
+      </div>
+    </div>
+
+    <!-- Optimization State Badge -->
+    <div class="flex items-center gap-2">
+      <div id="badge-auto-status" class="px-3 py-1 rounded-full bg-[var(--md-pass-container)] border border-[var(--md-pass)]/40 text-xs text-[var(--md-pass)] font-mono font-bold flex items-center gap-1.5 shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-[var(--md-pass)] animate-pulse"></span>
+        <span id="txt-badge-status">AUTO-OPTIMIZED (소재 최적 세팅 적용됨)</span>
+      </div>
+      <button id="btn-reset-preset" onclick="resetToPreset()" class="px-2.5 py-1 text-xs font-semibold rounded-lg border border-[var(--md-border)] bg-[var(--md-container-high)] text-[var(--md-text-muted)] hover:text-[var(--md-primary)] hover:border-[var(--md-primary)] trans-all hidden" title="선택된 소재 기본값으로 즉시 복원">
+        <span class="material-symbols-outlined text-[14px]">restart_alt</span>
+        <span id="txt-btn-reset">최적값 복원</span>
+      </button>
+    </div>
+
+    <!-- Right Controls -->
+    <div class="flex items-center gap-2">
+      <!-- Language Switcher -->
+      <button onclick="toggleLanguage()" class="px-3 py-1.5 text-xs font-semibold rounded-xl border border-[var(--md-border)] bg-[var(--md-container-high)] text-[var(--md-text)] hover:text-[var(--md-primary)] flex items-center gap-1.5 trans-all cursor-pointer">
+        <span class="material-symbols-outlined text-[16px]">translate</span>
+        <span id="txt-lang-btn">English</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       2. Main 3-Column Layout
+       ========================================================================= -->
+  <div class="flex-1 flex overflow-hidden relative">
+
+    <!-- -----------------------------------------------------------------------
+         Left Panel: Material Selector, Process Sliders & DXF Parser (370px)
+         ----------------------------------------------------------------------- -->
+    <aside class="w-[370px] bg-[var(--md-surface-dim)] border-r border-[var(--md-border-subtle)] flex flex-col shrink-0 z-10">
+      
+      <!-- Material One-Click Selector Grid (4 Buttons) -->
+      <div class="p-3 bg-[var(--md-container)] border-b border-[var(--md-border-subtle)] space-y-2">
+        <div class="flex items-center justify-between text-xs font-bold text-[var(--md-primary)]">
+          <span id="lbl-mat-header">1. 가공 특수 고분자 소재 원클릭 선택</span>
+          <span class="font-mono text-[10px] text-[var(--md-text-muted)]">Auto-Tune</span>
+        </div>
+        <div class="grid grid-cols-4 gap-1.5">
+          <button id="btn-mat-pp" onclick="selectMaterial('PP')" class="py-2 rounded-xl text-xs font-bold font-mono border border-[var(--md-primary)] bg-[var(--md-primary)] text-black trans-all shadow">PP</button>
+          <button id="btn-mat-pvdf" onclick="selectMaterial('PVDF')" class="py-2 rounded-xl text-xs font-bold font-mono border border-[var(--md-border)] bg-[var(--md-container-high)] text-[var(--md-text)] hover:border-[var(--md-primary)] trans-all">PVDF</button>
+          <button id="btn-mat-fpm" onclick="selectMaterial('FPM')" class="py-2 rounded-xl text-xs font-bold font-mono border border-[var(--md-border)] bg-[var(--md-container-high)] text-[var(--md-text)] hover:border-[var(--md-primary)] trans-all" title="FPM(FKM)은 가스켓용 고무입니다. 판재 밀링 대상이 아니라 G-code를 만들지 않습니다.">FPM ⚠</button>
+          <button id="btn-mat-peek" onclick="selectMaterial('PEEK')" class="py-2 rounded-xl text-xs font-bold font-mono border border-[var(--md-border)] bg-[var(--md-container-high)] text-[var(--md-text)] hover:border-[var(--md-primary)] trans-all">PEEK</button>
+        </div>
+        <div id="txt-mat-desc" class="text-[11px] text-[var(--md-cyan)] font-mono">
+          PP: 저비중 폴리프로필렌 · 12,000 RPM · 1-Flute 고속배출
+        </div>
+      </div>
+
+      <!-- Left Scrollable Area -->
+      <div class="flex-1 overflow-y-auto p-3.5 space-y-4">
+        
+        <!-- DXF Dropzone & Sample Loader -->
+        <div class="bg-[var(--md-container)] p-3 rounded-xl border border-[var(--md-border-subtle)] space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span id="lbl-dxf-title" class="font-bold text-[var(--md-primary)] flex items-center gap-1">
+              <span class="material-symbols-outlined text-[16px]">draw</span>
+              <span>2. DXF 도면 파싱 & 파라메트릭 제어</span>
+            </span>
+            <button onclick="loadSpindleMountSample()" class="px-2 py-0.5 rounded bg-[var(--md-container-highest)] hover:bg-[var(--md-primary)] hover:text-black text-[10px] font-mono trans-all">
+              샘플 로드
+            </button>
+          </div>
+
+          <!-- Drag and Drop Zone -->
+          <div id="dxf-drop-zone" ondragover="event.preventDefault(); this.classList.add('border-[var(--md-primary)]')" ondragleave="this.classList.remove('border-[var(--md-primary)]')" ondrop="handleDXFDrop(event)" class="border-2 border-dashed border-[var(--md-border)] rounded-xl p-3 text-center cursor-pointer hover:border-[var(--md-primary)] trans-all bg-[var(--md-surface-dim)]">
+            <span class="material-symbols-outlined text-[24px] text-[var(--md-primary)] mb-1">upload_file</span>
+            <p id="lbl-dxf-drop" class="text-[11px] text-[var(--md-text)] font-medium">ASCII .DXF 파일 드래그 & 드롭</p>
+            <p class="text-[9px] text-[var(--md-text-muted)] font-mono">LINE, CIRCLE, ARC, LWPOLYLINE 자동 파싱</p>
+            <input type="file" id="dxf-file-input" accept=".dxf" class="hidden" onchange="handleDXFFile(event)">
+          </div>
+
+          <!-- Dimension Controls -->
+          <div class="grid grid-cols-2 gap-2 text-xs pt-1">
+            <div>
+              <span class="text-[11px] text-[var(--md-text-muted)] block">폭 W (mm):</span>
+              <input type="number" id="inp-w" value="80" oninput="onParamChange('width', this.value)" class="w-full bg-[var(--md-surface-dim)] border border-[var(--md-border)] rounded p-1.5 font-mono text-[var(--md-text)]">
+            </div>
+            <div>
+              <span class="text-[11px] text-[var(--md-text-muted)] block">깊이 D (mm):</span>
+              <input type="number" id="inp-d" value="80" oninput="onParamChange('depth', this.value)" class="w-full bg-[var(--md-surface-dim)] border border-[var(--md-border)] rounded p-1.5 font-mono text-[var(--md-text)]">
+            </div>
+            <div>
+              <span class="text-[11px] text-[var(--md-text-muted)] block">두께 T (mm):</span>
+              <input type="number" id="inp-t" value="25" oninput="onParamChange('thickness', this.value)" class="w-full bg-[var(--md-surface-dim)] border border-[var(--md-border)] rounded p-1.5 font-mono text-[var(--md-text)]">
+            </div>
+            <div>
+              <span class="text-[11px] text-[var(--md-cyan)] font-bold block">중앙 보어 &Phi; (mm):</span>
+              <input type="number" id="inp-bore" value="40" oninput="onParamChange('bore', this.value)" class="w-full bg-[var(--md-surface-dim)] border border-[var(--md-cyan)]/50 rounded p-1.5 font-mono text-[var(--md-cyan)] font-bold">
+            </div>
+            <div>
+              <span class="text-[11px] text-[var(--md-text-muted)] block">볼트 PCD (mm):</span>
+              <input type="number" id="inp-pcd" value="60" oninput="onParamChange('pcd', this.value)" class="w-full bg-[var(--md-surface-dim)] border border-[var(--md-border)] rounded p-1.5 font-mono text-[var(--md-text)]">
+            </div>
+            <div>
+              <span class="text-[11px] text-[var(--md-text-muted)] block">M6 볼트 홀 &Phi; (mm):</span>
+              <input type="number" id="inp-bolt-dia" value="6.6" oninput="onParamChange('boltDia', this.value)" class="w-full bg-[var(--md-surface-dim)] border border-[var(--md-border)] rounded p-1.5 font-mono text-[var(--md-text)]">
+            </div>
+          </div>
+        </div>
+
+        <!-- Auto-Tuned CNC Machining Parameters -->
+        <div class="bg-[var(--md-container)] p-3 rounded-xl border border-[var(--md-border-subtle)] space-y-3">
+          <div class="flex items-center justify-between text-xs">
+            <span id="lbl-cnc-title" class="font-bold text-[var(--md-primary)] flex items-center gap-1">
+              <span class="material-symbols-outlined text-[16px]">precision_manufacturing</span>
+              <span>3. 고분자 CNC 절삭 자동 세팅</span>
+            </span>
+            <span id="tag-coolant" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[var(--md-cyan)]/10 text-[var(--md-cyan)]">M07 Air Blast</span>
+          </div>
+
+          <div class="space-y-2 text-xs">
+            <div>
+              <div class="flex justify-between mb-1">
+                <span id="lbl-tool-dia">공구 직경 (Tool Dia):</span>
+                <span class="font-mono text-[var(--md-primary)] font-bold"><span id="val-tool-dia">6.0</span> mm (<span id="val-flutes">1</span>-Flute)</span>
+              </div>
+              <input type="range" id="slider-tool-dia" min="2.0" max="12.0" step="1.0" value="6.0" oninput="onParamChange('toolDia', this.value)" class="w-full">
+            </div>
+
+            <div>
+              <div class="flex justify-between mb-1">
+                <span id="lbl-rpm">스핀들 회전수 (RPM):</span>
+                <span class="font-mono text-[var(--md-text)] font-bold"><span id="val-rpm">12000</span> RPM</span>
+              </div>
+              <input type="range" id="slider-rpm" min="3000" max="24000" step="500" value="12000" oninput="onParamChange('rpm', this.value)" class="w-full">
+            </div>
+
+            <div>
+              <div class="flex justify-between mb-1">
+                <span id="lbl-feed">이송 속도 (Feedrate):</span>
+                <span class="font-mono text-[var(--md-text)] font-bold"><span id="val-feed">2400</span> mm/min</span>
+              </div>
+              <input type="range" id="slider-feed" min="400" max="4000" step="100" value="2400" oninput="onParamChange('feed', this.value)" class="w-full">
+            </div>
+
+            <div>
+              <div class="flex justify-between mb-1">
+                <span id="lbl-stepdown">1회 절삭 깊이 (Step-down):</span>
+                <span class="font-mono text-[var(--md-text)] font-bold"><span id="val-stepdown">3.0</span> mm/pass</span>
+              </div>
+              <input type="range" id="slider-stepdown" min="0.5" max="6.0" step="0.5" value="3.0" oninput="onParamChange('stepDown', this.value)" class="w-full">
+            </div>
+
+            <!-- Chip Load (fz) Monitor & Weld Risk -->
+            <div class="p-2.5 rounded-lg bg-[var(--md-surface-dim)] border border-[var(--md-border-subtle)] space-y-1">
+              <div class="flex justify-between items-center text-xs">
+                <span id="lbl-chipload" class="text-[var(--md-text-muted)] font-medium">날당 칩 부하 (fz):</span>
+                <span id="val-chipload" class="font-mono font-bold text-[var(--md-pass)]">0.200 mm/tooth</span>
+              </div>
+              <div class="flex items-center justify-between text-[10px] font-mono">
+                <span id="lbl-weld-risk" class="text-[var(--md-text-muted)]">용착(Melting) 위험도:</span>
+                <span id="val-weld-status" class="px-1.5 py-0.5 rounded bg-[var(--md-pass-container)] text-[var(--md-pass)] font-bold">안전 (Safe)</span>
+              </div>
+            </div>
+
+            <!-- Holding Tab & Thermal Compensation Switches -->
+            <div class="flex items-center justify-between pt-1">
+              <span id="lbl-tab-size" class="text-[11px] text-[var(--md-text-muted)]">홀딩 탭 (Width x Height):</span>
+              <span class="font-mono text-xs text-[var(--md-primary)] font-bold"><span id="val-tab-w">6.0</span> x <span id="val-tab-h">2.5</span> mm</span>
+            </div>
+
+            <div class="flex items-center justify-between pt-1">
+              <span id="lbl-thermal-comp" class="text-[11px] text-[var(--md-text-muted)]">열팽창+탄성복원 자동 보정:</span>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="chk-thermal-comp" checked onchange="toggleThermalComp(this.checked)" class="sr-only peer">
+                <div class="w-9 h-5 bg-[var(--md-container-highest)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--md-primary)]"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3D Printing Shrinkage Compensation Settings -->
+        <div class="bg-[var(--md-container)] p-3 rounded-xl border border-[var(--md-border-subtle)] space-y-2 text-xs">
+          <div class="flex items-center justify-between">
+            <span id="lbl-print-title" class="font-bold text-[var(--md-primary)] flex items-center gap-1">
+              <span class="material-symbols-outlined text-[16px]">layers</span>
+              <span>4. 3D 프린팅 수축 보정 (Shrinkage)</span>
+            </span>
+            <span class="font-mono text-[var(--md-warn)] font-bold">+<span id="val-shrinkage">1.8</span>%</span>
+          </div>
+          <div class="grid grid-cols-3 gap-1.5 text-center font-mono text-[10px]">
+            <div class="bg-[var(--md-surface-dim)] p-1.5 rounded">
+              <span class="text-[var(--md-text-muted)] block">노즐</span>
+              <span id="val-nozzle" class="text-[var(--md-text)] font-bold">230°C</span>
+            </div>
+            <div class="bg-[var(--md-surface-dim)] p-1.5 rounded">
+              <span class="text-[var(--md-text-muted)] block">베드</span>
+              <span id="val-bed" class="text-[var(--md-text)] font-bold">85°C</span>
+            </div>
+            <div class="bg-[var(--md-surface-dim)] p-1.5 rounded">
+              <span class="text-[var(--md-text-muted)] block">챔버</span>
+              <span id="val-chamber" class="text-[var(--md-text)] font-bold">45°C</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- -----------------------------------------------------------------------
+         Center Panel: 2D Sheet Nesting Map <-> 3D Toolpath Simulator
+         ----------------------------------------------------------------------- -->
+    <main class="flex-1 flex flex-col relative overflow-hidden bg-black">
+      
+      <!-- Top Viewport Mode Switcher Bar -->
+      <div class="h-10 bg-[var(--md-container)] border-b border-[var(--md-border-subtle)] flex items-center justify-between px-4 z-10 shrink-0">
+        <div class="flex items-center gap-1 bg-[var(--md-surface-dim)] p-1 rounded-lg border border-[var(--md-border-subtle)]">
+          <button id="btn-view-2d" onclick="switchCenterView('2d')" class="px-3 py-1 text-xs font-semibold rounded flex items-center gap-1.5 trans-all bg-[var(--md-primary)] text-black font-bold">
+            <span class="material-symbols-outlined text-[15px]">grid_on</span>
+            <span id="txt-view-2d">2D 판재 네스팅 맵</span>
+          </button>
+          <button id="btn-view-3d" onclick="switchCenterView('3d')" class="px-3 py-1 text-xs font-semibold rounded flex items-center gap-1.5 trans-all text-[var(--md-text-muted)] hover:text-[var(--md-text)]">
+            <span class="material-symbols-outlined text-[15px]">view_in_ar</span>
+            <span id="txt-view-3d">3D 툴패스 & 슬라이서</span>
+          </button>
+        </div>
+
+        <!-- Nesting Parameters Quick Bar (Visible in 2D) -->
+        <div id="bar-nesting-params" class="flex items-center gap-4 text-xs font-mono">
+          <div class="flex items-center gap-1.5">
+            <span class="text-[var(--md-text-muted)]">원판 (Stock):</span>
+            <input type="number" id="inp-stock-x" value="400" step="50" oninput="updateStockDimensions()" class="w-14 bg-[var(--md-surface-dim)] border border-[var(--md-border)] rounded px-1.5 py-0.5 text-center text-xs">
+            <span>x</span>
+            <input type="number" id="inp-stock-y" value="300" step="50" oninput="updateStockDimensions()" class="w-14 bg-[var(--md-surface-dim)] border border-[var(--md-border)] rounded px-1.5 py-0.5 text-center text-xs">
+            <span>mm</span>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <span class="text-[var(--md-text-muted)]">수량 (Parts):</span>
+            <input type="number" id="inp-part-count" min="1" max="24" value="6" oninput="updatePartCount(this.value)" class="w-12 bg-[var(--md-surface-dim)] border border-[var(--md-border)] rounded px-1.5 py-0.5 text-center text-xs font-bold text-[var(--md-primary)]">
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <span class="text-[var(--md-text-muted)]">클램프 여백:</span>
+            <span class="text-[var(--md-cyan)] font-bold">10 mm</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Viewport Display Container -->
+      <div class="flex-1 relative overflow-hidden">
+        
+        <!-- View 1: 2D Canvas Sheet Nesting Map -->
+        <div id="view-2d-container" class="w-full h-full relative flex items-center justify-center p-4">
+          <canvas id="nesting-canvas" class="max-w-full max-h-full rounded-xl shadow-2xl border border-[var(--md-border-subtle)] bg-[#0d1017]"></canvas>
+          
+          <!-- Nesting Legend HUD -->
+          <div class="absolute top-6 left-6 pointer-events-none bg-[var(--md-container)]/85 backdrop-blur-md p-2.5 rounded-xl border border-[var(--md-border-subtle)] text-[11px] font-mono space-y-1 shadow-lg">
+            <div class="flex items-center gap-2"><span class="w-3 h-0.5 bg-[#a8c7fa]"></span><span>부품 외곽 윤곽선 (Part Outer)</span></div>
+            <div class="flex items-center gap-2"><span class="w-3 h-0.5 bg-[#78d9ec] border-b border-dashed"></span><span>공구 중심선 (Toolpath Offset + CTE)</span></div>
+            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-[#f59e0b]"></span><span>홀딩 탭 위치 (Holding Tabs)</span></div>
+            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 border border-[#ef4444] bg-[#ef4444]/20"></span><span>클램프 간섭 금지 구역 (Clamp Margin)</span></div>
+          </div>
+        </div>
+
+        <!-- View 2: 3D Three.js Toolpath/Slicing Viewport -->
+        <div id="view-3d-container" class="w-full h-full relative hidden">
+          <canvas id="three-canvas" class="w-full h-full block"></canvas>
+          
+          <!-- Bottom 3D Slicing Animation Bar -->
+          <div class="absolute bottom-4 left-6 right-6 bg-[var(--md-container)]/90 backdrop-blur-md p-3 rounded-2xl border border-[var(--md-border)] shadow-2xl flex flex-col gap-2 z-10">
+            <div class="flex items-center justify-between text-xs">
+              <div class="flex items-center gap-3">
+                <button id="btn-3d-play" onclick="toggle3DSimPlay()" class="w-8 h-8 rounded-full bg-[var(--md-primary)] text-black flex items-center justify-center hover:scale-105 trans-all shadow-md">
+                  <span id="icon-3d-play" class="material-symbols-outlined text-[20px]">play_arrow</span>
+                </button>
+                <div>
+                  <span id="lbl-3d-sim-title" class="font-bold text-[var(--md-text)]">Z축 다단 절삭 & 레이어 적층 시뮬레이터</span>
+                  <span class="text-[10px] bg-[var(--md-primary)]/20 text-[var(--md-primary)] px-2 py-0.5 rounded font-mono ml-2 font-semibold">MULTI-PASS SIM</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-4 font-mono text-[11px]">
+                <span class="text-[var(--md-text-muted)]">Pass: <b id="stat-3d-pass" class="text-[var(--md-text)]">9</b> / <span id="stat-3d-total-passes">9</span></span>
+                <span class="text-[var(--md-text-muted)]">Z: <b id="stat-3d-z" class="text-[var(--md-primary)]">-25.0</b> mm</span>
+                <span class="text-[var(--md-text-muted)]">Progress: <b id="stat-3d-pct" class="text-[var(--md-pass)]">100%</b></span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <span class="text-[10px] font-mono text-[var(--md-text-muted)]">0%</span>
+              <input type="range" id="slider-3d-progress" min="0" max="100" value="100" oninput="update3DSimProgress(this.value)" class="flex-1 accent-[var(--md-primary)] cursor-pointer" />
+              <span class="text-[10px] font-mono text-[var(--md-text-muted)]">100%</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- -----------------------------------------------------------------------
+         Right Panel: Live Verification & Multi-Format Export (380px)
+         ----------------------------------------------------------------------- -->
+    <aside class="w-[380px] bg-[var(--md-surface-dim)] border-l border-[var(--md-border-subtle)] flex flex-col shrink-0 z-10">
+      
+      <!-- Right Header -->
+      <div class="p-3 border-b border-[var(--md-border-subtle)] bg-[var(--md-container)] flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[var(--md-pass)]">verified</span>
+          <span id="lbl-verif-header" class="text-xs font-bold uppercase tracking-wider text-[var(--md-text)]">보정값 계산 & 파일 내보내기</span>
+        </div>
+        <span id="tag-post-active" class="text-[10px] px-2 py-0.5 rounded-full bg-[var(--md-pass-container)] text-[var(--md-pass)] font-mono font-bold">ISO Standard</span>
+      </div>
+
+      <!-- Right Scrollable Area -->
+      <div class="flex-1 overflow-y-auto p-3.5 space-y-4">
+        
+        <!-- Live CAM Verification Table -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span id="lbl-verif-title" class="text-xs font-bold text-[var(--md-primary)]">소재 보정값 계산 (가공 결과 검증 아님)</span>
+            <span class="text-[10px] text-[#f59e0b] font-mono font-bold">계산값 · 미검증</span>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-[var(--md-border-subtle)] bg-[var(--md-container)]">
+            <table class="w-full text-xs text-left">
+              <thead class="border-b border-[var(--md-border-subtle)] text-[var(--md-text-muted)] text-[10px] uppercase font-mono bg-[var(--md-container-high)]">
+                <tr>
+                  <th class="p-2">항목 (Feature)</th>
+                  <th class="p-2">도면 공칭</th>
+                  <th class="p-2">보정 가공치</th>
+                  <th class="p-2 text-center">판정</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[var(--md-border-subtle)] font-mono text-[11px]">
+                <tr class="bg-[var(--md-cyan)]/5">
+                  <td class="p-2 font-sans font-medium text-[var(--md-cyan)]" id="feat-bore-title">보어 내경 (공칭)</td>
+                  <td class="p-2">40.000 mm</td>
+                  <td class="p-2 font-bold text-[var(--md-cyan)]" id="val-comp-bore">39.980 mm</td>
+                  <td class="p-2 text-center text-[10px] text-[var(--md-text-muted)]">계산값</td>
+                </tr>
+                <tr>
+                  <td class="p-2 font-sans font-medium" id="feat-outer-title">외곽 윤곽 (공칭)</td>
+                  <td class="p-2">80.000 mm</td>
+                  <td class="p-2 font-bold" id="val-comp-outer">80.020 mm</td>
+                  <td class="p-2 text-center text-[10px] text-[#f59e0b]" title="현재 G-code의 외곽 윤곽에는 이 보정이 적용되지 않습니다 (Phase 3에서 수정).">G-code 미반영</td>
+                </tr>
+                <tr>
+                  <td class="p-2 font-sans font-medium" id="feat-yield-title">면적 비율 (구멍 무시)</td>
+                  <td class="p-2">참고</td>
+                  <td class="p-2 font-bold" id="val-sheet-yield">64.0 %</td>
+                  <td class="p-2 text-center text-[10px] text-[var(--md-text-muted)]">추정</td>
+                </tr>
+                <tr>
+                  <td class="p-2 font-sans font-medium" id="feat-time-title">예상 총 가공 시간</td>
+                  <td class="p-2">6 파트 기준</td>
+                  <td class="p-2 font-bold text-[var(--md-primary)]" id="val-est-time">14분 20초</td>
+                  <td class="p-2 text-center text-[10px] text-[var(--md-text-muted)]">추정</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Machine Post-Processor Selector -->
+        <div class="bg-[var(--md-container)] p-3 rounded-xl border border-[var(--md-border-subtle)] space-y-2">
+          <label id="lbl-post-select" class="text-xs font-bold text-[var(--md-primary)] block">장비 포스트프로세서 선택 (CNC Controller):</label>
+          <div class="text-[10px] text-[#f59e0b]">⚠ 현재는 선택에 따라 헤더 주석만 바뀝니다. 기계별 포스트프로세서는 Phase 3에서 구현합니다.</div>
+          <select id="select-post" onchange="changePostProcessor(this.value)" class="w-full bg-[var(--md-surface-dim)] border border-[var(--md-border)] rounded-lg p-2 text-xs font-mono text-[var(--md-text)]">
+            <option value="iso">Standard ISO (G02/G03 I,J Arc - 산업용 표준)</option>
+            <option value="fanuc">Fanuc CNC Series (M07 Air Blast & G02/G03 Radius)</option>
+            <option value="mach3">Mach3 / LinuxCNC (PC 기반 밀링 라우터)</option>
+            <option value="klipper">High-Temp 3D Printer (Klipper / Marlin)</option>
+          </select>
+        </div>
+
+        <!-- Direct Download Action Buttons -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs font-bold text-[var(--md-primary)]">
+            <span id="lbl-export-actions">원클릭 제조 데이터 다운로드</span>
+            <span class="font-mono text-[10px] text-[var(--md-text-muted)]">Instant Blobs</span>
+          </div>
+
+          <button onclick="downloadNestingGCode()" class="w-full p-2.5 rounded-xl border border-[var(--md-primary)] bg-[var(--md-primary-container)]/40 hover:bg-[var(--md-primary-container)] text-[var(--md-primary)] flex items-center justify-between trans-all shadow-sm group">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[20px] text-[var(--md-pass)] group-hover:scale-110 trans-all">terminal</span>
+              <div class="text-left">
+                <div class="text-xs font-bold text-[var(--md-text)]">G-code 초안 다운로드 (.nc / .gcode)</div>
+                <div class="text-[10px] text-[#f59e0b]">미검증 · 기계 투입 전 시뮬레이션과 사람 검토 필수</div>
+              </div>
+            </div>
+            <span class="material-symbols-outlined text-[18px]">download</span>
+          </button>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="downloadNestingDXF()" class="p-2 rounded-xl border border-[var(--md-border)] bg-[var(--md-container)] hover:bg-[var(--md-container-high)] text-left trans-all">
+              <div class="text-xs font-bold text-[var(--md-text)] flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px] text-[var(--md-cyan)]">layers</span>
+                <span>네스팅 DXF</span>
+              </div>
+              <div class="text-[9px] text-[var(--md-text-muted)]">배치 완료 CAD 도면</div>
+            </button>
+
+            <button onclick="downloadCompensatedSTL()" class="p-2 rounded-xl border border-[var(--md-border)] bg-[var(--md-container)] hover:bg-[var(--md-container-high)] text-left trans-all">
+              <div class="text-xs font-bold text-[var(--md-text)] flex items-center gap-1">
+                <span class="material-symbols-outlined text-[16px] text-[var(--md-primary)]">download</span>
+                <span>수축보정 STL</span>
+              </div>
+              <div class="text-[9px] text-[var(--md-text-muted)] font-mono">+<span id="btn-shrink-txt">1.8</span>% Scale 반영</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Python ezdxf Automation Script Viewer -->
+        <div class="bg-[var(--md-container)] rounded-xl border border-[var(--md-border-subtle)] overflow-hidden space-y-1">
+          <div class="p-2 bg-[var(--md-container-high)] flex items-center justify-between text-xs font-mono">
+            <span class="font-bold text-[var(--md-primary)] flex items-center gap-1">
+              <span class="material-symbols-outlined text-[15px]">code</span>
+              <span>Python ezdxf CAM 자동화 스크립트</span>
+            </span>
+            <button onclick="copyPythonScript()" class="px-2 py-0.5 rounded bg-[var(--md-container-highest)] hover:bg-[var(--md-primary)] hover:text-black text-[10px] trans-all flex items-center gap-1">
+              <span class="material-symbols-outlined text-[12px]">content_copy</span>
+              <span>복사</span>
+            </button>
+          </div>
+          <div class="p-2 relative">
+            <pre id="python-script-display" class="font-mono text-[10px] text-[var(--md-text)] overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-40"></pre>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-notify" class="fixed bottom-6 right-6 bg-[var(--md-container-highest)] text-[var(--md-text)] border border-[var(--md-primary)] px-4 py-2 rounded-xl text-xs font-medium shadow-2xl flex items-center gap-2 transform translate-y-20 opacity-0 trans-all z-50">
+    <span class="material-symbols-outlined text-[var(--md-primary)]">info</span>
+    <span id="toast-text">알림 메시지</span>
+  </div>
+
+  <!-- =========================================================================
+       4. Core Engine Logic
+       ========================================================================= -->
+  <script>
+    // --- 1. Material Presets Database ---
+    // 출처: 없음 — 미검증 초안 값 (이전 에이전트가 작성, 근거 자료 확인 안 됨).
+    // RPM / 이송 / 스텝다운 / 탭 / springback / shrinkage / 3D 프린팅 온도 모두 해당.
+    // Phase 3에서 별도 파일로 분리하고 공장 기준표로 교체할 예정. docs/AUDIT.md 5절 참고.
+    const MATERIAL_PRESETS = {
+      PP: {
+        name: 'PP (Polypropylene)',
+        density: 0.91,
+        cte: 150, // 10^-6 / K
+        springback: 0.020, // mm
+        shrinkagePct: 1.8,
+        descKo: 'PP: 저비중 폴리프로필렌 · 12,000 RPM · 1-Flute 고속 칩 배출 (용착 방지)',
+        descEn: 'PP: Low density Polypropylene · 12,000 RPM · 1-Flute high chip clearance (Anti-weld)',
+        cnc: {
+          toolDia: 6.0,
+          flutes: 1,
+          rpm: 12000,
+          feed: 2400,
+          stepDown: 3.0,
+          tabWidth: 6.0,
+          tabHeight: 2.5,
+          coolant: 'M07 (Air Blast)'
+        },
+        print: {
+          nozzleTemp: 230,
+          bedTemp: 85,
+          chamberTemp: 45,
+          printSpeed: 50,
+          infill: 40
+        }
+      },
+      PVDF: {
+        name: 'PVDF (Kynar Fluoropolymer)',
+        density: 1.78,
+        cte: 120,
+        springback: 0.015,
+        shrinkagePct: 1.2,
+        descKo: 'PVDF: 내화학 불소수지 · 10,000 RPM · 2-Flute 고정밀 가공',
+        descEn: 'PVDF: High chemical resistance · 10,000 RPM · 2-Flute high precision',
+        cnc: {
+          toolDia: 6.0,
+          flutes: 2,
+          rpm: 10000,
+          feed: 1500,
+          stepDown: 2.0,
+          tabWidth: 5.0,
+          tabHeight: 2.0,
+          coolant: 'M07 (Air Blast)'
+        },
+        print: {
+          nozzleTemp: 260,
+          bedTemp: 110,
+          chamberTemp: 60,
+          printSpeed: 40,
+          infill: 50
+        }
+      },
+      FPM: {
+        name: 'FPM (FKM / Viton Elastomer)',
+        density: 1.85,
+        cte: 160,
+        springback: 0.060, // High elasticity!
+        shrinkagePct: 1.5,
+        // FPM(FKM)은 가스켓·O링용 고무. 판재 밀링 대상이 아니고 일반 FDM 프린팅 소재도 아님.
+        // 아래 cnc / print 값은 참고용으로만 남겨 두며 G-code 생성은 차단한다.
+        notForMilling: true,
+        descKo: 'FPM(FKM): 가스켓·O링용 불소고무 — 판재 밀링 비대상. G-code를 만들지 않습니다. (아래 값은 출처 없는 참고치)',
+        descEn: 'FPM (FKM): gasket / O-ring elastomer — not a milling stock. G-code export is disabled. (values below are unsourced)',
+        cnc: {
+          toolDia: 4.0,
+          flutes: 2,
+          rpm: 6000,
+          feed: 900,
+          stepDown: 1.0,
+          tabWidth: 8.0,
+          tabHeight: 3.0,
+          coolant: 'M07 (Cold Air Mist)'
+        },
+        print: {
+          nozzleTemp: 250,
+          bedTemp: 100,
+          chamberTemp: 50,
+          printSpeed: 25,
+          infill: 80
+        }
+      },
+      PEEK: {
+        name: 'PEEK (High-Temp Engineering)',
+        density: 1.32,
+        cte: 50,
+        springback: 0.010,
+        shrinkagePct: 1.0,
+        descKo: 'PEEK: 고내열 슈퍼엔지니어링 플라스틱 · 8,000 RPM · 정밀 공차 유지',
+        descEn: 'PEEK: High-temp Super Engineering Plastic · 8,000 RPM · Strict tolerance',
+        cnc: {
+          toolDia: 6.0,
+          flutes: 2,
+          rpm: 8000,
+          feed: 1200,
+          stepDown: 1.5,
+          tabWidth: 5.0,
+          tabHeight: 2.0,
+          coolant: 'M07 (Air Blast)'
+        },
+        print: {
+          nozzleTemp: 400,
+          bedTemp: 140,
+          chamberTemp: 120,
+          printSpeed: 35,
+          infill: 60
+        }
+      }
+    };
+
+    // --- Active State ---
+    let currentMatKey = 'PP';
+    let isAutoOptimized = true;
+    let isThermalCompActive = true;
+    let currentLanguage = 'ko';
+    let currentCenterView = '2d';
+    let activePost = 'iso';
+
+    // Geometry Parameters
+    const geomParams = {
+      width: 80.0,
+      depth: 80.0,
+      thickness: 25.0,
+      bore: 40.0,
+      pcd: 60.0,
+      boltDia: 6.6,
+      cboreDia: 11.0,
+      cboreDepth: 6.0
+    };
+
+    // CNC & CAM Parameters (Current live state)
+    let camState = {
+      toolDia: 6.0,
+      flutes: 1,
+      rpm: 12000,
+      feed: 2400,
+      stepDown: 3.0,
+      tabWidth: 6.0,
+      tabHeight: 2.5
+    };
+
+    // Nesting Parameters
+    const nestingParams = {
+      stockX: 400.0,
+      stockY: 300.0,
+      partCount: 6,
+      margin: 10.0,
+      partSpacing: 12.0
+    };
+
+    // 3D Slicing Animation State
+    let is3DSimPlaying = false;
+    let sim3DProgress = 1.0;
+    let sim3DAnimId = null;
+
+    // --- i18n Dictionary ---
+    const i18n = {
+      ko: {
+        appTitle: "Polymer Auto-CAM & Nesting Studio",
+        appSubtitle: "소재별 초안 파라미터(미검증) → 2D 격자 네스팅 → G-code 초안 생성 (기계 투입 전 시뮬레이션·사람 검토 필수)",
+        langBtn: "English",
+        autoOptimized: "AUTO-OPTIMIZED (소재 최적 세팅 적용됨)",
+        customTuned: "CUSTOM TUNED (수동 변경됨)",
+        btnReset: "최적값 복원",
+        lblMatHeader: "1. 가공 특수 고분자 소재 원클릭 선택",
+        lblDxfTitle: "2. DXF 도면 파싱 & 파라메트릭 제어",
+        lblDxfDrop: "ASCII .DXF 파일 드래그 & 드롭",
+        lblCncTitle: "3. 고분자 CNC 절삭 자동 세팅",
+        lblToolDia: "공구 직경 (Tool Dia):",
+        lblRpm: "스핀들 회전수 (RPM):",
+        lblFeed: "이송 속도 (Feedrate):",
+        lblStepdown: "1회 절삭 깊이 (Step-down):",
+        lblChipload: "날당 칩 부하 (fz):",
+        lblWeldRisk: "용착(Melting) 위험도:",
+        lblTabSize: "홀딩 탭 (Width x Height):",
+        lblThermalComp: "열팽창+탄성복원 자동 보정:",
+        lblPrintTitle: "4. 3D 프린팅 수축 보정 (Shrinkage)",
+        txtView2D: "2D 판재 네스팅 맵",
+        txtView3D: "3D 툴패스 & 슬라이서",
+        lblVerifHeader: "보정값 계산 & 파일 내보내기",
+        lblVerifTitle: "소재 보정값 계산 (가공 결과 검증 아님)",
+        featBoreTitle: "보어 내경 (공칭)",
+        featOuterTitle: "외곽 윤곽 (공칭)",
+        featYieldTitle: "면적 비율 (구멍 무시)",
+        featTimeTitle: "예상 총 가공 시간",
+        lblPostSelect: "장비 포스트프로세서 선택 (CNC Controller):",
+        lblExportActions: "원클릭 제조 데이터 다운로드",
+        safe: "안전 (Safe)",
+        warningMelting: "위험: 절삭열 용착 주의 (Melting Risk!)",
+        toastAutoOpt: "소재 프리셋 자동 최적화 완료: ",
+        toastReset: "기본 최적값으로 복구되었습니다."
+      },
+      en: {
+        appTitle: "Polymer Auto-CAM & Nesting Studio",
+        appSubtitle: "Draft material parameters (unverified) → 2D grid nesting → Draft G-code (simulate and review before any machine use)",
+        langBtn: "한국어",
+        autoOptimized: "AUTO-OPTIMIZED (Preset Active)",
+        customTuned: "CUSTOM TUNED (Modified)",
+        btnReset: "Reset to Preset",
+        lblMatHeader: "1. One-Click Polymer Selection",
+        lblDxfTitle: "2. DXF Parser & Parametric Control",
+        lblDxfDrop: "Drag & Drop ASCII .DXF File",
+        lblCncTitle: "3. Auto-Tuned Polymer CNC Cutting",
+        lblToolDia: "Tool Diameter:",
+        lblRpm: "Spindle RPM:",
+        lblFeed: "Feedrate:",
+        lblStepdown: "Step-down (depth/pass):",
+        lblChipload: "Chip Load (fz):",
+        lblWeldRisk: "Melting Risk Status:",
+        lblTabSize: "Holding Tabs (W x H):",
+        lblThermalComp: "Auto Thermal & Springback Comp:",
+        lblPrintTitle: "4. 3D Printing Shrinkage Scaling",
+        txtView2D: "2D Sheet Nesting Map",
+        txtView3D: "3D Toolpath & Slicer",
+        lblVerifHeader: "Compensation Values & Export",
+        lblVerifTitle: "Material compensation (calculated, not a machining check)",
+        featBoreTitle: "Center Bore (nominal)",
+        featOuterTitle: "Outer Contour (nominal)",
+        featYieldTitle: "Area ratio (holes ignored)",
+        featTimeTitle: "Estimated Total Time",
+        lblPostSelect: "Select Post-Processor:",
+        lblExportActions: "One-Click Manufacturing Data Export",
+        safe: "Safe (Optimal)",
+        warningMelting: "WARN: Chip Melting Risk!",
+        toastAutoOpt: "Auto-optimized for: ",
+        toastReset: "Reset to material optimal preset."
+      }
+    };
+
+    function toggleLanguage() {
+      currentLanguage = (currentLanguage === 'ko') ? 'en' : 'ko';
+      applyLanguage(currentLanguage);
+    }
+
+    function applyLanguage(lang) {
+      const t = i18n[lang];
+      document.getElementById('txt-app-title').textContent = t.appTitle;
+      document.getElementById('txt-app-subtitle').textContent = t.appSubtitle;
+      document.getElementById('txt-lang-btn').textContent = t.langBtn;
+      document.getElementById('txt-badge-status').textContent = isAutoOptimized ? t.autoOptimized : t.customTuned;
+      document.getElementById('txt-btn-reset').textContent = t.btnReset;
+      document.getElementById('lbl-mat-header').textContent = t.lblMatHeader;
+      document.getElementById('lbl-dxf-title').textContent = t.lblDxfTitle;
+      document.getElementById('lbl-dxf-drop').textContent = t.lblDxfDrop;
+      document.getElementById('lbl-cnc-title').textContent = t.lblCncTitle;
+      document.getElementById('lbl-tool-dia').textContent = t.lblToolDia;
+      document.getElementById('lbl-rpm').textContent = t.lblRpm;
+      document.getElementById('lbl-feed').textContent = t.lblFeed;
+      document.getElementById('lbl-stepdown').textContent = t.lblStepdown;
+      document.getElementById('lbl-chipload').textContent = t.lblChipload;
+      document.getElementById('lbl-weld-risk').textContent = t.lblWeldRisk;
+      document.getElementById('lbl-tab-size').textContent = t.lblTabSize;
+      document.getElementById('lbl-thermal-comp').textContent = t.lblThermalComp;
+      document.getElementById('lbl-print-title').textContent = t.lblPrintTitle;
+      document.getElementById('txt-view-2d').textContent = t.txtView2D;
+      document.getElementById('txt-view-3d').textContent = t.txtView3D;
+      document.getElementById('lbl-verif-header').textContent = t.lblVerifHeader;
+      document.getElementById('lbl-verif-title').textContent = t.lblVerifTitle;
+      document.getElementById('feat-bore-title').textContent = t.featBoreTitle;
+      document.getElementById('feat-outer-title').textContent = t.featOuterTitle;
+      document.getElementById('feat-yield-title').textContent = t.featYieldTitle;
+      document.getElementById('feat-time-title').textContent = t.featTimeTitle;
+      document.getElementById('lbl-post-select').textContent = t.lblPostSelect;
+      document.getElementById('lbl-export-actions').textContent = t.lblExportActions;
+
+      const p = MATERIAL_PRESETS[currentMatKey];
+      document.getElementById('txt-mat-desc').textContent = lang === 'ko' ? p.descKo : p.descEn;
+      updateChipLoad();
+    }
+
+    // --- 2. Material Preset Auto-Optimization Cascade ---
+    function selectMaterial(matKey) {
+      currentMatKey = matKey;
+      isAutoOptimized = true;
+
+      // Update button styles
+      ['pp', 'pvdf', 'fpm', 'peek'].forEach(k => {
+        const btn = document.getElementById('btn-mat-' + k);
+        if (k === matKey.toLowerCase()) {
+          btn.className = "py-2 rounded-xl text-xs font-bold font-mono border border-[var(--md-primary)] bg-[var(--md-primary)] text-black trans-all shadow";
+        } else {
+          btn.className = "py-2 rounded-xl text-xs font-bold font-mono border border-[var(--md-border)] bg-[var(--md-container-high)] text-[var(--md-text)] hover:border-[var(--md-primary)] trans-all";
+        }
+      });
+
+      const p = MATERIAL_PRESETS[matKey];
+      document.getElementById('txt-mat-desc').textContent = currentLanguage === 'ko' ? p.descKo : p.descEn;
+      if (p.notForMilling) {
+        showToast('FPM은 가스켓용 고무로 밀링 대상이 아닙니다. G-code 다운로드가 비활성화됩니다.');
+      }
+
+      // Cascade updates to all CAM inputs
+      camState.toolDia = p.cnc.toolDia;
+      camState.flutes = p.cnc.flutes;
+      camState.rpm = p.cnc.rpm;
+      camState.feed = p.cnc.feed;
+      camState.stepDown = p.cnc.stepDown;
+      camState.tabWidth = p.cnc.tabWidth;
+      camState.tabHeight = p.cnc.tabHeight;
+
+      // Sync UI Sliders
+      document.getElementById('slider-tool-dia').value = camState.toolDia;
+      document.getElementById('val-tool-dia').textContent = camState.toolDia.toFixed(1);
+      document.getElementById('val-flutes').textContent = camState.flutes;
+
+      document.getElementById('slider-rpm').value = camState.rpm;
+      document.getElementById('val-rpm').textContent = camState.rpm;
+
+      document.getElementById('slider-feed').value = camState.feed;
+      document.getElementById('val-feed').textContent = camState.feed;
+
+      document.getElementById('slider-stepdown').value = camState.stepDown;
+      document.getElementById('val-stepdown').textContent = camState.stepDown.toFixed(1);
+
+      document.getElementById('val-tab-w').textContent = camState.tabWidth.toFixed(1);
+      document.getElementById('val-tab-h').textContent = camState.tabHeight.toFixed(1);
+      document.getElementById('tag-coolant').textContent = p.cnc.coolant;
+
+      // 3D Print Settings
+      document.getElementById('val-shrinkage').textContent = p.shrinkagePct.toFixed(1);
+      document.getElementById('btn-shrink-txt').textContent = p.shrinkagePct.toFixed(1);
+      document.getElementById('val-nozzle').textContent = p.print.nozzleTemp + '°C';
+      document.getElementById('val-bed').textContent = p.print.bedTemp + '°C';
+      document.getElementById('val-chamber').textContent = p.print.chamberTemp + '°C';
+
+      updateAutoBadge(true);
+      updateChipLoad();
+      drawNesting2D();
+      rebuild3DModel();
+      updateVerificationTable();
+      renderPythonScript();
+
+      showToast(i18n[currentLanguage].toastAutoOpt + p.name);
+    }
+
+    function updateAutoBadge(isAuto) {
+      isAutoOptimized = isAuto;
+      const badge = document.getElementById('badge-auto-status');
+      const txt = document.getElementById('txt-badge-status');
+      const resetBtn = document.getElementById('btn-reset-preset');
+      const t = i18n[currentLanguage];
+
+      if (isAuto) {
+        badge.className = "px-3 py-1 rounded-full bg-[var(--md-pass-container)] border border-[var(--md-pass)]/40 text-xs text-[var(--md-pass)] font-mono font-bold flex items-center gap-1.5 shadow-sm";
+        txt.textContent = t.autoOptimized;
+        resetBtn.classList.add('hidden');
+      } else {
+        badge.className = "px-3 py-1 rounded-full bg-[var(--md-warn-container)] border border-[var(--md-warn)]/40 text-xs text-[var(--md-warn)] font-mono font-bold flex items-center gap-1.5 shadow-sm";
+        txt.textContent = t.customTuned;
+        resetBtn.classList.remove('hidden');
+      }
+    }
+
+    function resetToPreset() {
+      selectMaterial(currentMatKey);
+      showToast(i18n[currentLanguage].toastReset);
+    }
+
+    function onParamChange(key, val) {
+      const v = parseFloat(val);
+      if (geomParams.hasOwnProperty(key)) {
+        geomParams[key] = v;
+      } else if (camState.hasOwnProperty(key)) {
+        camState[key] = v;
+        const valElem = document.getElementById('val-' + (key === 'toolDia' ? 'tool-dia' : (key === 'stepDown' ? 'stepdown' : key)));
+        if (valElem) valElem.textContent = (key === 'toolDia' || key === 'stepDown') ? v.toFixed(1) : v;
+        updateAutoBadge(false);
+      }
+      updateChipLoad();
+      drawNesting2D();
+      rebuild3DModel();
+      updateVerificationTable();
+      renderPythonScript();
+    }
+
+    function toggleThermalComp(checked) {
+      isThermalCompActive = checked;
+      drawNesting2D();
+      updateVerificationTable();
+      renderPythonScript();
+    }
+
+    // --- 3. Chip Load (fz) & Melting Risk Calculation ---
+    function updateChipLoad() {
+      // fz = Feed / (RPM * Flutes)
+      const fz = camState.feed / (camState.rpm * camState.flutes);
+      const fzElem = document.getElementById('val-chipload');
+      const statusElem = document.getElementById('val-weld-status');
+      const t = i18n[currentLanguage];
+
+      fzElem.textContent = fz.toFixed(3) + ' mm/tooth';
+
+      if (fz < 0.05) {
+        // High melting friction risk!
+        fzElem.className = "font-mono font-bold text-[var(--md-error)]";
+        statusElem.className = "px-1.5 py-0.5 rounded bg-[var(--md-error-container)] text-[var(--md-error)] font-bold animate-pulse";
+        statusElem.textContent = t.warningMelting;
+      } else {
+        fzElem.className = "font-mono font-bold text-[var(--md-pass)]";
+        statusElem.className = "px-1.5 py-0.5 rounded bg-[var(--md-pass-container)] text-[var(--md-pass)] font-bold";
+        statusElem.textContent = t.safe;
+      }
+    }
+
+    // --- 4. 2D Sheet Nesting & Toolpath Visualizer (Canvas) ---
+    function updateStockDimensions() {
+      nestingParams.stockX = parseFloat(document.getElementById('inp-stock-x').value) || 400;
+      nestingParams.stockY = parseFloat(document.getElementById('inp-stock-y').value) || 300;
+      drawNesting2D();
+      updateVerificationTable();
+    }
+
+    function updatePartCount(cnt) {
+      nestingParams.partCount = Math.max(1, Math.min(24, parseInt(cnt) || 1));
+      drawNesting2D();
+      updateVerificationTable();
+    }
+
+    function drawNesting2D() {
+      const canvas = document.getElementById('nesting-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const W = nestingParams.stockX;
+      const H = nestingParams.stockY;
+
+      canvas.width = 900;
+      canvas.height = 650;
+
+      // Fit scale
+      const pad = 40;
+      const scale = Math.min((canvas.width - pad * 2) / W, (canvas.height - pad * 2) / H);
+      const originX = (canvas.width - W * scale) / 2;
+      const originY = (canvas.height - H * scale) / 2;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Draw Stock Sheet Boundary
+      ctx.fillStyle = '#0f141e';
+      ctx.fillRect(originX, originY, W * scale, H * scale);
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(originX, originY, W * scale, H * scale);
+
+      // Stock Dimensions text
+      ctx.fillStyle = '#64748b';
+      ctx.font = '11px JetBrains Mono';
+      ctx.fillText(`${W} mm`, originX + (W * scale) / 2 - 25, originY - 8);
+      ctx.fillText(`${H} mm`, originX - 35, originY + (H * scale) / 2);
+
+      // 2. Draw Clamp Exclusion Margin (10mm)
+      const m = nestingParams.margin * scale;
+      ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(originX + m, originY + m, (W * scale) - m * 2, (H * scale) - m * 2);
+      ctx.setLineDash([]);
+
+      // 3. Grid Nesting Packer
+      const pw = geomParams.width;
+      const pd = geomParams.depth;
+      const spacing = nestingParams.partSpacing;
+      const usableW = W - nestingParams.margin * 2;
+      const usableH = H - nestingParams.margin * 2;
+
+      const cols = Math.floor((usableW + spacing) / (pw + spacing));
+      const rows = Math.floor((usableH + spacing) / (pd + spacing));
+      const totalPossible = Math.max(1, cols * rows);
+
+      const toDraw = Math.min(nestingParams.partCount, totalPossible);
+      const mat = MATERIAL_PRESETS[currentMatKey];
+
+      // Thermal & Springback Compensation (mm)
+      // Bore gets smaller after cutting due to inward springback; offset increases bore cut!
+      const compVal = isThermalCompActive ? mat.springback : 0;
+      const toolR = camState.toolDia / 2.0;
+
+      for (let i = 0; i < toDraw; i++) {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+
+        const px = originX + m + col * (pw + spacing) * scale + (spacing / 2) * scale;
+        const py = originY + m + row * (pd + spacing) * scale + (spacing / 2) * scale;
+        const wS = pw * scale;
+        const hS = pd * scale;
+
+        // Part Outer Fill
+        ctx.fillStyle = 'rgba(30, 41, 59, 0.7)';
+        ctx.fillRect(px, py, wS, hS);
+
+        // Part Outer Contour Line
+        ctx.strokeStyle = '#a8c7fa';
+        ctx.lineWidth = 1.8;
+        ctx.strokeRect(px, py, wS, hS);
+
+        // Toolpath Centerline for Outer Cut (Offset = ToolR)
+        ctx.strokeStyle = '#78d9ec';
+        ctx.lineWidth = 1.0;
+        ctx.setLineDash([3, 3]);
+        ctx.strokeRect(px - toolR * scale, py - toolR * scale, wS + toolR * 2 * scale, hS + toolR * 2 * scale);
+        ctx.setLineDash([]);
+
+        // Center Bore Circle (Nominal)
+        const cx = px + wS / 2;
+        const cy = py + hS / 2;
+        const boreR = (geomParams.bore / 2) * scale;
+
+        ctx.fillStyle = '#0a0e17';
+        ctx.beginPath();
+        ctx.arc(cx, cy, boreR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#78d9ec';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Bore Toolpath Arc (Inside offset = BoreR - ToolR + Comp)
+        const innerCutR = ((geomParams.bore / 2) - toolR + compVal) * scale;
+        if (innerCutR > 0) {
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 1.0;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.arc(cx, cy, innerCutR, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // 4 Bolt Holes & PCD circle
+        const pcdR = (geomParams.pcd / 2) * scale;
+        const boltR = (geomParams.boltDia / 2) * scale;
+
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+        ctx.beginPath();
+        ctx.arc(cx, cy, pcdR, 0, Math.PI * 2);
+        ctx.stroke();
+
+        for (let b = 0; b < 4; b++) {
+          const ang = (Math.PI / 2) * b + (Math.PI / 4);
+          const bx = cx + pcdR * Math.cos(ang);
+          const by = cy + pcdR * Math.sin(ang);
+
+          ctx.fillStyle = '#0a0e17';
+          ctx.beginPath();
+          ctx.arc(bx, by, boltR, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#64748b';
+          ctx.lineWidth = 1.0;
+          ctx.stroke();
+        }
+
+        // 4 Holding Tabs markers on outer perimeter
+        ctx.fillStyle = '#f59e0b';
+        const tabWS = camState.tabWidth * scale;
+        // Top tab
+        ctx.fillRect(cx - tabWS / 2, py - 2, tabWS, 4);
+        // Bottom tab
+        ctx.fillRect(cx - tabWS / 2, py + hS - 2, tabWS, 4);
+        // Left tab
+        ctx.fillRect(px - 2, cy - tabWS / 2, 4, tabWS);
+        // Right tab
+        ctx.fillRect(px + wS - 2, cy - tabWS / 2, 4, tabWS);
+
+        // Part Label
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '10px JetBrains Mono';
+        ctx.fillText(`P${i+1}`, px + 4, py + 12);
+      }
+    }
+
+    // --- 5. 3D Simulator (Three.js with Local Clipping) ---
+    let scene3d, camera3d, renderer3d, controls3d;
+    let mesh3d = null, edgeLines3d = null;
+    let clippingPlane3d = null;
+
+    function init3D() {
+      const canvas = document.getElementById('three-canvas');
+      if (!canvas || renderer3d) return;
+
+      const container = canvas.parentElement;
+
+      scene3d = new THREE.Scene();
+      scene3d.background = new THREE.Color(0x0a0d14);
+
+      camera3d = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 5000);
+      camera3d.position.set(150, 130, 150);
+
+      renderer3d = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+      renderer3d.setPixelRatio(window.devicePixelRatio || 1);
+      renderer3d.setSize(container.clientWidth, container.clientHeight);
+      renderer3d.localClippingEnabled = true;
+
+      controls3d = new THREE.OrbitControls(camera3d, canvas);
+      controls3d.enableDamping = true;
+      controls3d.dampingFactor = 0.08;
+      controls3d.target.set(0, geomParams.thickness / 2, 0);
+      controls3d.update();
+
+      // Lights
+      scene3d.add(new THREE.AmbientLight(0xffffff, 0.7));
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      dirLight.position.set(200, 250, 200);
+      scene3d.add(dirLight);
+
+      // Grid
+      const grid = new THREE.GridHelper(300, 30, 0x007acc, 0x1e293b);
+      scene3d.add(grid);
+
+      // Clipping Plane (Cut Z from top down)
+      clippingPlane3d = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+
+      rebuild3DModel();
+
+      function animate3D() {
+        requestAnimationFrame(animate3D);
+        if (controls3d) controls3d.update();
+        if (renderer3d && scene3d && camera3d) {
+          renderer3d.render(scene3d, camera3d);
+        }
+      }
+      animate3D();
+    }
+
+    function rebuild3DModel() {
+      if (!scene3d) return;
+
+      if (mesh3d) {
+        scene3d.remove(mesh3d);
+        mesh3d.geometry.dispose();
+        mesh3d = null;
+      }
+      if (edgeLines3d) {
+        scene3d.remove(edgeLines3d);
+        edgeLines3d.geometry.dispose();
+        edgeLines3d = null;
+      }
+
+      const hw = geomParams.width / 2.0;
+      const hd = geomParams.depth / 2.0;
+      const shape = new THREE.Shape();
+      shape.moveTo(-hw, -hd);
+      shape.lineTo(hw, -hd);
+      shape.lineTo(hw, hd);
+      shape.lineTo(-hw, hd);
+      shape.closePath();
+
+      // Bore Hole
+      const boreHole = new THREE.Path();
+      boreHole.absarc(0, 0, geomParams.bore / 2.0, 0, Math.PI * 2, true);
+      shape.holes.push(boreHole);
+
+      // 4 Bolt Holes
+      const boltR = geomParams.boltDia / 2.0;
+      const pcdR = geomParams.pcd / 2.0;
+      for (let i = 0; i < 4; i++) {
+        const ang = (Math.PI / 2.0) * i + (Math.PI / 4.0);
+        const bx = pcdR * Math.cos(ang);
+        const by = pcdR * Math.sin(ang);
+        const h = new THREE.Path();
+        h.absarc(bx, by, boltR, 0, Math.PI * 2, true);
+        shape.holes.push(h);
+      }
+
+      const extrudeSettings = {
+        depth: geomParams.thickness,
+        bevelEnabled: true,
+        bevelSegments: 3,
+        steps: 1,
+        bevelSize: 0.8,
+        bevelThickness: 0.8,
+        curveSegments: 64
+      };
+
+      const geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+      geo.rotateX(-Math.PI / 2);
+
+      // Color by material
+      const matColors = { PP: 0x38bdf8, PVDF: 0xa8c7fa, FPM: 0xf59e0b, PEEK: 0xd4a373 };
+      const mat = new THREE.MeshStandardMaterial({
+        color: matColors[currentMatKey] || 0xa8c7fa,
+        roughness: 0.35,
+        metalness: 0.1,
+        clippingPlanes: [clippingPlane3d],
+        side: THREE.DoubleSide
+      });
+
+      mesh3d = new THREE.Mesh(geo, mat);
+      scene3d.add(mesh3d);
+
+      const edgeGeo = new THREE.EdgesGeometry(geo, 25);
+      edgeLines3d = new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({ color: 0x78d9ec, clippingPlanes: [clippingPlane3d] }));
+      scene3d.add(edgeLines3d);
+
+      update3DSlicing();
+    }
+
+    function update3DSlicing() {
+      if (!clippingPlane3d) return;
+      const totalH = geomParams.thickness;
+      const curZ = sim3DProgress * totalH;
+      const passes = Math.max(1, Math.ceil(totalH / camState.stepDown));
+      const curPass = Math.min(passes, Math.max(1, Math.ceil(sim3DProgress * passes)));
+
+      clippingPlane3d.normal.set(0, 1, 0);
+      clippingPlane3d.constant = -curZ;
+
+      document.getElementById('stat-3d-total-passes').textContent = passes;
+      document.getElementById('stat-3d-pass').textContent = curPass;
+      document.getElementById('stat-3d-z').textContent = (-curZ).toFixed(1);
+      document.getElementById('stat-3d-pct').textContent = Math.round(sim3DProgress * 100) + '%';
+    }
+
+    function update3DSimProgress(val) {
+      sim3DProgress = parseFloat(val) / 100.0;
+      update3DSlicing();
+    }
+
+    function toggle3DSimPlay() {
+      is3DSimPlaying = !is3DSimPlaying;
+      const icon = document.getElementById('icon-3d-play');
+      if (is3DSimPlaying) {
+        icon.textContent = 'pause';
+        play3DLoop();
+      } else {
+        icon.textContent = 'play_arrow';
+        if (sim3DAnimId) cancelAnimationFrame(sim3DAnimId);
+      }
+    }
+
+    function play3DLoop() {
+      if (!is3DSimPlaying) return;
+      sim3DProgress += 0.008;
+      if (sim3DProgress > 1.0) sim3DProgress = 0.0;
+      document.getElementById('slider-3d-progress').value = sim3DProgress * 100;
+      update3DSlicing();
+      sim3DAnimId = requestAnimationFrame(play3DLoop);
+    }
+
+    function switchCenterView(view) {
+      currentCenterView = view;
+      const is2D = view === '2d';
+      document.getElementById('view-2d-container').classList.toggle('hidden', !is2D);
+      document.getElementById('view-3d-container').classList.toggle('hidden', is2D);
+      document.getElementById('bar-nesting-params').classList.toggle('hidden', !is2D);
+
+      const btn2d = document.getElementById('btn-view-2d');
+      const btn3d = document.getElementById('btn-view-3d');
+      if (is2D) {
+        btn2d.className = "px-3 py-1 text-xs font-semibold rounded flex items-center gap-1.5 trans-all bg-[var(--md-primary)] text-black font-bold";
+        btn3d.className = "px-3 py-1 text-xs font-semibold rounded flex items-center gap-1.5 trans-all text-[var(--md-text-muted)] hover:text-[var(--md-text)]";
+        drawNesting2D();
+      } else {
+        btn3d.className = "px-3 py-1 text-xs font-semibold rounded flex items-center gap-1.5 trans-all bg-[var(--md-primary)] text-black font-bold";
+        btn2d.className = "px-3 py-1 text-xs font-semibold rounded flex items-center gap-1.5 trans-all text-[var(--md-text-muted)] hover:text-[var(--md-text)]";
+        init3D();
+        const canvas = document.getElementById('three-canvas');
+        if (renderer3d && camera3d) {
+          renderer3d.setSize(canvas.parentElement.clientWidth, canvas.parentElement.clientHeight);
+          camera3d.aspect = canvas.parentElement.clientWidth / canvas.parentElement.clientHeight;
+          camera3d.updateProjectionMatrix();
+        }
+      }
+    }
+
+    // --- 6. Verification Table & Calculations ---
+    function updateVerificationTable() {
+      const mat = MATERIAL_PRESETS[currentMatKey];
+      const compVal = isThermalCompActive ? mat.springback : 0;
+      const compBore = geomParams.bore - compVal;
+      const compOuter = geomParams.width + compVal;
+
+      document.getElementById('val-comp-bore').textContent = compBore.toFixed(3) + ' mm';
+      document.getElementById('val-comp-outer').textContent = compOuter.toFixed(3) + ' mm';
+
+      // Yield: (PartArea * count) / (StockArea)
+      const partArea = geomParams.width * geomParams.depth;
+      const totalPartArea = partArea * nestingParams.partCount;
+      const stockArea = nestingParams.stockX * nestingParams.stockY;
+      const yieldPct = Math.min(95.0, (totalPartArea / stockArea) * 100);
+      document.getElementById('val-sheet-yield').textContent = yieldPct.toFixed(1) + ' %';
+
+      // Est Time: (Perimeter * Passes * Count) / Feed
+      const perimeter = (geomParams.width + geomParams.depth) * 2 + Math.PI * geomParams.bore + 4 * Math.PI * geomParams.boltDia;
+      const passes = Math.ceil(geomParams.thickness / camState.stepDown);
+      const totalCutLength = perimeter * passes * nestingParams.partCount;
+      const timeMinutes = (totalCutLength / camState.feed) + (nestingParams.partCount * 0.8); // 0.8 min tool change/retract
+      const mins = Math.floor(timeMinutes);
+      const secs = Math.round((timeMinutes - mins) * 60);
+      document.getElementById('val-est-time').textContent = `${mins}분 ${secs}초`;
+    }
+
+    function changePostProcessor(val) {
+      activePost = val;
+      const names = {
+        iso: 'ISO Standard',
+        fanuc: 'Fanuc CNC',
+        mach3: 'Mach3/LinuxCNC',
+        klipper: 'Klipper/Marlin'
+      };
+      document.getElementById('tag-post-active').textContent = names[val] || val;
+      renderPythonScript();
+      showToast(`포스트프로세서 전환: ${names[val]}`);
+    }
+
+    // --- 7. DXF ASCII Parser & Sample Loader ---
+    function loadSpindleMountSample() {
+      geomParams.width = 80;
+      geomParams.depth = 80;
+      geomParams.thickness = 25;
+      geomParams.bore = 40;
+      geomParams.pcd = 60;
+      geomParams.boltDia = 6.6;
+
+      document.getElementById('inp-w').value = 80;
+      document.getElementById('inp-d').value = 80;
+      document.getElementById('inp-t').value = 25;
+      document.getElementById('inp-bore').value = 40;
+      document.getElementById('inp-pcd').value = 60;
+      document.getElementById('inp-bolt-dia').value = 6.6;
+
+      drawNesting2D();
+      rebuild3DModel();
+      updateVerificationTable();
+      renderPythonScript();
+      showToast("내화학 고분자 스핀들 마운트 표준 샘플 로드 완료!");
+    }
+
+    function handleDXFDrop(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('border-[var(--md-primary)]');
+      const file = e.dataTransfer.files[0];
+      if (file) parseDXFFile(file);
+    }
+
+    function handleDXFFile(e) {
+      const file = e.target.files[0];
+      if (file) parseDXFFile(file);
+    }
+
+    function parseDXFFile(file) {
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const text = evt.target.result;
+        // Search for CIRCLE entities to detect Bore and PCD
+        const lines = text.split(/\r?\n/);
+        let foundRadii = [];
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].trim() === 'CIRCLE') {
+            for (let j = i; j < Math.min(lines.length, i + 30); j++) {
+              if (lines[j].trim() === '40') { // Group code 40 = Radius
+                const r = parseFloat(lines[j + 1]);
+                if (!isNaN(r)) foundRadii.push(r);
+                break;
+              }
+            }
+          }
+        }
+
+        if (foundRadii.length > 0) {
+          foundRadii.sort((a, b) => b - a);
+          const maxR = foundRadii[0];
+          geomParams.bore = Math.round(maxR * 2);
+          document.getElementById('inp-bore').value = geomParams.bore;
+          showToast(`DXF 파싱 성공: 보어 구경 Ø${geomParams.bore}mm 자동 추출`);
+        } else {
+          showToast(`DXF 파싱 완료: 기본 형상 치수로 로드되었습니다.`);
+        }
+
+        drawNesting2D();
+        rebuild3DModel();
+        updateVerificationTable();
+        renderPythonScript();
+      };
+      reader.readAsText(file);
+    }
+
+    // --- 8. G-code Generator (G02/G03 Inside-First + Holding Tabs) ---
+    function generateGCodeText() {
+      const mat = MATERIAL_PRESETS[currentMatKey];
+      const feed = camState.feed;
+      const rpm = camState.rpm;
+      const coolant = mat.cnc.coolant.split(' ')[0]; // M07
+      const toolR = camState.toolDia / 2.0;
+      const compVal = isThermalCompActive ? mat.springback : 0;
+      const passes = Math.ceil(geomParams.thickness / camState.stepDown);
+
+      let g = `( ========================================================================= )\n`;
+      g += `( DRAFT G-CODE - UNVERIFIED. DO NOT RUN ON A MACHINE WITHOUT SIMULATION AND HUMAN REVIEW )\n`;
+      g += `( Post selection only changes this header; ISO / FANUC / MACH3 bodies are identical )\n`;
+      g += `( Known defects (docs/AUDIT.md section 7): tab height, bolt hole size, no lead-in/out, no sheet clamp )\n`;
+      g += `( Cutting values: no source, unverified draft )\n`;
+      g += `( Post label: ${activePost.toUpperCase()} )\n`;
+      g += `( Material: ${mat.name} | Density: ${mat.density} g/cm3 | CTE: ${mat.cte} )\n`;
+      g += `( Tool: Ø${camState.toolDia}mm ${camState.flutes}-Flute | RPM: ${rpm} | Feed: ${feed} mm/min )\n`;
+      g += `( Generated At: ${new Date().toISOString()} )\n`;
+      g += `( ========================================================================= )\n\n`;
+
+      if (activePost === 'klipper') {
+        g += `M104 S${mat.print.nozzleTemp} ; Extruder Temp\nM140 S${mat.print.bedTemp} ; Bed Temp\nG28 ; Home\nG92 E0\n\n`;
+      } else {
+        g += `G21 ; Metric Units (mm)\nG90 ; Absolute Positioning\nG17 ; XY Plane Selection\nG54 ; Work Coordinate 1\n`;
+        g += `S${rpm} M03 ; Spindle ON Clockwise\n${coolant} ; Polymer Coolant Air Blast\nG00 Z15.000 ; Safe Retract\n\n`;
+      }
+
+      // Loop through nested parts (shared layout: viewer/lib/cam_core.js, same placement as the DXF)
+      const pw = geomParams.width;
+      const pd = geomParams.depth;
+      const layout = CamCore.gridNestLayout(geomParams, nestingParams);
+
+      for (const part of layout.placed) {
+        const i = part.index;
+        const { px, py, cx, cy } = part;
+
+        g += `( ----------------------------------------- )\n`;
+        g += `( PART #${i + 1} AT [X${cx.toFixed(2)}, Y${cy.toFixed(2)}] )\n`;
+        if (part.offSheet) g += `( WARNING: PART #${i + 1} IS OUTSIDE THE ${nestingParams.stockX}x${nestingParams.stockY} SHEET )\n`;
+        g += `( ----------------------------------------- )\n`;
+
+        // 1. INSIDE FIRST: Central Bore Arc Interpolation (G02/G03)
+        const cutBoreR = (geomParams.bore / 2.0) - toolR + compVal;
+        g += `( Step 1: Center Bore Circular Pocket G02/G03 - Inside First )\n`;
+        g += `G00 X${cx.toFixed(3)} Y${(cy - cutBoreR).toFixed(3)}\n`;
+
+        for (let p = 1; p <= passes; p++) {
+          const cutZ = -(p * camState.stepDown);
+          g += `G01 Z${cutZ.toFixed(3)} F${Math.round(feed * 0.4)}\n`;
+          // Full 360 Circle Arc with I, J
+          g += `G02 X${cx.toFixed(3)} Y${(cy - cutBoreR).toFixed(3)} I0.000 J${cutBoreR.toFixed(3)} F${feed}\n`;
+        }
+        g += `G00 Z5.000\n`;
+
+        // 2. INSIDE FIRST: 4x Bolt Holes
+        g += `( Step 2: 4x M6 Bolt Holes )\n`;
+        const pcdR = geomParams.pcd / 2.0;
+        for (let b = 0; b < 4; b++) {
+          const ang = (Math.PI / 2.0) * b + (Math.PI / 4.0);
+          const bx = cx + pcdR * Math.cos(ang);
+          const by = cy + pcdR * Math.sin(ang);
+          g += `G00 X${bx.toFixed(3)} Y${by.toFixed(3)}\n`;
+          g += `G01 Z-${geomParams.thickness.toFixed(3)} F${Math.round(feed * 0.3)}\n`;
+          g += `G00 Z5.000\n`;
+        }
+
+        // 3. OUTSIDE CONTOUR WITH HOLDING TABS
+        g += `( Step 3: Outside Profile Contour with Holding Tabs )\n`;
+        const cutOuterX = px - toolR;
+        const cutOuterY = py - toolR;
+        const cutOuterW = pw + toolR * 2;
+        const cutOuterH = pd + toolR * 2;
+
+        g += `G00 X${cutOuterX.toFixed(3)} Y${cutOuterY.toFixed(3)}\n`;
+
+        for (let p = 1; p <= passes; p++) {
+          const cutZ = -(p * camState.stepDown);
+          const isFinalPass = (p === passes);
+          const tabZ = -(geomParams.thickness - camState.tabHeight);
+
+          g += `G01 Z${cutZ.toFixed(3)} F${feed}\n`;
+
+          // X direction with tab
+          g += `G01 X${(cx - camState.tabWidth / 2).toFixed(3)}\n`;
+          if (isFinalPass) g += `G01 Z${tabZ.toFixed(3)} ; Holding Tab Lift\n`;
+          g += `G01 X${(cx + camState.tabWidth / 2).toFixed(3)}\n`;
+          if (isFinalPass) g += `G01 Z${cutZ.toFixed(3)}\n`;
+          g += `G01 X${(cutOuterX + cutOuterW).toFixed(3)}\n`;
+
+          // Y direction
+          g += `G01 Y${(cutOuterY + cutOuterH).toFixed(3)}\n`;
+
+          // Back X
+          g += `G01 X${cutOuterX.toFixed(3)}\n`;
+
+          // Back Y
+          g += `G01 Y${cutOuterY.toFixed(3)}\n`;
+        }
+        g += `G00 Z15.000\n\n`;
+      }
+
+      g += `M09 ; Coolant OFF\nM05 ; Spindle Stop\nG00 X0.000 Y0.000 Z50.000 ; Home Clearance\nM30 ; Program End\n`;
+      return g;
+    }
+
+    function downloadNestingGCode() {
+      if (MATERIAL_PRESETS[currentMatKey].notForMilling) {
+        showToast('FPM은 밀링 대상이 아니라 G-code를 만들지 않습니다.');
+        return;
+      }
+      const layout = CamCore.gridNestLayout(geomParams, nestingParams);
+      if (layout.placed.some(p => p.offSheet)) {
+        showToast(`경고: 원판 수용량 ${layout.capacity}개를 넘는 부품이 원판 밖에 배치됩니다 (G-code에 주석 표시).`);
+      }
+      const gcode = generateGCodeText();
+      const ext = (activePost === 'klipper') ? '.gcode' : '.nc';
+      const blob = new Blob([gcode], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `Nesting_${currentMatKey}_${nestingParams.partCount}parts_${Date.now()}${ext}`;
+      a.click();
+      showToast(`${currentMatKey} 최적화 네스팅 G-code 다운로드 시작!`);
+    }
+
+    // --- 9. ASCII DXF & Compensated STL Generator ---
+    function downloadNestingDXF() {
+      // Shared, unit-tested generator (viewer/lib/cam_core.js) — byte-identical to the previous inline code
+      const dxf = CamCore.buildNestingDXF(geomParams, nestingParams);
+
+      const blob = new Blob([dxf], { type: 'application/dxf' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `Nesting_${currentMatKey}_${nestingParams.partCount}parts.dxf`;
+      a.click();
+      showToast("네스팅 DXF 도면 파일 다운로드 완료!");
+    }
+
+    function downloadCompensatedSTL() {
+      if (!mesh3d) return;
+      const mat = MATERIAL_PRESETS[currentMatKey];
+      const scaleMultiplier = 1.0 + (mat.shrinkagePct / 100.0);
+
+      // Clone geometry and apply scale
+      const clonedMesh = mesh3d.clone();
+      clonedMesh.scale.set(scaleMultiplier, scaleMultiplier, scaleMultiplier);
+      clonedMesh.updateMatrixWorld(true);
+
+      const exporter = new THREE.STLExporter();
+      const stl = exporter.parse(clonedMesh, { binary: true });
+      const blob = new Blob([stl], { type: 'application/octet-stream' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `Spindle_Mount_${currentMatKey}_Compensated_${scaleMultiplier.toFixed(3)}x.stl`;
+      a.click();
+      showToast(`${currentMatKey} 수축보정(${mat.shrinkagePct}%) STL 다운로드 시작!`);
+    }
+
+    // --- 10. Python ezdxf Script Generator ---
+    function renderPythonScript() {
+      const p = MATERIAL_PRESETS[currentMatKey];
+      const code = `"""
+Polymer Auto-CAM & Nesting Script (ezdxf & pycam automation)
+Target Material: ${p.name}
+Density: ${p.density} g/cm3 | CTE: ${p.cte} | Springback: ${p.springback} mm
+"""
+import ezdxf
+import math
+
+MATERIAL_CONFIG = {
+    'name': '${p.name}',
+    'tool_dia': ${camState.toolDia},
+    'flutes': ${camState.flutes},
+    'rpm': ${camState.rpm},
+    'feed': ${camState.feed},
+    'step_down': ${camState.stepDown},
+    'springback_comp': ${p.springback},
+    'shrinkage_pct': ${p.shrinkagePct}
+}
+
+def generate_polymer_cam_dxf(stock_w=400, stock_h=300, part_count=${nestingParams.partCount}):
+    doc = ezdxf.new('R2010')
+    msp = doc.modelspace()
+    
+    # 1. Stock Sheet Boundary
+    msp.add_lwpolyline([(0, 0), (stock_w, 0), (stock_w, stock_h), (0, stock_h)], close=True, dxfattribs={'layer': 'STOCK'})
+    
+    # 2. Add Nested Parts
+    pw, pd = ${geomParams.width}, ${geomParams.depth}
+    margin = ${nestingParams.margin}
+    spacing = ${nestingParams.partSpacing}
+    cols = int((stock_w - margin * 2 + spacing) // (pw + spacing))
+    
+    comp = MATERIAL_CONFIG['springback_comp']
+    bore_r = (${geomParams.bore} / 2.0) - (MATERIAL_CONFIG['tool_dia'] / 2.0) + comp
+    
+    for i in range(part_count):
+        c, r = i % cols, i // cols
+        px = margin + c * (pw + spacing)
+        py = margin + r * (pd + spacing)
+        cx, cy = px + pw/2, py + pd/2
+        
+        # Outer Contour
+        msp.add_lwpolyline([(px, py), (px+pw, py), (px+pw, py+pd), (px, py+pd)], close=True, dxfattribs={'layer': 'PART_CONTOUR'})
+        # Compensated Bore Toolpath
+        msp.add_circle((cx, cy), radius=bore_r, dxfattribs={'layer': 'TOOLPATH_BORE'})
+        
+    doc.saveas('nested_parts_${currentMatKey.toLowerCase()}.dxf')
+    print(f"[OK] Generated {part_count} nested parts for {MATERIAL_CONFIG['name']} with {comp}mm springback comp.")
+
+if __name__ == '__main__':
+    generate_polymer_cam_dxf()
+`;
+      document.getElementById('python-script-display').textContent = code;
+    }
+
+    function copyPythonScript() {
+      const code = document.getElementById('python-script-display').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        showToast("Python ezdxf 스크립트가 클립보드에 복사되었습니다!");
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast-notify');
+      const txt = document.getElementById('toast-text');
+      txt.textContent = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    // --- On Window Load ---
+    window.addEventListener('DOMContentLoaded', () => {
+      selectMaterial('PP');
+      applyLanguage('ko');
+      drawNesting2D();
+    });
+  </script>
+</body>
+</html>

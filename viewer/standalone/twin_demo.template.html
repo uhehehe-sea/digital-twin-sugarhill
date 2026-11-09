@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sugar Hill Twin — 설비 동작 데모</title>
+<style>
+:root{--bg:#0a0e15;--pn:rgba(10,14,21,.95);--ln:#233047;--tx:#e2e8f0;--mu:#8a98ab;--ac:#38bdf8;--ok:#22c55e;--wn:#f59e0b}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:12px/1.45 system-ui,-apple-system,"Segoe UI","Malgun Gothic",sans-serif;overflow:hidden}
+#c{position:fixed;inset:0}
+#p{position:fixed;left:12px;top:12px;bottom:12px;width:360px;display:flex;flex-direction:column;background:var(--pn);border:1px solid var(--ln);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.5);backdrop-filter:blur(8px)}
+.hd{padding:12px 14px;border-bottom:1px solid #1e293b}.hd h1{font-size:14px;margin:0}.hd p{margin:3px 0 0;color:var(--mu)}
+.bd{overflow:auto;padding:10px 14px 14px;flex:1}
+.sec{color:var(--mu);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin:12px 0 6px}
+.chip{font-size:10px;padding:1px 7px;border-radius:999px;border:1px solid rgba(245,158,11,.4);color:var(--wn)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.grid label{color:var(--mu);font-size:10px}
+input,select,button{font:inherit;color:var(--tx);background:#141c2b;border:1px solid #273449;border-radius:6px;padding:4px 7px;width:100%}
+button{cursor:pointer;width:auto;white-space:nowrap;flex:none}.row select{flex:1;min-width:0}button:hover{border-color:var(--ac)}button.pri{background:#0369a1;border-color:#0284c7;color:#fff;font-weight:600}button.on{background:rgba(56,189,248,.18);border-color:var(--ac);color:#7dd3fc}
+.row{display:flex;gap:6px;align-items:center}.sp{flex:1}
+.card{border:1px solid #1e293b;border-radius:9px;padding:8px 9px;margin-bottom:6px;background:#0e141f}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}.nm{font-weight:600;flex:1}
+.bar{height:4px;background:#1e293b;border-radius:2px;margin:6px 0 4px;overflow:hidden}.bar i{display:block;height:100%}
+.ax{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:4px}.ax span{background:#141c2b;border-radius:5px;padding:2px 5px;font:11px ui-monospace,Consolas,monospace;white-space:nowrap;overflow:hidden}.ax em{font-style:normal;color:#64748b;margin-right:3px}
+pre{margin:0;max-height:180px;overflow:auto;font:10.5px/1.35 ui-monospace,Consolas,monospace;color:#cbd5e1;background:#0e141f;border:1px solid #1e293b;border-radius:8px;padding:8px}
+.mu{color:var(--mu)}.ft{padding:8px 14px;border-top:1px solid #1e293b;color:#64748b;font-size:11px}
+@media (max-width:760px){#p{left:8px;right:8px;top:auto;width:auto;height:55vh}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="p">
+  <div class="hd"><h1>🏭 Sugar Hill Twin — 설비 동작 데모 <span class="chip">가정값</span></h1>
+    <p>판재 부품을 만들고 CNC 라우터 또는 금속 3D 프린터에 배정하면 실제 축이 부품 데이터대로 움직입니다.</p></div>
+  <div class="bd">
+    <div class="sec">1 · 부품 모델링 (mm)</div>
+    <div class="grid">
+      <div><label>폭</label><input id="w" type="number" value="300" min="20"></div>
+      <div><label>높이</label><input id="h" type="number" value="200" min="20"></div>
+      <div><label>두께</label><input id="t" type="number" value="12" min="1"></div>
+      <div><label>구멍 Ø</label><input id="d" type="number" value="40" min="0"></div>
+    </div>
+    <div class="row" style="margin-top:6px"><button class="pri" id="mk">부품 만들기</button><span class="mu" id="pinfo"></span></div>
+    <div class="sec">2 · 설비 배정 · 동작</div>
+    <div class="row" style="margin-bottom:6px">
+      <select id="spd" style="width:90px"><option value="1">1×</option><option value="10" selected>10×</option><option value="60">60×</option><option value="600">600×</option><option value="3600">3600×</option></select>
+      <button id="xr">◎ 내부 보기</button><span class="sp"></span></div>
+    <div id="ms"></div>
+    <div class="sec">3 · 실시간 데이터 (5 Hz 스냅샷)</div>
+    <pre id="tel">–</pre>
+    <p class="mu" style="margin:6px 0 0">이 단일 파일은 화면 안에서만 데이터를 만듭니다. 로컬 서버(<code>npm run dev</code>)의 전체 트윈은 같은 형식을 WebSocket <code>/ws</code>로 송신합니다.</p>
+  </div>
+  <div class="ft">공정 시간·이송 속도는 가정값 · 메쉬 형상(B-Rep 아님) · 실제 장비 미연결</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>/*INLINE:lib/twin_runtime.js*/</script>
+<script>/*INLINE:lib/machine_kinematics.js*/</script>
+<script>
+(function(){
+'use strict';
+const K=MachineKinematics, rt=TwinRuntime.createRuntime();
+const $=id=>document.getElementById(id);
+// ---------------------------------------------------------------- scene (Z-up, mm)
+const renderer=new THREE.WebGLRenderer({canvas:$('c'),antialias:true});
+renderer.setPixelRatio(Math.min(2,devicePixelRatio));renderer.shadowMap.enabled=true;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x0b1220);scene.fog=new THREE.Fog(0x0b1220,22000,60000);
+const camera=new THREE.PerspectiveCamera(45,1,10,120000);camera.up.set(0,0,1);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);controls.enableDamping=true;
+scene.add(new THREE.HemisphereLight(0xdbeafe,0x1e293b,0.75));
+const sun=new THREE.DirectionalLight(0xffffff,0.9);sun.position.set(8000,-6000,14000);sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-14000,right:14000,top:14000,bottom:-14000,far:40000});scene.add(sun);
+const M=(c,r=.5,m=.4,o=1)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m,transparent:o<1,opacity:o});
+function box(p,x,y,z,dx,dy,dz,mat,tag){const g=new THREE.BoxGeometry(dx,dy,dz);g.translate(x+dx/2,y+dy/2,z+dz/2);const m=new THREE.Mesh(g,mat);m.castShadow=m.receiveShadow=true;m.userData.tag=tag||'';p.add(m);return m}
+function cyl(p,x,y,z,r,h,mat,tag){const g=new THREE.CylinderGeometry(r,r,h,28);g.rotateX(Math.PI/2);g.translate(x,y,z+h/2);const m=new THREE.Mesh(g,mat);m.castShadow=true;m.userData.tag=tag||'';p.add(m);return m}
+// floor + structure from factory_layout_spec.json (H-beam grid 5×2 @ 6000 × 15000, 7200 high)
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(26000,17000),M(0x2b3442,.85,.05));floor.position.set(12000,7500,0);floor.receiveShadow=true;scene.add(floor);
+const grid=new THREE.GridHelper(26000,52,0x334155,0x1f2937);grid.rotation.x=Math.PI/2;grid.position.set(12000,7500,1);scene.add(grid);
+const steel=M(0x64748b,.45,.7);
+for(let i=0;i<5;i++)for(const y of[0,15000]){box(scene,i*6000-127,y-133,0,254,267,7200,steel)}
+const wall=M(0xcbd5e1,.9,0,.18);box(scene,-300,15300,0,24600,150,6200,wall);box(scene,-300,-450,0,150,15750,6200,wall);
+const mez=M(0x94a3b8,.6,.3);box(scene,0,0,3200,12000,6000,150,mez);
+// ---------------------------------------------------------------- machines
+const machines={};
+function beacon(g,x,y,z){return cyl(g,x,y,z,26,200,new THREE.MeshStandardMaterial({color:0xfacc15,emissive:0xfacc15,emissiveIntensity:.9}),'beacon')}
+function makeRouter(name,px,py){
+  const g=new THREE.Group();g.position.set(px,py,0);scene.add(g);
+  const W=3600,D=2100,cx=-W/2,cy=-D/2,tableZ=820;
+  box(g,cx,cy,0,W,D,760,M(0x1e293b,.4,.7),'shell');box(g,cx+160,cy+160,tableZ-40,W-320,D-320,40,M(0x3f3f46,.85,.05),'table');
+  box(g,cx,cy+30,760,W,80,90,M(0xcbd5e1,.25,.9));box(g,cx,cy+D-110,760,W,80,90,M(0xcbd5e1,.25,.9));
+  const gantry=new THREE.Group();g.add(gantry);const wh=M(0xe2e8f0,.3,.8);
+  box(gantry,-110,cy+20,850,220,160,900,wh);box(gantry,-110,cy+D-180,850,220,160,900,wh);box(gantry,-130,cy+20,1750,260,D-40,240,wh);
+  const car=new THREE.Group();gantry.add(car);box(car,160,-170,1450,70,340,520,M(0x0284c7,.3,.6));
+  const sp=new THREE.Group();car.add(sp);box(sp,230,-80,1230,160,160,420,M(0x0f172a,.3,.8));cyl(sp,310,0,1060,75,360,M(0xcbd5e1,.2,.95));cyl(sp,310,0,900,6,160,M(0xf8fafc,.1,1),'tool');
+  const tip=new THREE.Mesh(new THREE.SphereGeometry(16,12,8),new THREE.MeshBasicMaterial({color:0xfbbf24}));tip.position.set(310,0,900);tip.visible=false;sp.add(tip);
+  const b=beacon(g,cx+W-60,cy+D-60,760);
+  rt.registerMachine(name,'cnc_router_3axis');
+  machines[name]={kind:'router',g,gantry,car,sp,tip,b,tableZ,dims:[W,D,2000]};
+}
+function makeSlm(name,px,py){
+  const g=new THREE.Group();g.position.set(px,py,0);g.rotation.z=Math.PI;scene.add(g);
+  const W=2500,D=1300,H=2190,cx=-W/2,cy=-D/2;
+  box(g,cx,cy,0,W,D,H*.38,M(0x1e293b,.4,.7),'shell');box(g,cx,cy+30,H*.38,W*.58,D-30,H*.53,M(0xd4d8de,.25,.9),'shell');
+  box(g,cx+W*.58,cy,H*.38,W*.42,D,H*.53,M(0xe2e8f0,.3,.85),'shell');box(g,cx+W*.04,cy+90,H*.91,W*.5,D*.76,H*.09,M(0x0f172a,.3,.8),'shell');
+  box(g,cx+W*.11,cy+18,H*.48,W*.34,20,H*.3,M(0x10b981,.06,.2,.35),'shell');
+  const plateX=cx+W*.28,plateZ=H*.42+45;cyl(g,plateX,0,H*.42,145,45,M(0x94a3b8,.3,.9));
+  const rec=new THREE.Mesh(new THREE.BoxGeometry(16,300,14),M(0x94a3b8,.3,.8));rec.position.set(plateX-125,0,plateZ+10);g.add(rec);
+  const beam=new THREE.Mesh(new THREE.CylinderGeometry(4,4,1,8),new THREE.MeshBasicMaterial({color:0x4ade80,transparent:true,opacity:.9}));beam.rotation.x=Math.PI/2;beam.visible=false;g.add(beam);
+  const spot=new THREE.Mesh(new THREE.SphereGeometry(10,10,8),new THREE.MeshBasicMaterial({color:0xbbf7d0}));spot.visible=false;g.add(spot);
+  const build=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),M(0xcbd5e1,.35,.85));build.visible=false;g.add(build);
+  const b=beacon(g,cx+W*.29,0,H);
+  rt.registerMachine(name,'slm_eos_m290');
+  machines[name]={kind:'am',g,rec,beam,spot,build,plateX,plateZ,laserTopZ:H*.86,b,dims:[W,D,H]};
+}
+makeRouter('CNC_Router_3Axis_01',11800,13300);
+makeSlm('EOS_M290_Stainless3DP_01',7800,9200);
+// worktable for new parts
+box(scene,6900,11650,0,1800,900,860,M(0xb8c2cc,.3,.85));
+// ---------------------------------------------------------------- parts
+let partSeq=1;const parts=[];
+function makePart(){
+  const W=+$('w').value,H=+$('h').value,T=+$('t').value,Dh=+$('d').value;
+  if(!(W>=20&&H>=20&&T>=1))return;
+  const v=[{x:-W/2,y:-H/2},{x:W/2,y:-H/2},{x:W/2,y:H/2},{x:-W/2,y:H/2}];
+  const holes=Dh>0&&Dh<Math.min(W,H)-10?[{x:0,y:0,dia:Dh,isSubtract:true}]:[];
+  const s=new THREE.Shape();s.moveTo(v[0].x,v[0].y);v.slice(1).forEach(p=>s.lineTo(p.x,p.y));s.closePath();
+  holes.forEach(h=>{const p=new THREE.Path();p.absarc(h.x,h.y,h.dia/2,0,Math.PI*2,true);s.holes.push(p)});
+  const geo=new THREE.ExtrudeGeometry(s,{depth:T,bevelEnabled:false});geo.translate(0,0,-T/2);
+  const mesh=new THREE.Mesh(geo,M(0xe5e7eb,.4,.1));mesh.castShadow=true;
+  const name='Panel_'+String(partSeq++).padStart(2,'0');
+  mesh.position.set(7300+((parts.length%3)*450),12100,860+T/2);scene.add(mesh);
+  const part=TwinRuntime.partFromSketch(name,v,holes,T);
+  parts.push({name,mesh,part,v,holes,busy:false});
+  $('pinfo').textContent=`${name}: ${Math.round(part.areaMm2)} mm² · 절삭 ${Math.round(part.cutLengthMm)} mm`;
+  render();
+}
+function assign(pName,mName){
+  const P=parts.find(p=>p.name===pName);if(!P||P.busy)return;
+  const job=rt.assign(mName,P.part);job.path=K.sketchPath(P.v,P.holes);job._p=P;P.busy=mName;
+}
+// ---------------------------------------------------------------- animate machines
+const COL={IDLE:0xfacc15,LOADING:0x38bdf8,RUNNING:0x22c55e,UNLOADING:0x38bdf8,HOLD:0xef4444};
+const axes={};
+function drive(name,m,now){
+  const A=machines[name],job=rt.machines.get(name).job;A.b.material.color.setHex(COL[m.phase]);A.b.material.emissive.setHex(COL[m.phase]);
+  if(A.kind==='router'){
+    const ax=job?K.routerAxes(m.phase,job.progress,job.part,job.path):K.routerAxes('IDLE',0);
+    const t=job?job.part.thicknessMm:0;
+    A.gantry.position.x=ax.axis_x_mm-310;A.car.position.y=ax.axis_y_mm;A.sp.position.z=(A.tableZ+t+ax.axis_z_mm)-900;
+    A.tip.visible=ax.spindle_rpm>0&&ax.axis_z_mm<0;axes[name]=ax;
+    if(job&&job._p){const P=job._p.mesh;P.position.set(A.g.position.x,A.g.position.y,A.tableZ+t/2);P.visible=true}
+  }else{
+    const ax=job?K.slmAxes(m.phase,job.progress,job.part,job.est.layers):K.slmAxes('IDLE',0);
+    A.rec.position.x=A.plateX+ax.recoater_x_mm;const sx=A.plateX+ax.laser_x_mm,sy=ax.laser_y_mm;
+    A.beam.visible=A.spot.visible=!!ax.laser_on;
+    if(ax.laser_on){const len=A.laserTopZ-A.plateZ;A.beam.scale.set(1,len,1);A.beam.position.set(sx,sy,A.plateZ+len/2);A.spot.position.set(sx,sy,A.plateZ+2)}
+    if(job){const[bx,by,bz]=job.part.bboxMm,s=Math.min(1,200/Math.max(bx,by)),h=Math.max(.5,bz*job.progress);A.build.visible=true;A.build.scale.set(bx*s,by*s,h);A.build.position.set(A.plateX,0,A.plateZ+h/2);if(job._p)job._p.mesh.visible=false}
+    else A.build.visible=false;axes[name]=ax;
+  }
+}
+let li=0;
+function events(){for(;li<rt.events.length;li++){const e=rt.events[li];if(e.type!=='JOB_DONE')continue;
+  const P=parts.find(p=>p.name===e.part&&p.busy===e.machine);if(!P)continue;const A=machines[e.machine];
+  const out=A.g.localToWorld(new THREE.Vector3(0,-(A.dims[1]/2+700),0));P.mesh.position.set(out.x,out.y,P.part.thicknessMm/2);P.mesh.visible=true;P.busy=false;P.done=(P.done||[]).concat(e.machine)}}
+// ---------------------------------------------------------------- x-ray
+let xray=false;
+function setXray(on){xray=on;Object.values(machines).forEach(A=>A.g.traverse(o=>{if(!o.isMesh||o.userData.tag!=='shell')return;const m=o.material;
+  if(m.userData.base===undefined)m.userData.base={t:m.transparent,o:m.opacity};m.transparent=on||m.userData.base.t;m.opacity=on?Math.min(m.userData.base.o,.15):m.userData.base.o;m.depthWrite=!on;m.needsUpdate=true}))}
+$('xr').onclick=e=>{setXray(!xray);e.target.classList.toggle('on',xray)};
+function focus(name){const A=machines[name],[W,D,H]=A.dims;
+  const eye=A.kind==='router'?A.g.localToWorld(new THREE.Vector3(W/2+1700,-D*.35,H+1500)):A.g.localToWorld(new THREE.Vector3(-W*.1,-(D/2+1100),H+900));
+  camera.position.copy(eye);controls.target.copy(A.kind==='am'?A.g.localToWorld(new THREE.Vector3(-W*.22,0,H*.45)):A.g.position.clone().setZ(H*.45));controls.update()}
+// ---------------------------------------------------------------- UI
+const KO={IDLE:'대기',LOADING:'투입',RUNNING:'가공 중',UNLOADING:'배출',HOLD:'정지'};
+const fmt=s=>{s=Math.max(0,Math.round(s));return s>=86400?(s/86400).toFixed(1)+'일':s>=3600?`${Math.floor(s/3600)}h ${Math.floor(s%3600/60)}m`:s>=60?`${Math.floor(s/60)}m ${s%60}s`:s+'s'};
+function chips(m){const a=axes[m.name]||{};return(m.kind==='router'?[['X',a.axis_x_mm],['Y',a.axis_y_mm],['Z',a.axis_z_mm],['S',a.spindle_rpm]]:[['층',a.layer?a.layer+'/'+a.layers:0],['베드Z',a.platform_z_mm],['레이저',a.laser_on?'ON':'off'],['리코터',a.recoater_x_mm]]).map(([k,v])=>`<span><em>${k}</em>${v??'–'}</span>`).join('')}
+function render(){
+  const snap=rt.snapshot(),free=parts.filter(p=>!p.busy),keep={};
+  $('ms').querySelectorAll('select[data-s]').forEach(s=>keep[s.dataset.s]=s.value);
+  $('ms').innerHTML=snap.machines.map(m=>{const c='#'+COL[m.phase].toString(16).padStart(6,'0');
+    return`<div class="card"><div class="row"><span class="dot" style="background:${c};box-shadow:0 0 8px ${c}"></span><span class="nm">${m.name}</span><span class="mu">${TwinRuntime.KIND_LABEL[m.kind]}</span><button data-f="${m.name}">보기</button></div>
+    <div class="bar"><i style="width:${m.progress}%;background:${c}"></i></div>
+    <div class="row mu"><span style="color:${c}">${KO[m.phase]}</span><span class="sp"></span>${m.jobId?`#${m.jobId} · ${m.progress}% · 남은 ${fmt(m.remainS)}`:`완료 ${m.completed} · 대기 ${m.queue}`}</div>
+    <div class="ax">${chips(m)}</div>
+    <div class="row" style="margin-top:6px"><select data-s="${m.name}">${free.map(p=>`<option>${p.name}</option>`).join('')||'<option value="">부품 없음</option>'}</select><button class="pri" data-a="${m.name}">배정</button></div></div>`}).join('');
+  $('ms').querySelectorAll('select[data-s]').forEach(s=>{const v=keep[s.dataset.s];if(v&&[...s.options].some(o=>o.value===v))s.value=v});
+}
+// pointerdown: the cards are re-rendered every 300 ms, which can swallow a click between press and release
+$('ms').addEventListener('pointerdown',e=>{const f=e.target.dataset.f,a=e.target.dataset.a;if(f)focus(f);if(a){const s=$('ms').querySelector(`select[data-s="${a}"]`);if(s&&s.value){assign(s.value,a);focus(a);render()}}});
+$('mk').onclick=makePart;
+let speed=10;$('spd').onchange=e=>speed=+e.target.value;
+let seq=0;function tel(){const s=rt.snapshot();s.machines.forEach(m=>m.axes=axes[m.name]||{});
+  $('tel').textContent=JSON.stringify({type:'telemetry',schema:'sugarhill-twin/2',source:'simulator',assumedRates:true,seq:++seq,ts:new Date().toISOString(),simT:s.t,speed,production:{completed:s.completed,machines:s.machines}},null,1)}
+// ---------------------------------------------------------------- loop
+function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+addEventListener('resize',resize);resize();
+camera.position.set(19000,4000,7000);controls.target.set(9800,11500,600);controls.update();
+let last=performance.now();
+setInterval(()=>{const n=performance.now(),dt=Math.min(1,(n-last)/1000);last=n;rt.step(dt*speed);events();rt.snapshot().machines.forEach(m=>drive(m.name,m,n))},40);
+setInterval(render,300);setInterval(tel,200);
+(function loop(){requestAnimationFrame(loop);controls.update();renderer.render(scene,camera)})();
+makePart();
+})();
+</script>
+</body>
+</html>

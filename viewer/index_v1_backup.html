@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SolidCraft 공간 편집 스튜디오 — 디지털 트윈 에디터 (v0.30.1 Rust CAD × Unreal/Blender UI)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+      background-color: #0b0f17;
+      color: #c9d1d9;
+      overflow: hidden;
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+    #main-workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      min-width: 0;
+      position: relative;
+    }
+    /* 상단 Unreal Engine / Blender 스타일 트랜스폼 & 뷰포트 툴바 */
+    #top-toolbar {
+      height: 46px;
+      background: #141923;
+      border-bottom: 1px solid #252f42;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 8px;
+      z-index: 25;
+      overflow-x: auto;
+    }
+    .tb-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #0d1117;
+      padding: 3px 5px;
+      border-radius: 6px;
+      border: 1px solid #232c3d;
+    }
+    .tb-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #8b949e;
+      padding: 0 5px;
+      text-transform: uppercase;
+    }
+    .btn-tb {
+      background: #171e2b;
+      color: #c9d1d9;
+      border: 1px solid #293447;
+      padding: 5px 9px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      transition: all 0.12s;
+    }
+    .btn-tb:hover {
+      background: #1f6feb;
+      border-color: #388bfd;
+      color: #fff;
+    }
+    .btn-tb.active {
+      background: #1f6feb;
+      border-color: #58a6ff;
+      color: #fff;
+      box-shadow: 0 0 8px rgba(56, 139, 253, 0.45);
+    }
+    .btn-tb.active-green {
+      background: #238636;
+      border-color: #2ea043;
+      color: #fff;
+    }
+    .btn-tb.danger:hover {
+      background: #da3633;
+      border-color: #f85149;
+    }
+    .kbd {
+      background: rgba(255,255,255,0.12);
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 9.5px;
+      font-family: ui-monospace, monospace;
+      color: #93c5fd;
+    }
+    select.tb-select {
+      background: #171e2b;
+      color: #58a6ff;
+      border: 1px solid #293447;
+      padding: 4px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* 3D 뷰포트 영역 */
+    #viewport-container {
+      flex: 1;
+      position: relative;
+      background: radial-gradient(circle at 50% 40%, #161e2e 0%, #080c12 100%);
+      min-height: 0;
+      outline: none;
+    }
+    #canvas3d {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* 뷰포트 상단 서브 카메라 프리셋 바 */
+    #camera-bar {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      z-index: 15;
+    }
+    .cam-pills {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      pointer-events: auto;
+    }
+    .btn-cam {
+      background: rgba(17, 23, 34, 0.86);
+      border: 1px solid #2d3b52;
+      color: #c9d1d9;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+    }
+    .btn-cam:hover { background: #1f6feb; color: #fff; }
+    .btn-cam.active { background: #238636; border-color: #2ea043; color: #fff; }
+
+    /* 드래그 배치 안내 배너 */
+    #drop-banner {
+      position: absolute;
+      top: 48px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(31, 111, 235, 0.92);
+      border: 1px solid #79c0ff;
+      color: #fff;
+      padding: 7px 18px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      pointer-events: none;
+      display: none;
+      z-index: 20;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+    }
+
+    /* 좌하단 WASD & 단축키 HUD */
+    #hud-info {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      background: rgba(13, 17, 23, 0.90);
+      border: 1px solid #232c3d;
+      padding: 9px 14px;
+      border-radius: 8px;
+      font-size: 11px;
+      color: #8b949e;
+      pointer-events: none;
+      backdrop-filter: blur(10px);
+      line-height: 1.55;
+      z-index: 15;
+    }
+    #hud-info b { color: #58a6ff; }
+    #hud-coords {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      color: #3fb950;
+      font-weight: 700;
+    }
+
+    /* 하단 Unreal Content Drawer 스타일 에셋 탐색창 */
+    #asset-drawer {
+      height: 215px;
+      background: #111620;
+      border-top: 2px solid #232c3d;
+      display: flex;
+      flex-direction: column;
+      z-index: 20;
+      transition: height 0.2s ease;
+    }
+    #asset-drawer.collapsed {
+      height: 36px;
+    }
+    .drawer-header {
+      height: 36px;
+      background: #161d2a;
+      border-bottom: 1px solid #232c3d;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      flex-shrink: 0;
+    }
+    .drawer-tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .drawer-tab {
+      background: transparent;
+      color: #8b949e;
+      border: 1px solid transparent;
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .drawer-tab:hover { color: #fff; background: #1f2937; }
+    .drawer-tab.active {
+      background: #1f6feb;
+      color: #fff;
+      border-color: #388bfd;
+    }
+    .drawer-search {
+      background: #0d1117;
+      border: 1px solid #293447;
+      color: #e6edf3;
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 11px;
+      width: 210px;
+      user-select: text;
+    }
+    .asset-grid {
+      flex: 1;
+      padding: 10px 12px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .asset-card {
+      width: 156px;
+      flex-shrink: 0;
+      background: #0d1117;
+      border: 1px solid #263145;
+      border-radius: 8px;
+      padding: 9px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: grab;
+      transition: all 0.15s;
+      position: relative;
+    }
+    .asset-card:hover {
+      border-color: #58a6ff;
+      background: #151d2b;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.45);
+    }
+    .asset-card:active { cursor: grabbing; }
+    .asset-icon-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .asset-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+    .asset-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: #1e293b;
+      color: #79c0ff;
+      border: 1px solid #334155;
+    }
+    .asset-title {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #e6edf3;
+      line-height: 1.3;
+      margin-bottom: 3px;
+    }
+    .asset-sub {
+      font-size: 10px;
+      color: #8b949e;
+      line-height: 1.25;
+    }
+    .asset-dim {
+      font-size: 9.5px;
+      font-family: ui-monospace, monospace;
+      color: #3fb950;
+      margin-top: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 우측 통합 인스펙터 사이드바 (Outliner + Transform + Material Studio + SolidCraft CAD) */
+    #sidebar {
+      width: 430px;
+      background: #11151c;
+      border-left: 1px solid #232c3d;
+      display: flex;
+      flex-direction: column;
+      z-index: 25;
+      box-shadow: -4px 0 25px rgba(0,0,0,0.6);
+    }
+    .panel-header {
+      padding: 12px 16px;
+      background: #171d27;
+      border-bottom: 1px solid #232c3d;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .panel-header h1 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #58a6ff;
+    }
+    .badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 12px;
+      background: #238636;
+      color: #fff;
+    }
+    .sidebar-tabs {
+      display: flex;
+      background: #0d1117;
+      border-bottom: 1px solid #232c3d;
+    }
+    .stab {
+      flex: 1;
+      text-align: center;
+      padding: 8px 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #8b949e;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    .stab:hover { color: #e6edf3; }
+    .stab.active {
+      color: #58a6ff;
+      border-bottom-color: #58a6ff;
+      background: #141a24;
+    }
+    .panel-body {
+      padding: 12px 14px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card {
+      background: #0d1117;
+      border: 1px solid #232c3d;
+      border-radius: 8px;
+      padding: 11px 13px;
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #8b949e;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-transform: uppercase;
+    }
+
+    /* Transform 숫자 입력 그리드 (Blender N-panel / Unreal Details) */
+    .vec3-row {
+      display: grid;
+      grid-template-columns: 58px 1fr 1fr 1fr;
+      gap: 5px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .vec3-label {
+      font-size: 11px;
+      color: #8b949e;
+      font-weight: 600;
+    }
+    .vec3-field {
+      display: flex;
+      align-items: center;
+      background: #161c26;
+      border: 1px solid #293447;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .vec3-axis {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 4px 5px;
+      color: #fff;
+    }
+    .axis-x { background: #b91c1c; }
+    .axis-y { background: #15803d; }
+    .axis-z { background: #1d4ed8; }
+    .vec3-input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: #e6edf3;
+      font-size: 11px;
+      font-family: ui-monospace, monospace;
+      padding: 4px 5px;
+      text-align: right;
+      user-select: text;
+      outline: none;
+    }
+
+    /* Outliner 리스트 */
+    #outliner-list {
+      max-height: 155px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .outliner-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 8px;
+      border-radius: 5px;
+      background: #141923;
+      border: 1px solid transparent;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .outliner-item:hover { background: #1c2433; }
+    .outliner-item.selected {
+      background: #1e3a5f;
+      border-color: #58a6ff;
+      color: #fff;
+    }
+    .outliner-actions {
+      display: flex;
+      gap: 4px;
+    }
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: #8b949e;
+      cursor: pointer;
+      font-size: 11px;
+      padding: 1px 4px;
+    }
+    .icon-btn:hover { color: #fff; }
+
+    /* 메테리얼 스튜디오 그리드 (PP, FKM/FPM, SUS 304/306/316L, SUS 314) */
+    .mat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .mat-swatch-btn {
+      background: #151b26;
+      border: 1px solid #283347;
+      border-radius: 6px;
+      padding: 6px 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.12s;
+    }
+    .mat-swatch-btn:hover {
+      border-color: #58a6ff;
+      background: #1b2434;
+    }
+    .mat-swatch-btn.active {
+      border-color: #3fb950;
+      background: #152920;
+    }
+    .swatch-sphere {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 1px solid rgba(255,255,255,0.25);
+      box-shadow: inset -3px -3px 6px rgba(0,0,0,0.6), inset 3px 3px 6px rgba(255,255,255,0.35);
+    }
+    .mat-info-title {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #e6edf3;
+      line-height: 1.2;
+    }
+    .mat-info-sub {
+      font-size: 9.5px;
+      color: #8b949e;
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .metric-box {
+      background: #161c26;
+      padding: 7px 9px;
+      border-radius: 6px;
+      border: 1px solid #232c3d;
+    }
+    .metric-label { font-size: 9.5px; color: #8b949e; margin-bottom: 2px; }
+    .metric-value { font-size: 12.5px; font-weight: 700; color: #58a6ff; font-family: ui-monospace, monospace; }
+    .metric-value.good { color: #3fb950; }
+
+    #console-log {
+      background: #070a0e;
+      border: 1px solid #1b2230;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 10.5px;
+      color: #8b949e;
+      height: 120px;
+      overflow-y: auto;
+      line-height: 1.45;
+    }
+    .log-time { color: #58a6ff; margin-right: 4px; }
+
+    #tooltip {
+      position: absolute;
+      display: none;
+      background: rgba(13, 17, 23, 0.95);
+      border: 1px solid #58a6ff;
+      border-radius: 6px;
+      padding: 7px 11px;
+      font-size: 11px;
+      color: #f0f6fc;
+      pointer-events: none;
+      z-index: 30;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      font-family: ui-monospace, monospace;
+    }
+    .export-links {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .export-link {
+      text-align: center;
+      background: #161c26;
+      border: 1px solid #303e54;
+      color: #58a6ff;
+      padding: 7px 6px;
+      font-size: 10.5px;
+      font-weight: 600;
+      border-radius: 6px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .export-link:hover { background: #1f6feb; color: #fff; }
+  </style>
+  <!-- Three.js + OrbitControls + TransformControls + OBJLoader + PostProcessing (UnrealBloom / SSR Reflector) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Reflector.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+</head>
+<body>
+
+  <!-- 좌측/중앙 메인 워크스페이스 (상단 툴바 + 3D 뷰포트 + 하단 에셋 브라우저) -->
+  <div id="main-workspace">
+    <!-- 1. 상단 Unreal Engine / Blender 스타일 기즈모 & 스냅 툴바 -->
+    <div id="top-toolbar">
+      <div class="tb-group">
+        <span class="tb-label">Transform</span>
+        <button class="btn-tb active" id="btn-mode-translate" onclick="setTransformMode('translate')" title="이동 기즈모 (단축키 G 또는 1)">
+          ✥ 이동 (Move) <span class="kbd">G / 1</span>
+        </button>
+        <button class="btn-tb" id="btn-mode-rotate" onclick="setTransformMode('rotate')" title="회전 기즈모 (단축키 R 또는 2)">
+          ↻ 회전 (Rotate) <span class="kbd">R / 2</span>
+        </button>
+        <button class="btn-tb" id="btn-mode-scale" onclick="setTransformMode('scale')" title="크기 조절 기즈모 (단축키 T 또는 3)">
+          ⤢ 크기조절 (Scale) <span class="kbd">T / 3</span>
+        </button>
+        <button class="btn-tb" id="btn-space-toggle" onclick="toggleTransformSpace()" title="World / Local 좌표축 전환">
+          🌐 World
+        </button>
+      </div>
+
+      <div class="tb-group">
+        <span class="tb-label">Snap</span>
+        <button class="btn-tb active" id="btn-snap-toggle" onclick="toggleGridSnap()">🧲 그리드 스냅 ON</button>
+        <select class="tb-select" id="sel-grid-snap" onchange="updateSnapSettings()">
+          <option value="50">50 mm</option>
+          <option value="100" selected>100 mm</option>
+          <option value="250">250 mm</option>
+          <option value="500">500 mm</option>
+        </select>
+        <select class="tb-select" id="sel-rot-snap" onchange="updateSnapSettings()">
+          <option value="5">5°</option>
+          <option value="15" selected>15°</option>
+          <option value="45">45°</option>
+          <option value="90">90°</option>
+        </select>
+        <button class="btn-tb" onclick="snapSelectedToFloor()" title="선택된 오브젝트를 바닥/표면에 밀착 (단축키 End)">
+          ⏬ 바닥 밀착 <span class="kbd">End</span>
+        </button>
+      </div>
+
+      <div class="tb-group">
+        <span class="tb-label">Edit</span>
+        <button class="btn-tb" onclick="duplicateSelected()" title="선택 에셋 복제 (Shift+D)">
+          ❐ 복제 <span class="kbd">Shift+D</span>
+        </button>
+        <button class="btn-tb" onclick="focusSelected()" title="선택 에셋으로 카메라 포커스 (F)">
+          🎯 포커스 <span class="kbd">F</span>
+        </button>
+        <button class="btn-tb danger" onclick="deleteSelected()" title="선택 오브젝트 삭제 (Del / X)">
+          🗑️ 삭제 <span class="kbd">Del</span>
+        </button>
+        <button class="btn-tb" onclick="undoLastAction()" title="실행 취소 (Ctrl+Z)">
+          ↩ 실행취소 <span class="kbd">Ctrl+Z</span>
+        </button>
+      </div>
+
+      <div class="tb-group" style="margin-left:auto;">
+        <button class="btn-tb active-green" onclick="saveSceneLayoutToServer()" title="현재 배치된 공간 레이아웃을 서버 및 Blender/SolidCraft에 저장">
+          💾 레이아웃 저장 & 동기화
+        </button>
+        <button class="btn-tb" onclick="exportSceneJSON()" title="배치 데이터를 JSON으로 다운로드">
+          📥 JSON 내보내기
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. 중앙 3D 뷰포트 -->
+    <div id="viewport-container" tabindex="0">
+      <div id="camera-bar">
+        <div class="cam-pills">
+          <button class="btn-cam active" id="btn-pbr-mode" onclick="togglePhotorealMode()" style="background:#7c3aed; border-color:#a78bfa; color:#fff;">⚡ UE5 실사 PBR (IBL+Bloom+SSR ON)</button>
+          <button class="btn-cam active" id="btn-floor-refl" onclick="toggleFloorReflection()">🪞 에폭시 바닥 반사 ON</button>
+          <button class="btn-cam" id="btn-cad-edges" onclick="toggleCadEdges()">📐 CAD 외곽선 OFF</button>
+          <button class="btn-cam" id="btn-xray" onclick="toggleXRay()">외벽 불투명 (실사 실내)</button>
+          <button class="btn-cam" onclick="setView('cnc_cell')">🏭 CNC & 금속 3D 프린터 셀</button>
+          <button class="btn-cam" onclick="setView('office')">💼 1층 사무실 & 오피스용품</button>
+          <button class="btn-cam" onclick="setView('mezzanine')">메자닌 & L자 계단</button>
+          <button class="btn-cam" onclick="setView('lounge')">철망 케이지 & 소파 부스</button>
+          <button class="btn-cam" onclick="setView('doors')">화물 도어 2종 (북측)</button>
+          <button class="btn-cam" onclick="setView('iso')">전체 조감도</button>
+          <button class="btn-cam" id="btn-splat" onclick="toggleGaussianSplats()">☁️ 3DGS 스플랫</button>
+        </div>
+      </div>
+
+      <div id="drop-banner">✨ 3D 공간의 원하는 바닥/작업대 위치에 마우스를 놓아 에셋을 배치하세요 (ESC: 취소)</div>
+
+      <div id="hud-info">
+        <b>[카메라 이동]</b> <b style="color:#facc15;">W·A·S·D</b> 전후좌우 이동 | <b style="color:#facc15;">Q·E</b> 수직 하강/상승 | <b>Shift</b> 가속(3x) | 마우스 좌/우 드래그: 회전/패닝<br>
+        <b>[에셋 편집]</b> 하단 에셋 카드를 <b>드래그 앤 드롭</b>하여 배치 | 클릭 선택 후 <b>G(이동) · R(회전) · T(크기조절)</b> 기즈모 조작<br>
+        카메라 좌표: <span id="hud-coords">X: 28,000, Y: -22,000, Z: 18,500 mm</span> | 이동 속도: <span id="hud-speed">1.0x</span>
+      </div>
+
+      <div id="tooltip"></div>
+      <canvas id="canvas3d"></canvas>
+    </div>
+
+    <!-- 3. 하단 에셋 탐색창 (Unreal Engine Content Drawer 스타일) -->
+    <div id="asset-drawer">
+      <div class="drawer-header">
+        <div class="drawer-tabs">
+          <span style="font-size:12px; font-weight:800; color:#58a6ff; margin-right:6px;">📦 에셋 탐색창 (Asset Browser)</span>
+          <button class="drawer-tab active" onclick="filterAssetDrawer('ALL', this)">전체 (20)</button>
+          <button class="drawer-tab" onclick="filterAssetDrawer('CNC_3DP', this)">🏭 PP·FKM CNC & 스테인리스 3D프린터 (8)</button>
+          <button class="drawer-tab" onclick="filterAssetDrawer('OFFICE', this)">💼 사무실 용품 (7)</button>
+          <button class="drawer-tab" onclick="filterAssetDrawer('INDUSTRIAL', this)">🔩 스테인리스 설비 & 안전 (5)</button>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="text" class="drawer-search" id="asset-search-input" placeholder="🔍 에셋 검색 (예: CNC, 3D프린터, 데스크, FKM...)" oninput="onSearchAssets(this.value)">
+          <button class="btn-tb" onclick="toggleDrawerCollapse()" id="btn-drawer-toggle">▼ 접기</button>
+        </div>
+      </div>
+      <div class="asset-grid" id="asset-grid-container">
+        <!-- JS에서 에셋 카드 렌더링 (드래그 앤 드롭 & 원클릭 스폰 지원) -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 우측 인스펙터 사이드바 -->
+  <div id="sidebar">
+    <div class="panel-header">
+      <div>
+        <h1>SolidCraft 디지털 트윈 에디터</h1>
+        <div style="font-size: 10.5px; color: #8b949e; margin-top: 2px;">B-Rep CAD Kernel × NVIDIA SimReady USD</div>
+      </div>
+      <span class="badge" id="solver-badge">EDITOR READY</span>
+    </div>
+
+    <div class="panel-body">
+      <!-- 1. 선택된 오브젝트 트랜스폼 & 크기 조절 (Blender / Unreal Details) -->
+      <div class="card">
+        <div class="card-title">
+          <span>📐 선택 오브젝트 트랜스폼 (TRANSFORM & SCALE)</span>
+          <span id="sel-obj-badge" style="color:#3fb950; font-size:10.5px;">선택 없음</span>
+        </div>
+
+        <div class="vec3-row">
+          <span class="vec3-label">위치 (mm)</span>
+          <div class="vec3-field"><span class="vec3-axis axis-x">X</span><input class="vec3-input" type="number" step="50" id="inp-pos-x" onchange="applyNumericTransform()"></div>
+          <div class="vec3-field"><span class="vec3-axis axis-y">Y</span><input class="vec3-input" type="number" step="50" id="inp-pos-y" onchange="applyNumericTransform()"></div>
+          <div class="vec3-field"><span class="vec3-axis axis-z">Z</span><input class="vec3-input" type="number" step="50" id="inp-pos-z" onchange="applyNumericTransform()"></div>
+        </div>
+
+        <div class="vec3-row">
+          <span class="vec3-label">회전 (°)</span>
+          <div class="vec3-field"><span class="vec3-axis axis-x">X</span><input class="vec3-input" type="number" step="15" id="inp-rot-x" onchange="applyNumericTransform()"></div>
+          <div class="vec3-field"><span class="vec3-axis axis-y">Y</span><input class="vec3-input" type="number" step="15" id="inp-rot-y" onchange="applyNumericTransform()"></div>
+          <div class="vec3-field"><span class="vec3-axis axis-z">Z</span><input class="vec3-input" type="number" step="15" id="inp-rot-z" onchange="applyNumericTransform()"></div>
+        </div>
+
+        <div class="vec3-row">
+          <span class="vec3-label">스케일 (배)</span>
+          <div class="vec3-field"><span class="vec3-axis axis-x">X</span><input class="vec3-input" type="number" step="0.1" min="0.05" id="inp-scl-x" onchange="applyNumericTransform()"></div>
+          <div class="vec3-field"><span class="vec3-axis axis-y">Y</span><input class="vec3-input" type="number" step="0.1" min="0.05" id="inp-scl-y" onchange="applyNumericTransform()"></div>
+          <div class="vec3-field"><span class="vec3-axis axis-z">Z</span><input class="vec3-input" type="number" step="0.1" min="0.05" id="inp-scl-z" onchange="applyNumericTransform()"></div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; padding-top:6px; border-top:1px solid #1e2636; font-size:10.5px;">
+          <span style="color:#8b949e;">실측 외형 치수 (W×D×H):</span>
+          <span id="sel-bbox-dim" style="color:#79c0ff; font-family:ui-monospace,monospace; font-weight:700;">- × - × - mm</span>
+        </div>
+        <div style="display:flex; gap:5px; margin-top:6px;">
+          <button class="btn-tb" style="flex:1; justify-content:center;" onclick="scaleSelectedUniform(1.25)">➕ 크기 +25%</button>
+          <button class="btn-tb" style="flex:1; justify-content:center;" onclick="scaleSelectedUniform(0.8)">➖ 크기 -20%</button>
+          <button class="btn-tb" style="flex:1; justify-content:center;" onclick="resetSelectedTransform()">↺ 스케일 1.0 초기화</button>
+        </div>
+      </div>
+
+      <!-- 2. 씬 아웃라이너 (배치된 에셋 목록 & 선택/숨기기/삭제) -->
+      <div class="card">
+        <div class="card-title">
+          <span>🗂️ 배치된 에셋 아웃라이너 (SCENE OUTLINER)</span>
+          <span id="placed-count-badge" style="color:#58a6ff;">0 EA</span>
+        </div>
+        <div id="outliner-list"></div>
+      </div>
+
+      <!-- 3. 플라스틱(PP, FKM/FPM) & 스테인리스(306/316L, 314) 메테리얼 스튜디오 -->
+      <div class="card">
+        <div class="card-title">
+          <span>🎨 엔지니어링 메테리얼 스튜디오 (PP · FKM · SUS 306/314)</span>
+          <span style="color:#facc15; font-size:10px;">클릭 시 선택 에셋에 즉시 적용</span>
+        </div>
+        <div class="mat-grid" id="material-swatch-grid">
+          <!-- JS에서 10종 전문 산업 소재 스와치 생성 -->
+        </div>
+        <div id="mat-physics-readout" style="margin-top:8px; padding:7px 9px; background:#141a24; border:1px solid #263145; border-radius:6px; font-size:10.5px; line-height:1.45; color:#c9d1d9;">
+          소재 스와치를 클릭하면 선택된 장비/부품에 <b>OmniPBR / Principled BSDF 셰이더</b>와 <b>밀도·경도·내열온도·마찰계수</b>가 즉시 부여됩니다.
+        </div>
+      </div>
+
+      <!-- 4. SolidCraft B-Rep 정밀도 & 다운로드 -->
+      <div class="card">
+        <div class="card-title">
+          <span>⚙️ SolidCraft 커널 지표 & 내보내기</span>
+          <span style="color:#3fb950; font-size:10px;">1µm Watertight</span>
+        </div>
+        <div class="metric-grid">
+          <div class="metric-box">
+            <div class="metric-label">건축 B-Rep + 에셋 수</div>
+            <div class="metric-value" id="val-body-count">226 + 15 EA</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-label">선택 부품 추정 질량</div>
+            <div class="metric-value good" id="val-selected-mass">- kg</div>
+          </div>
+        </div>
+        <div class="export-links">
+          <a class="export-link" href="/download/step" download="factory_precision.step">📐 건축 쉘 STEP</a>
+          <a class="export-link" href="/model.obj" download="factory_precision.obj">📦 건축 쉘 OBJ</a>
+          <a class="export-link" href="/cnc_3dprinter.obj" download="industrial_cnc_and_3dprinter.obj">🏭 CNC·3D프린터 OBJ</a>
+          <a class="export-link" href="/download/blender_script" download="setup_blender_isaac_digital_twin.py">🐍 Blender 자동화 PY</a>
+        </div>
+      </div>
+
+      <!-- 5. 실시간 엔진 콘솔 로그 -->
+      <div class="card">
+        <div class="card-title">
+          <span>🖥️ SolidCraft 에디터 실시간 로그</span>
+          <span style="color:#8b949e; font-size:10px;">Z-Up Right-Handed</span>
+        </div>
+        <div id="console-log"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/editor.js"></script>
+</body>
+</html>

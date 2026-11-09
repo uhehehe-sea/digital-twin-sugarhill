@@ -1,0 +1,369 @@
+{
+  "schema_version": "2.0.0",
+  "title": "Industrial CNC (PP, FKM/FPM), Stainless 3D Printing (SUS 304/306/316L/314) & Material Specification Database",
+  "generated_at": "2026-11-07T03:00:00Z",
+  "machines": {
+    "polymer_elastomer_cnc_lathes": [
+      {
+        "model": "SKF Seal-Jet 630 PRO (Economos CNC Turning Center)",
+        "target_materials": ["FKM / FPM (Fluoroelastomer / Viton)", "PP (Polypropylene)", "PTFE", "PU (ECOPUR)", "POM", "NBR", "HNBR"],
+        "machining_range_od_mm": [5, 630],
+        "spindle_speed_rpm": [200, 4000],
+        "spindle_power_kw": 11.0,
+        "turret_stations": 8,
+        "dimensions_mm": { "length": 2450, "width": 1480, "height": 1820 },
+        "weight_kg": 2150,
+        "machining_parameters": {
+          "FKM_FPM_85ShoreA": {
+            "cutting_speed_vc_m_min": 180,
+            "feed_fn_mm_rev": 0.08,
+            "tooling": "Razor-ground uncoated carbide insert (positive rake 25°–35°), air-jet chip extraction",
+            "surface_finish_ra_um": 1.6
+          },
+          "PP_Polypropylene": {
+            "cutting_speed_vc_m_min": 320,
+            "feed_fn_mm_rev": 0.15,
+            "tooling": "Polished K10 carbide / PCD insert with chipbreaker (prevents stringy ribbon chips below 165°C melting point)",
+            "surface_finish_ra_um": 0.8
+          }
+        }
+      },
+      {
+        "model": "SKF Seal-Jet 200 PRO (Compact High-Speed CNC Seal Lathe)",
+        "target_materials": ["FKM / FPM", "PP", "PTFE", "TPU"],
+        "machining_range_od_mm": [2, 200],
+        "spindle_speed_rpm": [300, 6000],
+        "spindle_power_kw": 5.5,
+        "dimensions_mm": { "length": 1520, "width": 1050, "height": 1650 },
+        "weight_kg": 980
+      }
+    ],
+    "stainless_steel_3d_printers": [
+      {
+        "model": "EOS M 290 (DMLS / LPBF Industrial Metal 3D Printer)",
+        "nvidia_simready_usd": "nvidia_isaac_assets/equipment_3d_printer_a01/sm_equipment_3d_printer_a01_01.usd",
+        "target_materials": ["Stainless Steel 316L (UNS S31673)", "Stainless Steel 304 / 304L (306 Series)", "Stainless Steel 314 (UNS S31400 Heat-Resistant Custom Parameter Set)", "17-4PH"],
+        "technology": "Laser Powder Bed Fusion (LPBF / DMLS)",
+        "build_volume_mm": { "x": 250, "y": 250, "z": 325 },
+        "laser_type": "Yb-fiber laser, 400 W (1060–1100 nm)",
+        "scan_speed_m_s": 7.0,
+        "focus_diameter_um": 100,
+        "layer_thickness_um": [20, 40],
+        "inert_gas": "Argon (O2 < 0.1%)",
+        "dimensions_mm": { "length": 2500, "width": 1300, "height": 2190 },
+        "weight_kg": 1250
+      },
+      {
+        "model": "TRUMPF TruPrint 3000 (Multi-Laser LMF Stainless 3D Printer)",
+        "nvidia_simready_usd": "nvidia_isaac_assets/equipment_3d_printer_b01/sm_equipment_3d_printer_b01_01.usd",
+        "target_materials": ["Stainless Steel 316L", "Stainless Steel 304L / 306", "Stainless Steel 314 (1.4841)", "Tool Steels"],
+        "technology": "Laser Metal Fusion (LMF / SLM)",
+        "build_volume_mm": { "diameter": 300, "height": 400 },
+        "laser_type": "2 × 500 W TRUMPF fiber lasers (Full-field multi-laser)",
+        "layer_thickness_um": [20, 60],
+        "dimensions_mm": { "length": 3235, "width": 1465, "height": 2225 },
+        "weight_kg": 3400
+      }
+    ]
+  },
+  "materials": {
+    "PP_Natural_SealGrade": {
+      "category": "Polymer / Engineering Thermoplastic",
+      "chemical_name": "Polypropylene Homopolymer (PP-H, Isotactic)",
+      "cas_or_standard": "ISO 1873 / ASTM D4101",
+      "physical_mechanical": {
+        "density_kg_m3": 905,
+        "hardness": "72 Shore D",
+        "tensile_strength_mpa": 33.0,
+        "elongation_at_break_pct": 150,
+        "youngs_modulus_gpa": 1.45,
+        "poissons_ratio": 0.42,
+        "melting_point_c": 165,
+        "service_temp_range_c": [-10, 100],
+        "thermal_conductivity_w_mk": 0.22
+      },
+      "nvidia_simready_physics": {
+        "pxr_usd_physics_type": "plastic",
+        "density_kg_m3": 905,
+        "static_friction": 0.32,
+        "dynamic_friction": 0.26,
+        "restitution": 0.38
+      },
+      "pbr_shader_parameters": {
+        "base_color_srgb": [0.89, 0.89, 0.86],
+        "metallic": 0.0,
+        "roughness": 0.28,
+        "ior": 1.490,
+        "specular_level": 0.48,
+        "subsurface_weight": 0.35,
+        "subsurface_radius_mm": [3.5, 2.8, 2.1],
+        "mdl_template": "Plastic_Glossy_White_A.mdl"
+      }
+    },
+    "PP_GF30_Structural_Grey": {
+      "category": "Polymer / Glass-Fiber Reinforced PP",
+      "chemical_name": "Polypropylene + 30% Glass Fiber (PP-GF30)",
+      "cas_or_standard": "ISO 1873-2",
+      "physical_mechanical": {
+        "density_kg_m3": 1140,
+        "hardness": "78 Shore D",
+        "tensile_strength_mpa": 85.0,
+        "youngs_modulus_gpa": 6.20,
+        "poissons_ratio": 0.36,
+        "melting_point_c": 168,
+        "service_temp_range_c": [-20, 130]
+      },
+      "nvidia_simready_physics": {
+        "pxr_usd_physics_type": "plastic",
+        "density_kg_m3": 1140,
+        "static_friction": 0.38,
+        "dynamic_friction": 0.32,
+        "restitution": 0.35
+      },
+      "pbr_shader_parameters": {
+        "base_color_srgb": [0.42, 0.44, 0.46],
+        "metallic": 0.0,
+        "roughness": 0.46,
+        "ior": 1.510,
+        "specular_level": 0.50,
+        "subsurface_weight": 0.05
+      }
+    },
+    "FKM_FPM_Viton_Black_85A": {
+      "category": "Fluoroelastomer / High-Performance Synthetic Rubber",
+      "chemical_name": "Fluorocarbon Elastomer (ASTM D1418 FKM / ISO 1629 FPM / Viton A)",
+      "cas_or_standard": "ASTM D2000 M2HK / ISO 1629 FPM",
+      "physical_mechanical": {
+        "density_kg_m3": 1850,
+        "hardness": "85 ± 5 Shore A",
+        "tensile_strength_mpa": 14.5,
+        "elongation_at_break_pct": 180,
+        "modulus_100pct_mpa": 7.8,
+        "poissons_ratio": 0.49,
+        "service_temp_range_c": [-25, 210],
+        "short_term_peak_temp_c": 250,
+        "thermal_conductivity_w_mk": 0.24
+      },
+      "nvidia_simready_physics": {
+        "pxr_usd_physics_type": "rubber",
+        "density_kg_m3": 1850,
+        "static_friction": 0.82,
+        "dynamic_friction": 0.76,
+        "restitution": 0.65
+      },
+      "pbr_shader_parameters": {
+        "base_color_srgb": [0.035, 0.036, 0.038],
+        "metallic": 0.0,
+        "roughness": 0.78,
+        "ior": 1.512,
+        "specular_level": 0.42,
+        "subsurface_weight": 0.0,
+        "mdl_template": "Rubber_Black_Glossy_A.mdl"
+      }
+    },
+    "FKM_FPM_Viton_Brown_80A": {
+      "category": "Fluoroelastomer / CNC Seal-Jet Grade",
+      "chemical_name": "Peroxide-Cured Fluoroelastomer (SKF Ecofkm / F111-B85 Brown)",
+      "cas_or_standard": "ASTM D1418 FKM / ISO 1629 FPM",
+      "physical_mechanical": {
+        "density_kg_m3": 1860,
+        "hardness": "80 ± 5 Shore A",
+        "tensile_strength_mpa": 15.2,
+        "elongation_at_break_pct": 210,
+        "poissons_ratio": 0.49,
+        "service_temp_range_c": [-25, 215]
+      },
+      "nvidia_simready_physics": {
+        "pxr_usd_physics_type": "rubber",
+        "density_kg_m3": 1860,
+        "static_friction": 0.85,
+        "dynamic_friction": 0.78,
+        "restitution": 0.68
+      },
+      "pbr_shader_parameters": {
+        "base_color_srgb": [0.24, 0.11, 0.07],
+        "metallic": 0.0,
+        "roughness": 0.72,
+        "ior": 1.512,
+        "specular_level": 0.45
+      }
+    },
+    "FKM_FPM_Viton_Green_75A": {
+      "category": "Fluoroelastomer / Chemical O-Ring & Wiper Seal Grade",
+      "chemical_name": "Fluoroelastomer Green (FKM / FPM 75 Shore A)",
+      "cas_or_standard": "ASTM D1418 FKM / ISO 1629 FPM",
+      "physical_mechanical": {
+        "density_kg_m3": 1840,
+        "hardness": "75 ± 5 Shore A",
+        "tensile_strength_mpa": 13.8,
+        "elongation_at_break_pct": 230,
+        "poissons_ratio": 0.49,
+        "service_temp_range_c": [-25, 205]
+      },
+      "nvidia_simready_physics": {
+        "pxr_usd_physics_type": "rubber",
+        "density_kg_m3": 1840,
+        "static_friction": 0.85,
+        "dynamic_friction": 0.80,
+        "restitution": 0.72
+      },
+      "pbr_shader_parameters": {
+        "base_color_srgb": [0.08, 0.32, 0.16],
+        "metallic": 0.0,
+        "roughness": 0.74,
+        "ior": 1.510,
+        "specular_level": 0.45
+      }
+    },
+    "SUS_304_306_Brushed_2B": {
+      "category": "Austenitic Stainless Steel (300 Series: 304 / 304L / 306 / 316)",
+      "chemical_name": "18Cr-8Ni / 18Cr-10Ni-2Mo Austenitic Stainless Steel",
+      "cas_or_standard": "ASTM A240 / UNS S30400 / S31600",
+      "physical_mechanical": {
+        "density_kg_m3": 7930,
+        "hardness": "88 HRB (190 HV)",
+        "tensile_strength_mpa": 580,
+        "yield_strength_mpa": 290,
+        "elongation_at_break_pct": 50,
+        "youngs_modulus_gpa": 193,
+        "poissons_ratio": 0.29,
+        "melting_point_c": 1425,
+        "thermal_conductivity_w_mk": 16.2,
+        "surface_roughness_ra_um": 0.4
+      },
+      "nvidia_simready_physics": {
+        "pxr_usd_physics_type": "steel",
+        "density_kg_m3": 7930,
+        "static_friction": 0.30,
+        "dynamic_friction": 0.30,
+        "restitution": 0.10
+      },
+      "pbr_shader_parameters": {
+        "base_color_srgb": [0.76, 0.77, 0.79],
+        "metallic": 1.0,
+        "roughness": 0.32,
+        "anisotropic": 0.65,
+        "anisotropic_rotation": 0.0,
+        "complex_ior_n_rgb": [2.76, 2.51, 2.26],
+        "complex_ior_k_rgb": [3.79, 3.43, 3.03],
+        "mdl_template": "Steel_A.mdl"
+      }
+    },
+    "SUS_316L_SLM_3DPrinted_AsBuilt": {
+      "category": "3D Printed Austenitic Stainless Steel (DMLS / SLM LPBF)",
+      "chemical_name": "Low-Carbon Molybdenum Austenitic Stainless Steel 316L (17Cr-12Ni-2.5Mo)",
+      "cas_or_standard": "ASTM F3184 / UNS S31673 / EN 1.4404",
+      "physical_mechanical": {
+        "density_kg_m3": 7970,
+        "relative_density_pct": 99.9,
+        "hardness": "220 HV (As-Built SLM)",
+        "tensile_strength_mpa": 640,
+        "yield_strength_mpa": 510,
+        "elongation_at_break_pct": 45,
+        "youngs_modulus_gpa": 195,
+        "poissons_ratio": 0.29,
+        "melting_point_c": 1390,
+        "thermal_conductivity_w_mk": 15.0,
+        "surface_roughness_ra_um": 12.5
+      },
+      "nvidia_simready_physics": {
+        "pxr_usd_physics_type": "steel",
+        "density_kg_m3": 7970,
+        "static_friction": 0.42,
+        "dynamic_friction": 0.36,
+        "restitution": 0.10
+      },
+      "pbr_shader_parameters": {
+        "base_color_srgb": [0.68, 0.69, 0.71],
+        "metallic": 1.0,
+        "roughness": 0.52,
+        "anisotropic": 0.25,
+        "complex_ior_n_rgb": [2.75, 2.50, 2.25],
+        "complex_ior_k_rgb": [3.82, 3.45, 3.05],
+        "mdl_template": "Metal_Rough_A.mdl"
+      }
+    },
+    "SUS_316L_Electropolished": {
+      "category": "Mirror Electropolished Stainless Steel 316L",
+      "chemical_name": "Electropolished SUS 316L (#8 Mirror Finish)",
+      "cas_or_standard": "ASTM B912 / UNS S31603",
+      "physical_mechanical": {
+        "density_kg_m3": 7990,
+        "surface_roughness_ra_um": 0.08
+      },
+      "nvidia_simready_physics": {
+        "pxr_usd_physics_type": "stainless_steel_thin",
+        "density_kg_m3": 8000,
+        "static_friction": 0.22,
+        "dynamic_friction": 0.18,
+        "restitution": 0.10
+      },
+      "pbr_shader_parameters": {
+        "base_color_srgb": [0.83, 0.84, 0.86],
+        "metallic": 1.0,
+        "roughness": 0.08,
+        "anisotropic": 0.05,
+        "mdl_template": "Chrome_A.mdl"
+      }
+    },
+    "SUS_314_HeatResistant_Wrought": {
+      "category": "High-Temperature Refractory Austenitic Stainless Steel (SUS 314)",
+      "chemical_name": "High-Silicon Chromium-Nickel Austenitic Steel (25Cr-20Ni-2.0Si)",
+      "cas_or_standard": "AISI 314 / UNS S31400 / DIN EN 1.4841 (X15CrNiSi25-21)",
+      "physical_mechanical": {
+        "density_kg_m3": 7800,
+        "hardness": "85 HRB (180 HB)",
+        "tensile_strength_mpa": 650,
+        "yield_strength_mpa": 310,
+        "elongation_at_break_pct": 42,
+        "youngs_modulus_gpa": 200,
+        "poissons_ratio": 0.30,
+        "max_continuous_service_temp_c": 1150,
+        "melting_point_c": 1400,
+        "thermal_conductivity_w_mk": 15.0,
+        "surface_roughness_ra_um": 0.6
+      },
+      "nvidia_simready_physics": {
+        "pxr_usd_physics_type": "steel",
+        "density_kg_m3": 7800,
+        "static_friction": 0.32,
+        "dynamic_friction": 0.30,
+        "restitution": 0.10
+      },
+      "pbr_shader_parameters": {
+        "base_color_srgb": [0.78, 0.76, 0.72],
+        "metallic": 1.0,
+        "roughness": 0.36,
+        "anisotropic": 0.50,
+        "complex_ior_n_rgb": [2.82, 2.55, 2.22],
+        "complex_ior_k_rgb": [3.85, 3.48, 2.98],
+        "notes": "20% Nickel + 2% Silicon gives SUS 314 a slightly warmer champagne-silver specular tint compared to 304/316"
+      }
+    },
+    "SUS_314_HeatOxidized_Scale": {
+      "category": "High-Temperature Oxidized / Heat-Treated SUS 314",
+      "chemical_name": "AISI 314 / EN 1.4841 with Cr2O3-SiO2 High-Temp Protective Passivation Scale",
+      "cas_or_standard": "AISI 314 / UNS S31400 (Post-1050°C Service)",
+      "physical_mechanical": {
+        "density_kg_m3": 7800,
+        "surface_roughness_ra_um": 3.2
+      },
+      "nvidia_simready_physics": {
+        "pxr_usd_physics_type": "steel",
+        "density_kg_m3": 7800,
+        "static_friction": 0.45,
+        "dynamic_friction": 0.38,
+        "restitution": 0.10
+      },
+      "pbr_shader_parameters": {
+        "base_color_srgb": [0.52, 0.49, 0.45],
+        "metallic": 0.85,
+        "roughness": 0.58,
+        "anisotropic": 0.15,
+        "coat_weight": 0.35,
+        "coat_roughness": 0.40,
+        "coat_ior": 1.75
+      }
+    }
+  }
+}

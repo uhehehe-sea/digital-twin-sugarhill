@@ -1,0 +1,3650 @@
+{
+  "commands": [
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Floor_Slab",
+        "corner": [
+          0,
+          0,
+          -200
+        ],
+        "length": 24000,
+        "width": 16000,
+        "height": 200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Joint_X_6000",
+        "corner": [
+          5995,
+          0,
+          0
+        ],
+        "length": 10,
+        "width": 16000,
+        "height": 3
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Joint_X_12000",
+        "corner": [
+          11995,
+          0,
+          0
+        ],
+        "length": 10,
+        "width": 16000,
+        "height": 3
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Joint_X_18000",
+        "corner": [
+          17995,
+          0,
+          0
+        ],
+        "length": 10,
+        "width": 16000,
+        "height": 3
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Joint_Y_4000",
+        "corner": [
+          0,
+          3995,
+          0
+        ],
+        "length": 24000,
+        "width": 10,
+        "height": 3
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Joint_Y_8000",
+        "corner": [
+          0,
+          7995,
+          0
+        ],
+        "length": 24000,
+        "width": 10,
+        "height": 3
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Joint_Y_12000",
+        "corner": [
+          0,
+          11995,
+          0
+        ],
+        "length": 24000,
+        "width": 10,
+        "height": 3
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "SafetyLine_Walkway_South",
+        "corner": [
+          0,
+          6800,
+          0
+        ],
+        "length": 18500,
+        "width": 90,
+        "height": 4
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "SafetyLine_Walkway_Center",
+        "corner": [
+          4500,
+          10200,
+          0
+        ],
+        "length": 13500,
+        "width": 90,
+        "height": 4
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "SafetyLine_Cross_West",
+        "corner": [
+          4500,
+          6800,
+          0
+        ],
+        "length": 90,
+        "width": 3490,
+        "height": 4
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "SafetyLine_Cross_Mid",
+        "corner": [
+          11800,
+          6800,
+          0
+        ],
+        "length": 90,
+        "width": 3490,
+        "height": 4
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "SafetyLine_Cross_East",
+        "corner": [
+          18000,
+          6800,
+          0
+        ],
+        "length": 90,
+        "width": 3490,
+        "height": 4
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "SafetyLine_Cargo_Clearance",
+        "corner": [
+          11800,
+          12600,
+          0
+        ],
+        "length": 10800,
+        "width": 90,
+        "height": 4
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "SafetyLine_Cargo_SideL",
+        "corner": [
+          11800,
+          12600,
+          0
+        ],
+        "length": 90,
+        "width": 3300,
+        "height": 4
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "SafetyLine_Stair_Caution",
+        "corner": [
+          13200,
+          5600,
+          0
+        ],
+        "length": 2200,
+        "width": 90,
+        "height": 4
+      }
+    },
+    {
+      "command": "solid.cylinder",
+      "params": {
+        "body_name": "Floor_Stop_Decal_Red",
+        "base": [
+          4200,
+          6200,
+          0
+        ],
+        "axis": [
+          0,
+          0,
+          1
+        ],
+        "radius": 280,
+        "height": 5
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_1_BasePlate",
+        "corner": [
+          -180,
+          -180,
+          0
+        ],
+        "length": 360,
+        "width": 360,
+        "height": 20
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_1_Flange1",
+        "corner": [
+          -120,
+          -130,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_1_Flange2",
+        "corner": [
+          -120,
+          116,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_1_Web",
+        "corner": [
+          -5,
+          -116,
+          20
+        ],
+        "length": 10,
+        "width": 232,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_2_BasePlate",
+        "corner": [
+          -180,
+          15820,
+          0
+        ],
+        "length": 360,
+        "width": 360,
+        "height": 20
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_2_Flange1",
+        "corner": [
+          -120,
+          15870,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_2_Flange2",
+        "corner": [
+          -120,
+          16116,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_2_Web",
+        "corner": [
+          -5,
+          15884,
+          20
+        ],
+        "length": 10,
+        "width": 232,
+        "height": 7180
+      }
+    },
+    {
+      "command": "sketch.create",
+      "params": {
+        "plane": {
+          "origin": [
+            0,
+            0,
+            0
+          ],
+          "x_dir": [
+            0,
+            1,
+            0
+          ],
+          "y_dir": [
+            0,
+            0,
+            1
+          ]
+        },
+        "name": "Sketch_Rafter_0"
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          [
+            0,
+            6940
+          ],
+          [
+            8000,
+            8140
+          ],
+          [
+            16000,
+            6940
+          ],
+          [
+            16000,
+            7200
+          ],
+          [
+            8000,
+            8400
+          ],
+          [
+            0,
+            7200
+          ]
+        ],
+        "closed": true
+      }
+    },
+    {
+      "command": "sketch.finish",
+      "params": {}
+    },
+    {
+      "command": "solid.extrude",
+      "params": {
+        "sketch": "Sketch_Rafter_0",
+        "distance": 180,
+        "operation": "new",
+        "body_name": "Roof_Gable_Rafter_X0"
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_3_BasePlate",
+        "corner": [
+          5820,
+          -180,
+          0
+        ],
+        "length": 360,
+        "width": 360,
+        "height": 20
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_3_Flange1",
+        "corner": [
+          5880,
+          -130,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_3_Flange2",
+        "corner": [
+          5880,
+          116,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_3_Web",
+        "corner": [
+          5995,
+          -116,
+          20
+        ],
+        "length": 10,
+        "width": 232,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_4_BasePlate",
+        "corner": [
+          5820,
+          15820,
+          0
+        ],
+        "length": 360,
+        "width": 360,
+        "height": 20
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_4_Flange1",
+        "corner": [
+          5880,
+          15870,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_4_Flange2",
+        "corner": [
+          5880,
+          16116,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_4_Web",
+        "corner": [
+          5995,
+          15884,
+          20
+        ],
+        "length": 10,
+        "width": 232,
+        "height": 7180
+      }
+    },
+    {
+      "command": "sketch.create",
+      "params": {
+        "plane": {
+          "origin": [
+            5910,
+            0,
+            0
+          ],
+          "x_dir": [
+            0,
+            1,
+            0
+          ],
+          "y_dir": [
+            0,
+            0,
+            1
+          ]
+        },
+        "name": "Sketch_Rafter_6000"
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          [
+            0,
+            6940
+          ],
+          [
+            8000,
+            8140
+          ],
+          [
+            16000,
+            6940
+          ],
+          [
+            16000,
+            7200
+          ],
+          [
+            8000,
+            8400
+          ],
+          [
+            0,
+            7200
+          ]
+        ],
+        "closed": true
+      }
+    },
+    {
+      "command": "sketch.finish",
+      "params": {}
+    },
+    {
+      "command": "solid.extrude",
+      "params": {
+        "sketch": "Sketch_Rafter_6000",
+        "distance": 180,
+        "operation": "new",
+        "body_name": "Roof_Gable_Rafter_X6000"
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_5_BasePlate",
+        "corner": [
+          11820,
+          -180,
+          0
+        ],
+        "length": 360,
+        "width": 360,
+        "height": 20
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_5_Flange1",
+        "corner": [
+          11880,
+          -130,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_5_Flange2",
+        "corner": [
+          11880,
+          116,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_5_Web",
+        "corner": [
+          11995,
+          -116,
+          20
+        ],
+        "length": 10,
+        "width": 232,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_6_BasePlate",
+        "corner": [
+          11820,
+          15820,
+          0
+        ],
+        "length": 360,
+        "width": 360,
+        "height": 20
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_6_Flange1",
+        "corner": [
+          11880,
+          15870,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_6_Flange2",
+        "corner": [
+          11880,
+          16116,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_6_Web",
+        "corner": [
+          11995,
+          15884,
+          20
+        ],
+        "length": 10,
+        "width": 232,
+        "height": 7180
+      }
+    },
+    {
+      "command": "sketch.create",
+      "params": {
+        "plane": {
+          "origin": [
+            11910,
+            0,
+            0
+          ],
+          "x_dir": [
+            0,
+            1,
+            0
+          ],
+          "y_dir": [
+            0,
+            0,
+            1
+          ]
+        },
+        "name": "Sketch_Rafter_12000"
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          [
+            0,
+            6940
+          ],
+          [
+            8000,
+            8140
+          ],
+          [
+            16000,
+            6940
+          ],
+          [
+            16000,
+            7200
+          ],
+          [
+            8000,
+            8400
+          ],
+          [
+            0,
+            7200
+          ]
+        ],
+        "closed": true
+      }
+    },
+    {
+      "command": "sketch.finish",
+      "params": {}
+    },
+    {
+      "command": "solid.extrude",
+      "params": {
+        "sketch": "Sketch_Rafter_12000",
+        "distance": 180,
+        "operation": "new",
+        "body_name": "Roof_Gable_Rafter_X12000"
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_7_BasePlate",
+        "corner": [
+          17820,
+          -180,
+          0
+        ],
+        "length": 360,
+        "width": 360,
+        "height": 20
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_7_Flange1",
+        "corner": [
+          17880,
+          -130,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_7_Flange2",
+        "corner": [
+          17880,
+          116,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_7_Web",
+        "corner": [
+          17995,
+          -116,
+          20
+        ],
+        "length": 10,
+        "width": 232,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_8_BasePlate",
+        "corner": [
+          17820,
+          15820,
+          0
+        ],
+        "length": 360,
+        "width": 360,
+        "height": 20
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_8_Flange1",
+        "corner": [
+          17880,
+          15870,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_8_Flange2",
+        "corner": [
+          17880,
+          16116,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_8_Web",
+        "corner": [
+          17995,
+          15884,
+          20
+        ],
+        "length": 10,
+        "width": 232,
+        "height": 7180
+      }
+    },
+    {
+      "command": "sketch.create",
+      "params": {
+        "plane": {
+          "origin": [
+            17910,
+            0,
+            0
+          ],
+          "x_dir": [
+            0,
+            1,
+            0
+          ],
+          "y_dir": [
+            0,
+            0,
+            1
+          ]
+        },
+        "name": "Sketch_Rafter_18000"
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          [
+            0,
+            6940
+          ],
+          [
+            8000,
+            8140
+          ],
+          [
+            16000,
+            6940
+          ],
+          [
+            16000,
+            7200
+          ],
+          [
+            8000,
+            8400
+          ],
+          [
+            0,
+            7200
+          ]
+        ],
+        "closed": true
+      }
+    },
+    {
+      "command": "sketch.finish",
+      "params": {}
+    },
+    {
+      "command": "solid.extrude",
+      "params": {
+        "sketch": "Sketch_Rafter_18000",
+        "distance": 180,
+        "operation": "new",
+        "body_name": "Roof_Gable_Rafter_X18000"
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_9_BasePlate",
+        "corner": [
+          23820,
+          -180,
+          0
+        ],
+        "length": 360,
+        "width": 360,
+        "height": 20
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_9_Flange1",
+        "corner": [
+          23880,
+          -130,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_9_Flange2",
+        "corner": [
+          23880,
+          116,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_9_Web",
+        "corner": [
+          23995,
+          -116,
+          20
+        ],
+        "length": 10,
+        "width": 232,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_10_BasePlate",
+        "corner": [
+          23820,
+          15820,
+          0
+        ],
+        "length": 360,
+        "width": 360,
+        "height": 20
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_10_Flange1",
+        "corner": [
+          23880,
+          15870,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_10_Flange2",
+        "corner": [
+          23880,
+          16116,
+          20
+        ],
+        "length": 240,
+        "width": 14,
+        "height": 7180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_HBeam_10_Web",
+        "corner": [
+          23995,
+          15884,
+          20
+        ],
+        "length": 10,
+        "width": 232,
+        "height": 7180
+      }
+    },
+    {
+      "command": "sketch.create",
+      "params": {
+        "plane": {
+          "origin": [
+            23820,
+            0,
+            0
+          ],
+          "x_dir": [
+            0,
+            1,
+            0
+          ],
+          "y_dir": [
+            0,
+            0,
+            1
+          ]
+        },
+        "name": "Sketch_Rafter_24000"
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          [
+            0,
+            6940
+          ],
+          [
+            8000,
+            8140
+          ],
+          [
+            16000,
+            6940
+          ],
+          [
+            16000,
+            7200
+          ],
+          [
+            8000,
+            8400
+          ],
+          [
+            0,
+            7200
+          ]
+        ],
+        "closed": true
+      }
+    },
+    {
+      "command": "sketch.finish",
+      "params": {}
+    },
+    {
+      "command": "solid.extrude",
+      "params": {
+        "sketch": "Sketch_Rafter_24000",
+        "distance": 180,
+        "operation": "new",
+        "body_name": "Roof_Gable_Rafter_X24000"
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_Interior_Slender_1_Base",
+        "corner": [
+          5860,
+          10060,
+          0
+        ],
+        "length": 280,
+        "width": 280,
+        "height": 18
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_Interior_Slender_1",
+        "corner": [
+          5925,
+          10125,
+          18
+        ],
+        "length": 150,
+        "width": 150,
+        "height": 7880
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_Interior_Slender_2_Base",
+        "corner": [
+          11860,
+          10060,
+          0
+        ],
+        "length": 280,
+        "width": 280,
+        "height": 18
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_Interior_Slender_2",
+        "corner": [
+          11925,
+          10125,
+          18
+        ],
+        "length": 150,
+        "width": 150,
+        "height": 7880
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_Interior_Slender_3_Base",
+        "corner": [
+          17860,
+          10060,
+          0
+        ],
+        "length": 280,
+        "width": 280,
+        "height": 18
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Col_Interior_Slender_3",
+        "corner": [
+          17925,
+          10125,
+          18
+        ],
+        "length": 150,
+        "width": 150,
+        "height": 7880
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Roof_Purlin_Y0",
+        "corner": [
+          0,
+          -50,
+          7190
+        ],
+        "length": 24000,
+        "width": 100,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Roof_Purlin_Y1600",
+        "corner": [
+          0,
+          1550,
+          7430
+        ],
+        "length": 24000,
+        "width": 100,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Roof_Purlin_Y3200",
+        "corner": [
+          0,
+          3150,
+          7670
+        ],
+        "length": 24000,
+        "width": 100,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Roof_Purlin_Y4800",
+        "corner": [
+          0,
+          4750,
+          7910
+        ],
+        "length": 24000,
+        "width": 100,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Roof_Purlin_Y6400",
+        "corner": [
+          0,
+          6350,
+          8150
+        ],
+        "length": 24000,
+        "width": 100,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Roof_Purlin_Y8000",
+        "corner": [
+          0,
+          7950,
+          8390
+        ],
+        "length": 24000,
+        "width": 100,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Roof_Purlin_Y9600",
+        "corner": [
+          0,
+          9550,
+          8150
+        ],
+        "length": 24000,
+        "width": 100,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Roof_Purlin_Y11200",
+        "corner": [
+          0,
+          11150,
+          7910
+        ],
+        "length": 24000,
+        "width": 100,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Roof_Purlin_Y12800",
+        "corner": [
+          0,
+          12750,
+          7670
+        ],
+        "length": 24000,
+        "width": 100,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Roof_Purlin_Y14400",
+        "corner": [
+          0,
+          14350,
+          7430
+        ],
+        "length": 24000,
+        "width": 100,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Roof_Purlin_Y16000",
+        "corner": [
+          0,
+          15950,
+          7190
+        ],
+        "length": 24000,
+        "width": 100,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Girt_North_Low",
+        "corner": [
+          0,
+          15880,
+          3600
+        ],
+        "length": 24000,
+        "width": 100,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Girt_North_High",
+        "corner": [
+          0,
+          15880,
+          5400
+        ],
+        "length": 24000,
+        "width": 100,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Girt_East_Low",
+        "corner": [
+          23880,
+          0,
+          3600
+        ],
+        "length": 100,
+        "width": 16000,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Girt_East_High",
+        "corner": [
+          23880,
+          0,
+          5400
+        ],
+        "length": 100,
+        "width": 16000,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Girt_West_Low",
+        "corner": [
+          20,
+          6200,
+          3600
+        ],
+        "length": 100,
+        "width": 9800,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Girt_West_High",
+        "corner": [
+          20,
+          6200,
+          5400
+        ],
+        "length": 100,
+        "width": 9800,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Ceiling_Gas_UnitHeater_1",
+        "corner": [
+          8200,
+          7400,
+          6350
+        ],
+        "length": 750,
+        "width": 650,
+        "height": 550
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Ceiling_Gas_UnitHeater_2",
+        "corner": [
+          15200,
+          7400,
+          6350
+        ],
+        "length": 750,
+        "width": 650,
+        "height": 550
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Ceiling_Gas_UnitHeater_3",
+        "corner": [
+          15200,
+          12800,
+          6100
+        ],
+        "length": 750,
+        "width": 650,
+        "height": 550
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "HighBay_LED_Row1_X3500",
+        "corner": [
+          3500,
+          7600,
+          7600
+        ],
+        "length": 1200,
+        "width": 320,
+        "height": 60
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "HighBay_LED_Row2_X3500",
+        "corner": [
+          3500,
+          12200,
+          7100
+        ],
+        "length": 1200,
+        "width": 320,
+        "height": 60
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "HighBay_LED_Row1_X9000",
+        "corner": [
+          9000,
+          7600,
+          7600
+        ],
+        "length": 1200,
+        "width": 320,
+        "height": 60
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "HighBay_LED_Row2_X9000",
+        "corner": [
+          9000,
+          12200,
+          7100
+        ],
+        "length": 1200,
+        "width": 320,
+        "height": 60
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "HighBay_LED_Row1_X15000",
+        "corner": [
+          15000,
+          7600,
+          7600
+        ],
+        "length": 1200,
+        "width": 320,
+        "height": 60
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "HighBay_LED_Row2_X15000",
+        "corner": [
+          15000,
+          12200,
+          7100
+        ],
+        "length": 1200,
+        "width": 320,
+        "height": 60
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "HighBay_LED_Row1_X20500",
+        "corner": [
+          20500,
+          7600,
+          7600
+        ],
+        "length": 1200,
+        "width": 320,
+        "height": 60
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "HighBay_LED_Row2_X20500",
+        "corner": [
+          20500,
+          12200,
+          7100
+        ],
+        "length": 1200,
+        "width": 320,
+        "height": 60
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Mezzanine_Slab",
+        "corner": [
+          0,
+          0,
+          3050
+        ],
+        "length": 13200,
+        "width": 6000,
+        "height": 150
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Mezzanine_Beam_Front",
+        "corner": [
+          0,
+          5840,
+          2820
+        ],
+        "length": 13200,
+        "width": 160,
+        "height": 230
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Mezzanine_Beam_East",
+        "corner": [
+          13040,
+          0,
+          2820
+        ],
+        "length": 160,
+        "width": 6000,
+        "height": 230
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Mezzanine_Post_Center",
+        "corner": [
+          5800,
+          5800,
+          0
+        ],
+        "length": 180,
+        "width": 180,
+        "height": 2820
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Mezzanine_Post_Corner",
+        "corner": [
+          13020,
+          5800,
+          0
+        ],
+        "length": 180,
+        "width": 180,
+        "height": 2820
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Mezz_Upper_Wall_Front",
+        "corner": [
+          0,
+          5850,
+          3200
+        ],
+        "length": 13200,
+        "width": 140,
+        "height": 3750
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Mezz_Upper_Wall_East",
+        "corner": [
+          13060,
+          0,
+          3200
+        ],
+        "length": 140,
+        "width": 5850,
+        "height": 3750
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Mezz_Upper_Door_Grey",
+        "corner": [
+          10600,
+          5960,
+          3200
+        ],
+        "length": 950,
+        "width": 60,
+        "height": 2100
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_WhiteWall_FrontSlope",
+        "corner": [
+          9200,
+          7050,
+          0
+        ],
+        "length": 3000,
+        "width": 120,
+        "height": 1950
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackCap_FrontSlope",
+        "corner": [
+          9200,
+          7030,
+          1950
+        ],
+        "length": 3000,
+        "width": 160,
+        "height": 45
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_WhiteWall_LandingFront",
+        "corner": [
+          12200,
+          7050,
+          0
+        ],
+        "length": 1300,
+        "width": 120,
+        "height": 2850
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackCap_LandingFront",
+        "corner": [
+          12200,
+          7030,
+          2850
+        ],
+        "length": 1300,
+        "width": 160,
+        "height": 45
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_WhiteWall_LandingEast",
+        "corner": [
+          13380,
+          4500,
+          1800
+        ],
+        "length": 120,
+        "width": 2650,
+        "height": 1100
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackCap_LandingEast",
+        "corner": [
+          13360,
+          4500,
+          2900
+        ],
+        "length": 160,
+        "width": 2650,
+        "height": 45
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackPost_1",
+        "corner": [
+          12250,
+          5950,
+          0
+        ],
+        "length": 120,
+        "width": 120,
+        "height": 1850
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackPost_2",
+        "corner": [
+          13350,
+          5950,
+          0
+        ],
+        "length": 120,
+        "width": 120,
+        "height": 1850
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackPost_3",
+        "corner": [
+          12250,
+          4600,
+          0
+        ],
+        "length": 120,
+        "width": 120,
+        "height": 2800
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackPost_4",
+        "corner": [
+          13350,
+          4600,
+          0
+        ],
+        "length": 120,
+        "width": 120,
+        "height": 2800
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_Low_1",
+        "corner": [
+          9200,
+          6000,
+          0
+        ],
+        "length": 300,
+        "width": 1050,
+        "height": 185
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_Low_2",
+        "corner": [
+          9500,
+          6000,
+          185
+        ],
+        "length": 300,
+        "width": 1050,
+        "height": 185
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_Low_3",
+        "corner": [
+          9800,
+          6000,
+          370
+        ],
+        "length": 300,
+        "width": 1050,
+        "height": 185
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_Low_4",
+        "corner": [
+          10100,
+          6000,
+          555
+        ],
+        "length": 300,
+        "width": 1050,
+        "height": 185
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_Low_5",
+        "corner": [
+          10400,
+          6000,
+          740
+        ],
+        "length": 300,
+        "width": 1050,
+        "height": 185
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_Low_6",
+        "corner": [
+          10700,
+          6000,
+          925
+        ],
+        "length": 300,
+        "width": 1050,
+        "height": 185
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_Low_7",
+        "corner": [
+          11000,
+          6000,
+          1110
+        ],
+        "length": 300,
+        "width": 1050,
+        "height": 185
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_Low_8",
+        "corner": [
+          11300,
+          6000,
+          1295
+        ],
+        "length": 300,
+        "width": 1050,
+        "height": 185
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_Low_9",
+        "corner": [
+          11600,
+          6000,
+          1480
+        ],
+        "length": 300,
+        "width": 1050,
+        "height": 185
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_Low_10",
+        "corner": [
+          11900,
+          6000,
+          1665
+        ],
+        "length": 300,
+        "width": 1050,
+        "height": 185
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackLanding_Deck",
+        "corner": [
+          12200,
+          4600,
+          1750
+        ],
+        "length": 1250,
+        "width": 2450,
+        "height": 120
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_High_1",
+        "corner": [
+          12250,
+          4300,
+          1870
+        ],
+        "length": 1150,
+        "width": 300,
+        "height": 195
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_High_2",
+        "corner": [
+          12250,
+          4000,
+          2065
+        ],
+        "length": 1150,
+        "width": 300,
+        "height": 195
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_High_3",
+        "corner": [
+          12250,
+          3700,
+          2260
+        ],
+        "length": 1150,
+        "width": 300,
+        "height": 195
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_High_4",
+        "corner": [
+          12250,
+          3400,
+          2455
+        ],
+        "length": 1150,
+        "width": 300,
+        "height": 195
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_High_5",
+        "corner": [
+          12250,
+          3100,
+          2650
+        ],
+        "length": 1150,
+        "width": 300,
+        "height": 195
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackStep_High_6",
+        "corner": [
+          12250,
+          2800,
+          2845
+        ],
+        "length": 1150,
+        "width": 300,
+        "height": 195
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackHandrail_Inner",
+        "corner": [
+          9300,
+          6000,
+          950
+        ],
+        "length": 2900,
+        "width": 60,
+        "height": 950
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Stair_BlackHandrail_Upper",
+        "corner": [
+          12250,
+          2800,
+          2850
+        ],
+        "length": 80,
+        "width": 1900,
+        "height": 950
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Restroom_Box_Wall_Front",
+        "corner": [
+          13500,
+          2500,
+          0
+        ],
+        "length": 2400,
+        "width": 140,
+        "height": 3050
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Restroom_Box_Wall_East",
+        "corner": [
+          15760,
+          0,
+          0
+        ],
+        "length": 140,
+        "width": 2640,
+        "height": 3050
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Restroom_Box_Roof",
+        "corner": [
+          13200,
+          0,
+          2950
+        ],
+        "length": 2700,
+        "width": 2640,
+        "height": 120
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Restroom_OpenDoor_Grey",
+        "corner": [
+          14200,
+          2640,
+          0
+        ],
+        "length": 80,
+        "width": 850,
+        "height": 2100
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Restroom_Toilet_White",
+        "corner": [
+          14800,
+          600,
+          0
+        ],
+        "length": 500,
+        "width": 680,
+        "height": 780
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Restroom_Sink_White",
+        "corner": [
+          13750,
+          800,
+          750
+        ],
+        "length": 480,
+        "width": 450,
+        "height": 200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Wood_Guardrail_Post1",
+        "corner": [
+          13500,
+          2480,
+          3070
+        ],
+        "length": 90,
+        "width": 90,
+        "height": 1050
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Wood_Guardrail_Post2",
+        "corner": [
+          14600,
+          2480,
+          3070
+        ],
+        "length": 90,
+        "width": 90,
+        "height": 1050
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Wood_Guardrail_Post3",
+        "corner": [
+          15750,
+          2480,
+          3070
+        ],
+        "length": 90,
+        "width": 90,
+        "height": 1050
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Wood_Guardrail_TopRail",
+        "corner": [
+          13500,
+          2480,
+          4030
+        ],
+        "length": 2340,
+        "width": 90,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Wood_Guardrail_MidRail",
+        "corner": [
+          13500,
+          2480,
+          3550
+        ],
+        "length": 2340,
+        "width": 90,
+        "height": 90
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "WaterFountain_High",
+        "corner": [
+          11500,
+          5650,
+          850
+        ],
+        "length": 420,
+        "width": 380,
+        "height": 520
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "WaterFountain_Low",
+        "corner": [
+          10950,
+          5650,
+          680
+        ],
+        "length": 420,
+        "width": 380,
+        "height": 450
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "FirstAid_WallBox",
+        "corner": [
+          11800,
+          5780,
+          1550
+        ],
+        "length": 320,
+        "width": 100,
+        "height": 420
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Mezz_Joist_Black_X1200",
+        "corner": [
+          1200,
+          200,
+          2860
+        ],
+        "length": 80,
+        "width": 5600,
+        "height": 180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Mezz_Joist_Black_X3000",
+        "corner": [
+          3000,
+          200,
+          2860
+        ],
+        "length": 80,
+        "width": 5600,
+        "height": 180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Mezz_Joist_Black_X4800",
+        "corner": [
+          4800,
+          200,
+          2860
+        ],
+        "length": 80,
+        "width": 5600,
+        "height": 180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Mezz_Joist_Black_X6600",
+        "corner": [
+          6600,
+          200,
+          2860
+        ],
+        "length": 80,
+        "width": 5600,
+        "height": 180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Mezz_Joist_Black_X8400",
+        "corner": [
+          8400,
+          200,
+          2860
+        ],
+        "length": 80,
+        "width": 5600,
+        "height": 180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Mezz_Joist_Black_X10200",
+        "corner": [
+          10200,
+          200,
+          2860
+        ],
+        "length": 80,
+        "width": 5600,
+        "height": 180
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Mezz_Joist_Black_X12000",
+        "corner": [
+          12000,
+          200,
+          2860
+        ],
+        "length": 80,
+        "width": 5600,
+        "height": 180
+      }
+    },
+    {
+      "command": "solid.cylinder",
+      "params": {
+        "body_name": "Cage_Post_X5800",
+        "base": [
+          5800,
+          5850,
+          0
+        ],
+        "axis": [
+          0,
+          0,
+          1
+        ],
+        "radius": 35,
+        "height": 2820
+      }
+    },
+    {
+      "command": "solid.cylinder",
+      "params": {
+        "body_name": "Cage_Post_X7300",
+        "base": [
+          7300,
+          5850,
+          0
+        ],
+        "axis": [
+          0,
+          0,
+          1
+        ],
+        "radius": 35,
+        "height": 2820
+      }
+    },
+    {
+      "command": "solid.cylinder",
+      "params": {
+        "body_name": "Cage_Post_X8800",
+        "base": [
+          8800,
+          5850,
+          0
+        ],
+        "axis": [
+          0,
+          0,
+          1
+        ],
+        "radius": 35,
+        "height": 2820
+      }
+    },
+    {
+      "command": "solid.cylinder",
+      "params": {
+        "body_name": "Cage_Post_X10300",
+        "base": [
+          10300,
+          5850,
+          0
+        ],
+        "axis": [
+          0,
+          0,
+          1
+        ],
+        "radius": 35,
+        "height": 2820
+      }
+    },
+    {
+      "command": "solid.cylinder",
+      "params": {
+        "body_name": "Cage_Post_X11800",
+        "base": [
+          11800,
+          5850,
+          0
+        ],
+        "axis": [
+          0,
+          0,
+          1
+        ],
+        "radius": 35,
+        "height": 2820
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Cage_Mesh_Front_Panel",
+        "corner": [
+          5800,
+          5835,
+          50
+        ],
+        "length": 4500,
+        "width": 25,
+        "height": 2700
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Cage_Gate_Door",
+        "corner": [
+          10350,
+          5835,
+          50
+        ],
+        "length": 1400,
+        "width": 35,
+        "height": 2200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Cage_Mesh_Side_Panel",
+        "corner": [
+          5800,
+          2800,
+          50
+        ],
+        "length": 25,
+        "width": 3050,
+        "height": 2700
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Lounge_Booth1_GreyShell_Back",
+        "corner": [
+          600,
+          3400,
+          150
+        ],
+        "length": 2100,
+        "width": 140,
+        "height": 1350
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Lounge_Booth1_GreyShell_L",
+        "corner": [
+          600,
+          3400,
+          150
+        ],
+        "length": 120,
+        "width": 950,
+        "height": 1350
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Lounge_Booth1_GreyShell_R",
+        "corner": [
+          2580,
+          3400,
+          150
+        ],
+        "length": 120,
+        "width": 950,
+        "height": 1350
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Lounge_Booth1_OrangeSeat",
+        "corner": [
+          720,
+          3540,
+          150
+        ],
+        "length": 1860,
+        "width": 750,
+        "height": 320
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Lounge_Booth1_OrangeBack",
+        "corner": [
+          720,
+          3540,
+          470
+        ],
+        "length": 1860,
+        "width": 180,
+        "height": 520
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Lounge_Booth2_GreyShell_Back",
+        "corner": [
+          600,
+          5350,
+          150
+        ],
+        "length": 2100,
+        "width": 140,
+        "height": 1350
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Lounge_Booth2_GreyShell_L",
+        "corner": [
+          600,
+          4540,
+          150
+        ],
+        "length": 120,
+        "width": 950,
+        "height": 1350
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Lounge_Booth2_GreyShell_R",
+        "corner": [
+          2580,
+          4540,
+          150
+        ],
+        "length": 120,
+        "width": 950,
+        "height": 1350
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Lounge_Booth2_OrangeSeat",
+        "corner": [
+          720,
+          4600,
+          150
+        ],
+        "length": 1860,
+        "width": 750,
+        "height": 320
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Lounge_Booth2_OrangeBack",
+        "corner": [
+          720,
+          5170,
+          470
+        ],
+        "length": 1860,
+        "width": 180,
+        "height": 520
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Lounge_Table_WhiteTop",
+        "corner": [
+          1000,
+          4120,
+          720
+        ],
+        "length": 1300,
+        "width": 650,
+        "height": 40
+      }
+    },
+    {
+      "command": "solid.cylinder",
+      "params": {
+        "body_name": "Lounge_Table_Pedestal",
+        "base": [
+          1650,
+          4445,
+          0
+        ],
+        "axis": [
+          0,
+          0,
+          1
+        ],
+        "radius": 80,
+        "height": 720
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Office_Enclosed_Wall_North",
+        "corner": [
+          1800,
+          2600,
+          0
+        ],
+        "length": 4000,
+        "width": 140,
+        "height": 2850
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Office_Enclosed_Wall_East",
+        "corner": [
+          5660,
+          0,
+          0
+        ],
+        "length": 140,
+        "width": 2600,
+        "height": 2850
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Office_Door_Brown",
+        "corner": [
+          3400,
+          2730,
+          0
+        ],
+        "length": 920,
+        "width": 50,
+        "height": 2100
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Office_Cubicle_Partitions",
+        "corner": [
+          6200,
+          1400,
+          0
+        ],
+        "length": 3600,
+        "width": 350,
+        "height": 1650
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Main_Glass_Entry_Frame",
+        "corner": [
+          0,
+          200,
+          0
+        ],
+        "length": 180,
+        "width": 1800,
+        "height": 2400
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Notice_Board_Yellow_Wall",
+        "corner": [
+          200,
+          2450,
+          900
+        ],
+        "length": 1400,
+        "width": 60,
+        "height": 1100
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Entry_Floor_Mat_Dark",
+        "corner": [
+          250,
+          500,
+          0
+        ],
+        "length": 2200,
+        "width": 950,
+        "height": 8
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Plywood_Electrical_Backboard",
+        "corner": [
+          9800,
+          15820,
+          0
+        ],
+        "length": 2200,
+        "width": 40,
+        "height": 2400
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "DryType_Transformer_Grey",
+        "corner": [
+          9950,
+          15250,
+          0
+        ],
+        "length": 850,
+        "width": 600,
+        "height": 1100
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Electrical_Switchboard_Panel1",
+        "corner": [
+          10950,
+          15600,
+          400
+        ],
+        "length": 550,
+        "width": 220,
+        "height": 1650
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Electrical_Switchboard_Panel2",
+        "corner": [
+          11600,
+          15600,
+          300
+        ],
+        "length": 480,
+        "width": 220,
+        "height": 1750
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Door_Sectional_Logistics",
+        "corner": [
+          12600,
+          15880,
+          0
+        ],
+        "length": 3800,
+        "width": 90,
+        "height": 4200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Door_Sectional_BottomWhite",
+        "corner": [
+          12600,
+          15850,
+          0
+        ],
+        "length": 3800,
+        "width": 40,
+        "height": 680
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Door_Sectional_Stile_X12600",
+        "corner": [
+          12600,
+          15840,
+          0
+        ],
+        "length": 60,
+        "width": 50,
+        "height": 4200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Door_Sectional_Stile_X13550",
+        "corner": [
+          13550,
+          15840,
+          0
+        ],
+        "length": 60,
+        "width": 50,
+        "height": 4200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Door_Sectional_Stile_X14500",
+        "corner": [
+          14500,
+          15840,
+          0
+        ],
+        "length": 60,
+        "width": 50,
+        "height": 4200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Door_Sectional_Stile_X15450",
+        "corner": [
+          15450,
+          15840,
+          0
+        ],
+        "length": 60,
+        "width": 50,
+        "height": 4200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Door_Sectional_Stile_X16340",
+        "corner": [
+          16340,
+          15840,
+          0
+        ],
+        "length": 60,
+        "width": 50,
+        "height": 4200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Door_Sectional_TorsionShaft",
+        "corner": [
+          12400,
+          15720,
+          4450
+        ],
+        "length": 4200,
+        "width": 140,
+        "height": 140
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Door_Sectional_HoistMotor_Black",
+        "corner": [
+          12150,
+          15650,
+          4150
+        ],
+        "length": 280,
+        "width": 260,
+        "height": 480
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Door_Sectional_Track_L",
+        "corner": [
+          12550,
+          13200,
+          4200
+        ],
+        "length": 70,
+        "width": 2700,
+        "height": 70
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Door_Sectional_Track_R",
+        "corner": [
+          16380,
+          13200,
+          4200
+        ],
+        "length": 70,
+        "width": 2700,
+        "height": 70
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Exit_Door_North_White",
+        "corner": [
+          16950,
+          15860,
+          0
+        ],
+        "length": 950,
+        "width": 80,
+        "height": 2100
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Exit_Sign_North_Red",
+        "corner": [
+          17220,
+          15820,
+          2180
+        ],
+        "length": 400,
+        "width": 60,
+        "height": 220
+      }
+    },
+    {
+      "command": "solid.cylinder",
+      "params": {
+        "body_name": "Fire_Extinguisher_North",
+        "base": [
+          17980,
+          15820,
+          650
+        ],
+        "axis": [
+          0,
+          0,
+          1
+        ],
+        "radius": 85,
+        "height": 480
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Door_Rollup_Secondary",
+        "corner": [
+          18400,
+          15880,
+          0
+        ],
+        "length": 4000,
+        "width": 90,
+        "height": 4100
+      }
+    },
+    {
+      "command": "solid.cylinder",
+      "params": {
+        "body_name": "Door_Rollup_DrumHood_Cylinder",
+        "base": [
+          18300,
+          15680,
+          4220
+        ],
+        "axis": [
+          1,
+          0,
+          0
+        ],
+        "radius": 260,
+        "height": 4200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Shutter_Fan_1",
+        "corner": [
+          7100,
+          15720,
+          4850
+        ],
+        "length": 1350,
+        "width": 260,
+        "height": 1350
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Shutter_Fan_2",
+        "corner": [
+          16650,
+          15720,
+          4850
+        ],
+        "length": 1350,
+        "width": 260,
+        "height": 1350
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Shutter_Fan_3",
+        "corner": [
+          22550,
+          15720,
+          4850
+        ],
+        "length": 1250,
+        "width": 260,
+        "height": 1250
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "LinerPanel_East_Corrugated",
+        "corner": [
+          23910,
+          2640,
+          0
+        ],
+        "length": 80,
+        "width": 13360,
+        "height": 2400
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "LinerPanel_North_WestSeg",
+        "corner": [
+          0,
+          15910,
+          0
+        ],
+        "length": 12600,
+        "width": 80,
+        "height": 2400
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "LinerPanel_North_MidSeg",
+        "corner": [
+          16400,
+          15910,
+          0
+        ],
+        "length": 2000,
+        "width": 80,
+        "height": 2400
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "LinerPanel_North_EastSeg",
+        "corner": [
+          22400,
+          15910,
+          0
+        ],
+        "length": 1600,
+        "width": 80,
+        "height": 2400
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "LinerPanel_West_NorthSeg",
+        "corner": [
+          10,
+          6000,
+          0
+        ],
+        "length": 80,
+        "width": 10000,
+        "height": 2400
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Exit_Door_East_White",
+        "corner": [
+          23850,
+          11200,
+          0
+        ],
+        "length": 80,
+        "width": 950,
+        "height": 2100
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "WallVent_Louvre_East_1",
+        "corner": [
+          23860,
+          3600,
+          4350
+        ],
+        "length": 90,
+        "width": 1100,
+        "height": 1100
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "WallVent_Louvre_East_2",
+        "corner": [
+          23860,
+          8600,
+          4350
+        ],
+        "length": 90,
+        "width": 1100,
+        "height": 1100
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "WallVent_Louvre_East_3",
+        "corner": [
+          23860,
+          13600,
+          4350
+        ],
+        "length": 90,
+        "width": 1100,
+        "height": 1100
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Wall_South_Full",
+        "corner": [
+          0,
+          -150,
+          0
+        ],
+        "length": 24000,
+        "width": 150,
+        "height": 7200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Wall_North_WestSeg",
+        "corner": [
+          0,
+          16000,
+          0
+        ],
+        "length": 12600,
+        "width": 150,
+        "height": 7200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Wall_North_MidSeg",
+        "corner": [
+          16400,
+          16000,
+          0
+        ],
+        "length": 2000,
+        "width": 150,
+        "height": 7200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Wall_North_EastSeg",
+        "corner": [
+          22400,
+          16000,
+          0
+        ],
+        "length": 1600,
+        "width": 150,
+        "height": 7200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Wall_North_TopDoor1",
+        "corner": [
+          12600,
+          16000,
+          4200
+        ],
+        "length": 3800,
+        "width": 150,
+        "height": 3000
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Wall_North_TopDoor2",
+        "corner": [
+          18400,
+          16000,
+          4100
+        ],
+        "length": 4000,
+        "width": 150,
+        "height": 3100
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Wall_East",
+        "corner": [
+          24000,
+          0,
+          0
+        ],
+        "length": 150,
+        "width": 16000,
+        "height": 7200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Wall_West",
+        "corner": [
+          -150,
+          0,
+          0
+        ],
+        "length": 150,
+        "width": 16000,
+        "height": 7200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Window_Frame_West_1",
+        "corner": [
+          -20,
+          2900,
+          950
+        ],
+        "length": 80,
+        "width": 1500,
+        "height": 1200
+      }
+    },
+    {
+      "command": "solid.box",
+      "params": {
+        "body_name": "Window_Frame_West_2",
+        "corner": [
+          -20,
+          4650,
+          950
+        ],
+        "length": 80,
+        "width": 1500,
+        "height": 1200
+      }
+    },
+    {
+      "command": "sketch.create",
+      "params": {
+        "plane": {
+          "origin": [
+            -150,
+            0,
+            0
+          ],
+          "x_dir": [
+            0,
+            1,
+            0
+          ],
+          "y_dir": [
+            0,
+            0,
+            1
+          ]
+        },
+        "name": "Sketch_West_Gable"
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          [
+            0,
+            7200
+          ],
+          [
+            8000,
+            8400
+          ],
+          [
+            16000,
+            7200
+          ]
+        ],
+        "closed": true
+      }
+    },
+    {
+      "command": "sketch.finish",
+      "params": {}
+    },
+    {
+      "command": "solid.extrude",
+      "params": {
+        "sketch": "Sketch_West_Gable",
+        "distance": 150,
+        "operation": "new",
+        "body_name": "Wall_West_Gable_Peak"
+      }
+    },
+    {
+      "command": "sketch.create",
+      "params": {
+        "plane": {
+          "origin": [
+            24000,
+            0,
+            0
+          ],
+          "x_dir": [
+            0,
+            1,
+            0
+          ],
+          "y_dir": [
+            0,
+            0,
+            1
+          ]
+        },
+        "name": "Sketch_East_Gable"
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          [
+            0,
+            7200
+          ],
+          [
+            8000,
+            8400
+          ],
+          [
+            16000,
+            7200
+          ]
+        ],
+        "closed": true
+      }
+    },
+    {
+      "command": "sketch.finish",
+      "params": {}
+    },
+    {
+      "command": "solid.extrude",
+      "params": {
+        "sketch": "Sketch_East_Gable",
+        "distance": 150,
+        "operation": "new",
+        "body_name": "Wall_East_Gable_Peak"
+      }
+    },
+    {
+      "command": "sketch.create",
+      "params": {
+        "plane": {
+          "origin": [
+            -200,
+            0,
+            0
+          ],
+          "x_dir": [
+            0,
+            1,
+            0
+          ],
+          "y_dir": [
+            0,
+            0,
+            1
+          ]
+        },
+        "name": "Sketch_Roof_South"
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          [
+            -300,
+            7220
+          ],
+          [
+            8000,
+            8470
+          ],
+          [
+            8000,
+            8620
+          ],
+          [
+            -300,
+            7370
+          ]
+        ],
+        "closed": true
+      }
+    },
+    {
+      "command": "sketch.finish",
+      "params": {}
+    },
+    {
+      "command": "solid.extrude",
+      "params": {
+        "sketch": "Sketch_Roof_South",
+        "distance": 24400,
+        "operation": "new",
+        "body_name": "Roof_Gable_Cladding_South"
+      }
+    },
+    {
+      "command": "sketch.create",
+      "params": {
+        "plane": {
+          "origin": [
+            -200,
+            0,
+            0
+          ],
+          "x_dir": [
+            0,
+            1,
+            0
+          ],
+          "y_dir": [
+            0,
+            0,
+            1
+          ]
+        },
+        "name": "Sketch_Roof_North"
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          [
+            8000,
+            8470
+          ],
+          [
+            16300,
+            7220
+          ],
+          [
+            16300,
+            7370
+          ],
+          [
+            8000,
+            8620
+          ]
+        ],
+        "closed": true
+      }
+    },
+    {
+      "command": "sketch.finish",
+      "params": {}
+    },
+    {
+      "command": "solid.extrude",
+      "params": {
+        "sketch": "Sketch_Roof_North",
+        "distance": 24400,
+        "operation": "new",
+        "body_name": "Roof_Gable_Cladding_North"
+      }
+    }
+  ]
+}

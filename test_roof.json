@@ -1,0 +1,42 @@
+{
+  "commands": [
+    {
+      "command": "sketch.create",
+      "params": {
+        "plane": {
+          "origin": [0, 0, 0],
+          "x_dir": [0, 1, 0],
+          "y_dir": [0, 0, 1]
+        },
+        "name": "RoofSketch"
+      }
+    },
+    {
+      "command": "sketch.line",
+      "params": {
+        "points": [
+          [-200, 7150],
+          [7500, 8500],
+          [15200, 7150],
+          [15200, 7350],
+          [7500, 8700],
+          [-200, 7350]
+        ],
+        "closed": true
+      }
+    },
+    {
+      "command": "sketch.finish",
+      "params": {}
+    },
+    {
+      "command": "solid.extrude",
+      "params": {
+        "sketch": "RoofSketch",
+        "distance": 24000,
+        "operation": "new",
+        "body_name": "Roof_Gable_Sloped_Panel"
+      }
+    }
+  ]
+}
