@@ -223,9 +223,9 @@
 
   function syncButton() {
     const b = document.getElementById('btn-lang-toggle'); if (!b) return;
-    b.innerHTML = lang === 'en' ? '<span>🌐 한국어</span>' : '<span>🌐 EN</span>';
-    b.title = lang === 'en' ? 'Switch to Korean (한국어로 전환)' : '영어로 전환 (Switch to English)';
-    b.classList.toggle('active', lang === 'en');
+    b.classList.toggle('en', lang === 'en');           // highlights the active side of the KO | EN pill
+    b.title = lang === 'en' ? 'Language: English — click for Korean' : 'Language: Korean — click for English';
+    b.setAttribute('aria-pressed', lang === 'en' ? 'true' : 'false');
   }
 
   function set(next) {

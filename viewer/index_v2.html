@@ -89,6 +89,16 @@
       color: var(--text-primary);
       letter-spacing: -0.2px;
     }
+    /* KO | EN language toggle next to the brand */
+    .lang-toggle {
+      display: inline-flex; align-items: stretch; padding: 2px; gap: 2px; cursor: pointer;
+      background: rgba(0, 0, 0, 0.35); border: 1px solid var(--border-color); border-radius: 7px;
+      font: 800 13px/1 var(--font-mono, ui-monospace, Consolas, monospace); letter-spacing: 0.5px;
+    }
+    .lang-toggle:hover { border-color: var(--accent-primary); }
+    .lang-toggle span { padding: 6px 10px; border-radius: 5px; color: var(--text-muted); transition: background .15s, color .15s; }
+    .lang-toggle .lt-ko, .lang-toggle.en .lt-en { background: var(--accent-primary); color: #04121f; }
+    .lang-toggle.en .lt-ko { background: transparent; color: var(--text-muted); }
     .brand-dot {
       width: 8px;
       height: 8px;
@@ -703,6 +713,11 @@
         <span style="font-size:10px; color:var(--text-muted); font-weight:400;">v2.5</span>
       </div>
 
+      <!-- KO/EN 화면 언어 전환 토글 (lib/i18n_toggle.js) -->
+      <button id="btn-lang-toggle" class="lang-toggle" data-i18n-skip title="Language: Korean ↔ English">
+        <span class="lt-ko">KO</span><span class="lt-en">EN</span>
+      </button>
+
       <div class="tb-divider"></div>
 
       <!-- Transform Gizmo Modes -->
@@ -793,11 +808,6 @@
       </button>
 
       <div class="tb-divider"></div>
-
-      <!-- 한/EN 화면 언어 전환 토글 (lib/i18n_toggle.js) -->
-      <button class="btn-tb" id="btn-lang-toggle" data-i18n-skip title="영어로 전환 (Switch to English)">
-        <span>🌐 EN</span>
-      </button>
 
       <!-- Zen Mode & Right Sidebar Toggle -->
       <button class="btn-tb" id="btn-toggle-zen" onclick="toggleZenMode()" title="순수 3D 뷰포트 몰입 모드 (단축키: Tab)">
