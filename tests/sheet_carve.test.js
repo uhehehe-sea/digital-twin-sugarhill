@@ -50,6 +50,28 @@ test('carve: heights only decrease, breakthrough clamps at zero', () => {
   assert.ok(hm.h.every(v => v >= 0));
 });
 
+test('cut region: bbox of cuts padded by tool radius, clamped to the sheet', () => {
+  const r = SC.cutRegion(2440, 1220, [{ x0: 100, y0: 200, x1: 400, y1: 260 }], 3, 8);
+  assert.deepEqual(r, { x0: 89, y0: 189, x1: 411, y1: 271 });
+  assert.deepEqual(SC.cutRegion(2440, 1220, [{ x0: 2, y0: 2, x1: 2439, y1: 1219 }], 3, 8), { x0: 0, y0: 0, x1: 2440, y1: 1220 });
+  assert.deepEqual(SC.cutRegion(500, 300, [], 3), { x0: 0, y0: 0, x1: 500, y1: 300 });
+});
+
+test('offset heightmap: fine grid over a sub-region carves in sheet coordinates', () => {
+  // 1.8 mm cells over a 322 x 82 region at (89,189): a 6 mm tool now hits several grid rows
+  const hm = SC.createHeightmap(322, 82, 12, 1.8, { ox: 89, oy: 189, minCell: 1 });
+  assert.ok(hm.cellX < 2 && hm.cellY < 2, `cell ${hm.cellX}x${hm.cellY}`);
+  SC.carveSegment(hm, 100, 230, 400, 230, -5, 3);          // sheet coords
+  const w = hm.nx + 1, iy = Math.round((230 - 189) / hm.cellY), ix = Math.round((250 - 89) / hm.cellX);
+  assert.equal(hm.h[iy * w + ix], 7);
+  let rows = 0;
+  for (let j = 0; j <= hm.ny; j++) if (hm.h[j * w + ix] < 12) rows++;
+  assert.ok(rows >= 3, `kerf spans ${rows} grid rows`);
+  assert.equal(hm.h[0], 12);                                // region corner untouched
+  // a cut outside the region changes nothing
+  assert.equal(SC.carveSegment(hm, 1000, 1000, 1100, 1000, -5, 3).changed.length, 0);
+});
+
 test('removed volume/mass: a through slot across a small sheet', () => {
   const hm = SC.createHeightmap(100, 100, 10, 4);
   SC.carveSegment(hm, 0, 50, 100, 50, -10, 3);   // full-width slot, 10 mm deep

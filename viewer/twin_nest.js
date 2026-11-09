@@ -125,13 +125,19 @@
     updateMatInfo();
   }
 
-  // ------------------------------------------------------------------ clamp zones (must match buildVis: 120x90 clamps at x=±0.35L, closed y=±(W/2+10))
+  // sheet top colours (linear 0..1): uncut, cut floor (scaled by depth), through-cut
+  const SHEET_RGB = [0.906, 0.886, 0.839], CUT_RGB = [0.55, 0.48, 0.36], THRU_RGB = [0.18, 0.16, 0.13];
+
+  // ------------------------------------------------------------------ clamps (gripper jaws)
+  // Must match buildVis: CLAMP.w x CLAMP.d x CLAMP.h jaws at x = ±0.35L from the sheet centre,
+  // closed centre CLAMP.reach outside the sheet edge → each jaw grips (d/2 - reach) mm of the sheet.
+  const CLAMP = { w: 60, d: 45, h: 25, reach: 5 };
   function clampZones(L, W) {
     const zones = [];
     [0.15, 0.85].forEach(fx => {
       [-1, 1].forEach(side => {
-        const cx = fx * L, cy = side < 0 ? 35 : W - 35;
-        zones.push({ x0: cx - 60, x1: cx + 60, y0: cy - 45, y1: cy + 45 });
+        const cx = fx * L, cy = side < 0 ? -CLAMP.reach : W + CLAMP.reach;
+        zones.push({ x0: cx - CLAMP.w / 2, x1: cx + CLAMP.w / 2, y0: cy - CLAMP.d / 2, y1: cy + CLAMP.d / 2 });
       });
     });
     return zones;
@@ -420,17 +426,26 @@
     const rig = machineObj.userData.rig, n = job.nest, L = n.opts.sheetL, Wd = n.opts.sheetW, t = n.thickness;
     const g = new THREE.Group(); machineObj.add(g);
     // --- carvable sheet: heightmap top grid + rim skirts + bottom plane ---
-    // Vertex order matches the heightmap (ix, iy) so carving updates vertices directly.
-    const grid = SheetCarve.computeGrid(L, Wd, 4);
-    const hm = SheetCarve.createHeightmap(L, Wd, t, grid.cell);
-    const nx = grid.nx, ny = grid.ny;
+    // The heightmap covers only the region the tool can reach (bbox of the cuts), so the grid
+    // can be finer than the kerf and the groove deepens visibly as the tool moves. The rest of
+    // the top is flat. Vertex order matches the heightmap (ix, iy) so carving updates vertices directly.
+    const toolR0 = job.nest.opts.tool.dia / 2;
+    const cutList = job.prog.segs.filter(sg => !sg.rapid && Math.min(sg.z0, sg.z1) < 0);
+    const reg = SheetCarve.cutRegion(L, Wd, cutList, toolR0, 8);
+    const hm = SheetCarve.createHeightmap(reg.x1 - reg.x0, reg.y1 - reg.y0, t, Math.max(1, toolR0 * 0.6),
+      { ox: reg.x0, oy: reg.y0, minCell: 1, maxVertices: 220000 });
+    const nx = hm.nx, ny = hm.ny;
+    // coarse grid (big nests hit the vertex cap): widen the visual cut so the kerf never skips grid points
+    const carveR = Math.max(toolR0, 0.75 * Math.max(hm.cellX, hm.cellY));
     const pos = new Float32Array((nx + 1) * (ny + 1) * 3);
+    const col = new Float32Array((nx + 1) * (ny + 1) * 3);
     const idx = [];
     for (let iy = 0; iy <= ny; iy++) for (let ix = 0; ix <= nx; ix++) {
       const k = iy * (nx + 1) + ix;
-      pos[k * 3] = ix * grid.cellX - L / 2;
-      pos[k * 3 + 1] = iy * grid.cellY - Wd / 2;
+      pos[k * 3] = reg.x0 + ix * hm.cellX - L / 2;
+      pos[k * 3 + 1] = reg.y0 + iy * hm.cellY - Wd / 2;
       pos[k * 3 + 2] = t / 2;                    // z = h - t/2; h = t before cutting
+      col.set(SHEET_RGB, k * 3);
     }
     for (let iy = 0; iy < ny; iy++) for (let ix = 0; ix < nx; ix++) {
       const a = iy * (nx + 1) + ix, b = a + 1, c = a + nx + 1, d = c + 1;
@@ -438,13 +453,22 @@
     }
     const topGeo = new THREE.BufferGeometry();
     topGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    topGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
     topGeo.setIndex(idx);
     topGeo.computeVertexNormals();
-    const sheetMat = new THREE.MeshStandardMaterial({ color: 0xe7e2d6, roughness: 0.6, metalness: 0.05, side: THREE.DoubleSide });
+    const sheetMat = new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 0.6, metalness: 0.05, side: THREE.DoubleSide });
     const sheet = new THREE.Group();
     const top = new THREE.Mesh(topGeo, sheetMat);
     top.castShadow = top.receiveShadow = true;
     sheet.add(top);
+    // flat top outside the carved region (up to 4 strips)
+    const flatMat = new THREE.MeshStandardMaterial({ color: 0xe7e2d6, roughness: 0.6, metalness: 0.05 });
+    [[0, 0, L, reg.y0], [0, reg.y1, L, Wd], [0, reg.y0, reg.x0, reg.y1], [reg.x1, reg.y0, L, reg.y1]].forEach(([a0, b0, a1, b1]) => {
+      if (a1 - a0 < 0.01 || b1 - b0 < 0.01) return;
+      const s = new THREE.Mesh(new THREE.PlaneGeometry(a1 - a0, b1 - b0), flatMat);
+      s.position.set((a0 + a1) / 2 - L / 2, (b0 + b1) / 2 - Wd / 2, t / 2);
+      s.receiveShadow = true; sheet.add(s);
+    });
     // rim skirts + bottom so the plate keeps its solid look from the sides
     const skirtMat = new THREE.MeshStandardMaterial({ color: 0xd8d2c2, roughness: 0.65, metalness: 0.05 });
     const skirtT = 4;
@@ -463,9 +487,9 @@
     const clampMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4, metalness: 0.6 });
     const clamps = [];
     [-0.35, 0.35].forEach(fx => [-1, 1].forEach(side => {
-      const c = new THREE.Mesh(new THREE.BoxGeometry(120, 90, 40), clampMat);
-      c.userData = { home: side * (Wd / 2 + 160), closed: side * (Wd / 2 + 10) };
-      c.position.set(fx * L, c.userData.home, rig.tableZ + t + 20);
+      const c = new THREE.Mesh(new THREE.BoxGeometry(CLAMP.w, CLAMP.d, CLAMP.h), clampMat);
+      c.userData = { home: side * (Wd / 2 + 120), closed: side * (Wd / 2 + CLAMP.reach) };
+      c.position.set(fx * L, c.userData.home, rig.tableZ + t + CLAMP.h / 2);
       g.add(c); clamps.push(c);
     }));
     const cutSegs = [], upto = new Int32Array(job.prog.segs.length + 1);
@@ -479,7 +503,7 @@
     const trail = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0x1f2937 }));
     trail.position.z = rig.tableZ + t + 0.8;
     g.add(trail);
-    const v = { g, sheet, clamps, trail, upto, parts: [], L, Wd, t, rig, machineObj, job, hm, grid, topGeo, carveSeg: 0, carveU: 0, carved: false, dirtyMin: Infinity, dirtyMax: -Infinity, lastFlush: 0, lastNormal: 0, lastMass: 0, removed: null };
+    const v = { g, sheet, clamps, trail, upto, parts: [], L, Wd, t, rig, machineObj, job, hm, carveR, topGeo, carveSeg: 0, carveU: 0, carved: false, dirtyMin: Infinity, dirtyMax: -Infinity, lastFlush: 0, lastNormal: 0, lastMass: 0, removed: null };
     jobVis.set(job.id, v);
     return v;
   }
@@ -489,11 +513,18 @@
     if (v.dirtyMin === Infinity) return;
     const now = performance.now();
     if (now - v.lastFlush < 100) return;
-    const attr = v.topGeo.attributes.position, h = v.hm.h;
-    for (let k = v.dirtyMin; k <= v.dirtyMax; k++) attr.array[k * 3 + 2] = h[k] - v.t / 2;
-    attr.updateRange.offset = v.dirtyMin * 3;
-    attr.updateRange.count = (v.dirtyMax - v.dirtyMin + 1) * 3;
-    attr.needsUpdate = true;
+    const attr = v.topGeo.attributes.position, colA = v.topGeo.attributes.color, h = v.hm.h, ca = colA.array;
+    for (let k = v.dirtyMin; k <= v.dirtyMax; k++) {
+      attr.array[k * 3 + 2] = h[k] - v.t / 2;
+      // shade by cut depth so the groove reads clearly from a distance: fresh top → darker floor → through-cut
+      const d = 1 - h[k] / v.t;
+      if (d <= 0) { ca[k * 3] = SHEET_RGB[0]; ca[k * 3 + 1] = SHEET_RGB[1]; ca[k * 3 + 2] = SHEET_RGB[2]; continue; }
+      const c = d >= 0.999 ? THRU_RGB : CUT_RGB, s = d >= 0.999 ? 1 : 0.35 + 0.65 * d;
+      for (let j = 0; j < 3; j++) ca[k * 3 + j] = SHEET_RGB[j] + (c[j] - SHEET_RGB[j]) * s;
+    }
+    attr.updateRange.offset = colA.updateRange.offset = v.dirtyMin * 3;
+    attr.updateRange.count = colA.updateRange.count = (v.dirtyMax - v.dirtyMin + 1) * 3;
+    attr.needsUpdate = true; colA.needsUpdate = true;
     v.dirtyMin = Infinity; v.dirtyMax = -Infinity;
     v.lastFlush = now;
     if (now - v.lastNormal > 1000) { v.topGeo.computeVertexNormals(); v.lastNormal = now; }
@@ -502,13 +533,13 @@
   /** Carve the heightmap up to the tool's current program position (budgeted per frame). */
   function carveTo(v, job, p) {
     if (p.seg < 0) return;
-    const segs = job.prog.segs, toolR = job.nest.opts.tool.dia / 2;
+    const segs = job.prog.segs, toolR = v.carveR;
     const isCut = sg => sg && !sg.rapid && !sg.tab && Math.min(sg.z0, sg.z1) < 0 && (sg.x0 !== sg.x1 || sg.y0 !== sg.y1);
     let budget = 400;
     while (v.carveSeg < p.seg && budget-- > 0) {
       const sg = segs[v.carveSeg];
       if (isCut(sg)) {
-        const r = SheetCarve.carveSegment(v.hm, sg.x0 + v.L / 2, sg.y0 + v.Wd / 2, sg.x1 + v.L / 2, sg.y1 + v.Wd / 2, Math.min(sg.z0, sg.z1), toolR);
+        const r = SheetCarve.carveSegment(v.hm, sg.x0, sg.y0, sg.x1, sg.y1, Math.min(sg.z0, sg.z1), toolR);
         if (r.changed.length) { v.dirtyMin = Math.min(v.dirtyMin, r.minIdx); v.dirtyMax = Math.max(v.dirtyMax, r.maxIdx); }
       }
       v.carveSeg++; v.carveU = 0;
@@ -521,7 +552,7 @@
         const u = Math.max(0, Math.min(1, ((p.axis_x_mm - sg.x0) * dx + (p.axis_y_mm - sg.y0) * dy) / (dx * dx + dy * dy)));
         if (u > v.carveU) {
           const z = sg.z0 + (sg.z1 - sg.z0) * u;
-          const r = SheetCarve.carveSegment(v.hm, sg.x0 + v.L / 2, sg.y0 + v.Wd / 2, sg.x0 + dx * u + v.L / 2, sg.y0 + dy * u + v.Wd / 2, Math.min(sg.z0, z), toolR);
+          const r = SheetCarve.carveSegment(v.hm, sg.x0, sg.y0, sg.x0 + dx * u, sg.y0 + dy * u, Math.min(sg.z0, z), toolR);
           if (r.changed.length) { v.dirtyMin = Math.min(v.dirtyMin, r.minIdx); v.dirtyMax = Math.max(v.dirtyMax, r.maxIdx); }
           v.carveU = u;
         }
@@ -533,11 +564,11 @@
   /** Carve every remaining segment (no frame budget) — called at UNLOAD so the sheet is complete before parts spawn. */
   function finishCarve(v, job) {
     if (v.carved) return;
-    const segs = job.prog.segs, toolR = job.nest.opts.tool.dia / 2;
+    const segs = job.prog.segs, toolR = v.carveR;
     while (v.carveSeg < segs.length) {
       const sg = segs[v.carveSeg];
       if (sg && !sg.rapid && !sg.tab && Math.min(sg.z0, sg.z1) < 0 && (sg.x0 !== sg.x1 || sg.y0 !== sg.y1)) {
-        const r = SheetCarve.carveSegment(v.hm, sg.x0 + v.L / 2, sg.y0 + v.Wd / 2, sg.x1 + v.L / 2, sg.y1 + v.Wd / 2, Math.min(sg.z0, sg.z1), toolR);
+        const r = SheetCarve.carveSegment(v.hm, sg.x0, sg.y0, sg.x1, sg.y1, Math.min(sg.z0, sg.z1), toolR);
         if (r.changed.length) { v.dirtyMin = Math.min(v.dirtyMin, r.minIdx); v.dirtyMax = Math.max(v.dirtyMax, r.maxIdx); }
       }
       v.carveSeg++;

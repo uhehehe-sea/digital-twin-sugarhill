@@ -27,10 +27,12 @@
    * Returns { nx, ny, cellX, cellY } where the grid has (nx+1)*(ny+1) vertices
    * and exactly spans the sheet (cellX = L/nx, cellY = W/ny).
    */
-  function computeGrid(L, W, cell) {
-    let c = Math.max(MIN_CELL, cell || MIN_CELL);
+  function computeGrid(L, W, cell, minCell, maxVertices) {
+    const floor = minCell > 0 ? minCell : MIN_CELL;
+    const cap = maxVertices > 0 ? maxVertices : MAX_VERTICES;
+    let c = Math.max(floor, cell || floor);
     let nx = Math.max(2, Math.ceil(L / c)), ny = Math.max(2, Math.ceil(W / c));
-    while ((nx + 1) * (ny + 1) > MAX_VERTICES) {
+    while ((nx + 1) * (ny + 1) > cap) {
       c *= 1.1;
       nx = Math.max(2, Math.ceil(L / c)); ny = Math.max(2, Math.ceil(W / c));
     }
@@ -41,11 +43,33 @@
    * Heightmap for a sheet. h is a Float32Array of (nx+1)*(ny+1) remaining
    * thicknesses (mm), vertex (ix, iy) sits at sheet position (ix*cellX, iy*cellY).
    */
-  function createHeightmap(L, W, thickness, cell) {
-    const g = computeGrid(L, W, cell);
+  function createHeightmap(L, W, thickness, cell, opts) {
+    const o = opts || {};
+    const g = computeGrid(L, W, cell, o.minCell, o.maxVertices);
     const h = new Float32Array((g.nx + 1) * (g.ny + 1));
     h.fill(thickness);
-    return { L, W, thickness, nx: g.nx, ny: g.ny, cellX: g.cellX, cellY: g.cellY, h };
+    // ox/oy: where this grid's (0,0) sits in sheet coordinates (a heightmap may cover only
+    // the cut region of a bigger sheet, so it can be fine enough to show a 6 mm kerf).
+    return { L, W, thickness, nx: g.nx, ny: g.ny, cellX: g.cellX, cellY: g.cellY, h, ox: o.ox || 0, oy: o.oy || 0 };
+  }
+
+  /**
+   * Region of the sheet that the cuts can touch: bbox of the cut segments padded by the
+   * tool radius + margin, clamped to the sheet. segs: [{x0,y0,x1,y1}] in sheet coords.
+   * Returns { x0, y0, x1, y1 } or the whole sheet when there are no segments.
+   */
+  function cutRegion(L, W, segs, toolR, margin) {
+    if (!segs || !segs.length) return { x0: 0, y0: 0, x1: L, y1: W };
+    const pad = (toolR || 0) + (margin == null ? 8 : margin);
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const s of segs) {
+      x0 = Math.min(x0, s.x0, s.x1); x1 = Math.max(x1, s.x0, s.x1);
+      y0 = Math.min(y0, s.y0, s.y1); y1 = Math.max(y1, s.y0, s.y1);
+    }
+    x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad);
+    x1 = Math.min(L, x1 + pad); y1 = Math.min(W, y1 + pad);
+    if (!(x1 > x0 && y1 > y0)) return { x0: 0, y0: 0, x1: L, y1: W };
+    return { x0, y0, x1, y1 };
   }
 
   /** Distance from a point to a segment. */
@@ -65,6 +89,8 @@
    * The caller must NOT call this for tab segments (segment.tab).
    */
   function carveSegment(hm, x0, y0, x1, y1, zTip, toolR) {
+    const ox = hm.ox || 0, oy = hm.oy || 0;
+    x0 -= ox; x1 -= ox; y0 -= oy; y1 -= oy;          // sheet coords → this grid's coords
     const target = Math.max(0, hm.thickness + zTip);
     const changed = [];
     let minIdx = Infinity, maxIdx = -Infinity;
@@ -109,5 +135,5 @@
     return removedVolume(hm) * 1e-9 * densityKgM3;
   }
 
-  return { MAX_VERTICES, MIN_CELL, computeGrid, createHeightmap, carveSegment, removedVolume, removedMassKg, distToSeg };
+  return { MAX_VERTICES, MIN_CELL, computeGrid, createHeightmap, cutRegion, carveSegment, removedVolume, removedMassKg, distToSeg };
 });

@@ -794,6 +794,11 @@
 
       <div class="tb-divider"></div>
 
+      <!-- 한/EN 화면 언어 전환 토글 (lib/i18n_toggle.js) -->
+      <button class="btn-tb" id="btn-lang-toggle" data-i18n-skip title="영어로 전환 (Switch to English)">
+        <span>🌐 EN</span>
+      </button>
+
       <!-- Zen Mode & Right Sidebar Toggle -->
       <button class="btn-tb" id="btn-toggle-zen" onclick="toggleZenMode()" title="순수 3D 뷰포트 몰입 모드 (단축키: Tab)">
         <span>🖥️ Zen (Tab)</span>
@@ -848,7 +853,7 @@
       <button class="sidebar-tab-btn active" id="tab-btn-inspector" onclick="switchRightSidebarTab('inspector')" title="오브젝트 트랜스폼 및 재질 속성">
         <span>📐 속성</span>
       </button>
-      <button class="sidebar-tab-btn" id="tab-btn-modeling" onclick="switchRightSidebarTab('modeling')" style="color:#60a5fa;" title="형상 편집 (Three.js 메쉬)">
+      <button class="sidebar-tab-btn" id="tab-btn-modeling" onclick="switchRightSidebarTab('modeling'); openSolidCraftStudioModal();" style="color:#60a5fa;" title="빠른 스케치·견적 모드 창 열기">
         <span>🛠️ CAD 모델링</span>
       </button>
       <button class="sidebar-tab-btn" id="tab-btn-gates" onclick="switchRightSidebarTab('gates')" title="화물 게이트 개폐 제어">
@@ -1666,5 +1671,6 @@
   <script src="editor_v2.js"></script>
   <script src="twin_live.js"></script>
   <script src="twin_nest.js"></script>
+  <script src="lib/i18n_toggle.js"></script>
 </body>
 </html>
