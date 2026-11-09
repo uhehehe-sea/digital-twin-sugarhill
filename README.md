@@ -21,7 +21,7 @@ npm run dev
 Node.js 20 이상 필요. three.js r128은 CDN에서 받으므로 인터넷이 필요합니다.
 
 ```bash
-npm test             # 단위·통합 테스트 (Node 내장 러너)
+npm test             # 단위·통합 테스트 (Node 내장 러너) — 2026-11-09 기준 69개 통과
 npm start            # 포트 8088
 node tools/build_standalone.mjs   # 서버 없이 도는 단일 HTML 데모 → dist/
 ```
@@ -53,7 +53,14 @@ node tools/build_standalone.mjs   # 서버 없이 도는 단일 HTML 데모 → 
 
 ### 생산 패널 (화면 왼쪽 아래 "🏭 생산 · 실시간 트윈")
 - 설비 카드: 상태(대기·투입·가공·배출·인터락 정지), 진행률, 남은 시간, 가동률, **실시간 축 값**.
-- **보기**: 카메라를 설비 앞으로 이동. **◎ 내부 보기**: 설비 외장을 반투명하게 → 안쪽 동작 확인.
+- **🎥 자동 클로즈업**(기본 켜짐): 작업이 시작되면 카메라가 0.8초 동안 가공 부위로 다가가 따라갑니다 — 라우터는 공구 끝, 프린터는 레이저 스폿/조형판, 선반은 척.
+  - 여러 설비가 동시에 돌면 **가장 최근에 시작한 설비**를 따라갑니다. 카드의 **보기**를 누르면 그 설비로 고정(그 작업이 끝날 때까지).
+  - 사용자가 카메라를 움직이면(드래그·휠·WASD/QE/화살표) **일시정지** → 패널의 "다시 따라가기", 또는 20초 이상 그대로 두면 다음 작업 시작 때 다시 따라감.
+  - 600× 이상에서는 공구가 너무 빨라 따라가면 어지러우므로 **작업 영역 전체**를 보여 줍니다. 배속을 바꾸면 시야가 자동으로 다시 잡힙니다.
+  - 작업이 끝나면 1.5초 머문 뒤 다음 가공 중 설비로, 없으면 **원래 보던 화면으로 복귀**(“복귀” 체크).
+  - "내부" 체크: 밀폐형 설비(프린터·선반)를 클로즈업할 때 외장을 자동으로 반투명하게. 라우터(개방형)는 테이블이 가려지지 않도록 그대로 둡니다.
+  - 따라가지 않는 설비가 가공 중이면 화면 위쪽에 **진행 알림 칩**(설비명·상태·진행률·보기 ›)이 뜹니다.
+- **보기**: 카메라를 설비 앞으로 이동(가공 중이면 그 설비를 따라감). **◎ 내부 보기**: 설비 외장을 반투명하게 → 안쪽 동작 확인.
 - 부품 → 설비 배정: 판재는 CNC 라우터 / 금속 3D 프린터 (선반은 회전체 전용이라 판재 배정 거부).
 - 속도 1× ~ 3600×.
 
@@ -69,7 +76,15 @@ node tools/build_standalone.mjs   # 서버 없이 도는 단일 HTML 데모 → 
 - G-code: 공구 반경 보정, 구멍 먼저(안쪽 우선), 다패스, **모든 깊은 패스에서 탭 유지**, 관통 +0.3 mm, Fanuc형 포스트, 공구보다 작은 구멍은 경고 후 생략.
 - **💾 .nc 저장**(파일까지만) / **라우터로 보내기** → 라우터가 **생성된 G-code 텍스트를 해석해서 그대로 재생**:
   원판 하강 → 클램프 4개 체결 · 진공 ON → 절삭(홈이 실시간으로 그려짐) → 클램프 해제 · 탭 분리 → 부품 배출.
-- **📥 DXF 불러오기**: LWPOLYLINE(볼록 bulge), POLYLINE, LINE·ARC 연결, CIRCLE(구멍), 인치→mm. 한 파일에 외곽이 여러 개면 부품 여러 개. 원이 아닌 안쪽 윤곽은 경고(깎지 않음).
+- **🔍 CNC 검증**: 같은 G-code를 외부 3축 시뮬레이터 **CAMotics**(무료, GPL — 별도 설치, 이 저장소에 포함하지 않음)에서 눈으로 확인.
+  .nc 저장 + CAMotics에 넣을 공구·원판·좌표 기준값을 보여 줍니다(GitHub Pages 등 어디서나 동작).
+  로컬 서버에 `CAMOTICS_PATH`를 지정하면 "▶ CAMotics에서 바로 열기"로 서버 컴퓨터에서 창이 열립니다.
+- **📥 DXF 불러오기** (치수 테스트: `tests/dxf_accuracy.test.js`):
+  - LWPOLYLINE·POLYLINE(bulge 부호 포함), LINE·ARC 연결(끝점 허용 0.05 mm), CIRCLE, ELLIPSE, SPLINE(NURBS 계산), **블록 INSERT**(이동·회전·배율·배열, 16단계 중첩).
+  - 곡선은 **현 오차 ≤ 0.02 mm**로 분할(이전 5° 고정 분할은 R500에서 약 0.48 mm 오차).
+  - 단위는 `$INSUNITS`만 따릅니다(inch·feet·mm·cm·m 등). 단위가 없으면 mm로 읽고, 전체 크기가 60 mm 미만이면 "인치 도면일 수 있음" 경고 — 크기로 짐작해 자동 변환하지는 않습니다.
+  - 원 하나만 있는 외곽은 **원판 부품**, 그 안의 원은 구멍(와셔). 중복 요소는 한 번만. 미러된 요소(돌출 방향 0,0,−1)는 실제 좌표로 변환. 도면 공간(표제란)은 무시.
+  - 알려 주고 넘어가는 것: 원이 아닌 안쪽 윤곽(깎지 않음), 닫히지 않은 윤곽(끝점 간격 표시), 지원하지 않는 요소 이름과 개수.
 
 ### 실시간 데이터
 - WebSocket `ws://<host>/ws` — 트윈(발행자)이 5 Hz로 송신, 수신자는 읽기 전용.
@@ -85,7 +100,7 @@ node tools/build_standalone.mjs   # 서버 없이 도는 단일 HTML 데모 → 
 3. **📚 라이브러리에 저장** (이름 입력, 비우면 자동) — 또는 **공장에 배치**.
 4. 왼쪽 아래 생산 패널 → **📐 네스팅 · G-code**.
 5. 두께 선택 → 부품 체크 · 수량 → 미리보기(부품·공구 경로·빨간 탭)와 G-code가 자동 계산됨. 다른 CAD 도면은 **📥 .dxf 선택**.
-6. **💾 .nc 저장**으로 파일 받기, 또는 **라우터로 보내기 ▶** → 패널의 **보기**로 가공 확인 (속도 60× 이상 추천).
+6. **💾 .nc 저장**으로 파일 받기, **🔍 CNC 검증**으로 CAMotics에서 확인, 또는 **라우터로 보내기 ▶** → 자동 클로즈업으로 절삭 장면이 바로 보입니다 (전체 흐름은 60× 이상 추천).
 7. 다른 탭에서 **/monitor**를 열면 같은 데이터가 실시간으로 들어옵니다.
 
 단일 부품을 바로 넣으려면: 생산 패널의 "모델링 부품 → 설비 배정"에서 부품과 설비를 골라 **배정**.
@@ -96,7 +111,8 @@ node tools/build_standalone.mjs   # 서버 없이 도는 단일 HTML 데모 → 
 
 ```
 viewer/
-  server.mjs              정적 서버 + WebSocket 중계 + /api/parts (127.0.0.1만, CORS 없음)
+  server.mjs              정적 서버(스트리밍) + WebSocket 중계 + API (127.0.0.1만, CORS 없음)
+  server_lib.cjs          경로 격리·본문 크기 제한·입력 검증 (테스트 대상)
   index_v2.html           /v2 화면
   editor_v2.js            공장 씬·편집·모델링 (이전 에이전트의 대형 파일, 부분 수정)
   twin_live.js            설비 리그·내부 보기·생산 패널·텔레메트리 발행
@@ -113,11 +129,30 @@ viewer/
   standalone/             단일 HTML 데모 템플릿
 tools/build_standalone.mjs
 tests/                    node --test
-docs/                     AUDIT(감사) · PLAN_sugarhill(계획) · WORKLOG(작업 기록) · PLAN_phase1
+docs/                     AUDIT(감사) · PLAN_sugarhill(계획) · WORKLOG(작업 기록) · PLAN_phase1 · TOOL_CHANGE(공구 교환 설계안)
+legacy/viewer_oneoff/     이전 에이전트의 1회성 패치 스크립트 78개 (실행 대상 아님, legacy/README.md)
 parts_library.json        부품 라이브러리 데이터 (TWIN_DATA_DIR로 위치 변경 가능)
+setup_blender_isaac_digital_twin.py   Blender 실사 렌더 스크립트 (/api/render-blender)
 ```
 
-`viewer/`의 `apply_* / fix_* / check_* / inspect_* …` 스크립트 약 90개는 이전 에이전트가 쓴 1회성 패치 기록입니다(실행 대상 아님, 보존용).
+### 서버 환경변수
+
+| 변수 | 용도 | 없으면 |
+|---|---|---|
+| `PORT` / `--port=` | 포트 | 8088 |
+| `HOST` | 바인딩 주소 | `127.0.0.1`. 루프백이 아니면 외부 프로그램 실행 API(아래 3개)는 **등록되지 않음**(404) |
+| `TWIN_EXEC_TOKEN` | 실행 API에 `X-Twin-Token` 헤더 요구 | 토큰 없이 허용(루프백 전용이므로) |
+| `TWIN_DATA_DIR` | `parts_library.json`·`scene_layout.json` 저장 위치 | 저장소 루트 |
+| `SOLIDCRAFT_CLI` | `POST /api/rebuild` 실행 파일 | 503 `solidcraft_not_configured` (개인 경로 기본값 제거) |
+| `BLENDER_PATH` | `POST /api/render-blender` 실행 파일 | Windows/macOS/Linux 기본 경로 검색 후 없으면 안내 |
+| `BLENDER_TIMEOUT_MS` | 렌더 제한 시간 | 600000 (10분) |
+| `CAMOTICS_PATH` | `POST /api/camotics` 실행 파일 | 503 `camotics_not_configured` — .nc 저장 후 직접 열기 |
+
+실행 API 공통 규칙: 실행 파일 경로는 환경변수에서만 받고, `execFile`/`spawn`에 인자 배열로 넘깁니다(셸 문자열 없음).
+CAMotics에는 서버가 임시 폴더에 만든 파일 경로 하나만 넘깁니다. 요청 본문은 2 MB(G-code는 4 MB)를 넘으면 413.
+
+Blender 렌더 기본값은 **CPU · 32샘플**(내장 그래픽 노트북 기준). GPU가 있으면 요청 본문에 `{"device":"GPU","samples":256}`.
+직접 실행: `blender -b -P setup_blender_isaac_digital_twin.py -- --render --samples 32 --device CPU`
 
 ---
 
@@ -126,37 +161,33 @@ parts_library.json        부품 라이브러리 데이터 (TWIN_DATA_DIR로 위
 - 공정 시간·이송·절입·탭·레이어 시간: **가정값**. 실측값으로 교체 필요.
 - 형상은 메쉬, 가공 공차 미검증. B-Rep 파이프라인(SolidCraft STEP)은 계획 단계(`docs/PLAN_sugarhill.md` S2).
 - 네스팅은 외곽 bbox 기준 — 사다리꼴 등이 맞물리지 않아 사용률이 낮을 수 있음.
-- G-code: 포스트 1종(Fanuc형), 램프 진입 없음(저속 플런지), 마이터 오프셋(오목이 심한 외곽 부정확 가능), 외부 시뮬레이터(CAMotics) 교차검증 안 함.
-- DXF: SPLINE · ELLIPSE · 블록(INSERT) · 비원형 구멍 미지원.
+- G-code: 포스트 1종(Fanuc형), 공구 1개(T1)·**공구 길이 보정(G43 H) 없음**, 램프 진입 없음(저속 플런지), 마이터 오프셋(오목이 심한 외곽 부정확 가능).
+  CAMotics는 눈으로 확인하는 연동만 있음 — 제거 부피·시간 자동 비교는 아직 없음. CAMotics가 Fanuc형 머리말을 그대로 읽는지는 미확인.
+- 공구 교환(T/M6 여러 개)은 공구 정보를 받은 뒤 구현 — 설계안 `docs/TOOL_CHANGE.md`.
+- 재생 시간은 이송 속도만으로 계산(가감속·코너 감속 미포함) — 실제 사이클 타임보다 짧습니다.
+- 원판 절삭 화면은 높이맵 격자(셀 ≥ 4 mm) — 6 mm 홈이 8~12 mm로 보이고 제거 부피가 약 1/3 크게 나옵니다(질량은 "약" 표기).
+- DXF: 비원형 구멍(슬롯 등) 미지원(경고), SPLINE은 맞춤점만 있는 경우 직선 근사(경고), 3D 요소(REGION·3DSOLID 등) 미지원(경고).
+- 금속 3D 프린터·선반 동작은 **연출**입니다(열·응력 시뮬레이션 아님). 선반은 척 회전만.
 - 카탈로그 일부(WAAM, 컨베이어 등)는 회색 박스.
 - 라우터 위치는 임의 배치 — 실제 레이아웃 확인 필요.
 - 실제 장비 미연결.
 
 ---
 
-## 6. 깃허브 업로드 (뮤즈용)
+## 6. 깃허브 저장소
 
-이 폴더는 아직 git 저장소가 아닙니다. 아래 순서로 올리면 됩니다.
-
-```bash
-cd factory-digital-twin
-git init -b main
-git add .
-git status            # node_modules, videos/, nvidia_isaac_assets/, dist/ 가 빠졌는지 확인
-git commit -m "Sugar Hill factory digital twin: modeling, nesting, G-code, machine rigs, live telemetry"
-```
-
-GitHub에서 **비공개(Private)** 저장소를 만든 뒤:
-
-```bash
-git remote add origin https://github.com/<계정>/factory-digital-twin.git
-git push -u origin main
-```
+저장소는 2026-11-08 21:11 ET부터 **공개(Public)** 상태입니다.
 
 - `.gitignore`가 제외하는 것: `node_modules/`, `videos/`(2 GB), `nvidia_isaac_assets/`(513 MB, NVIDIA 라이선스), `*.ply`, `dist/`, 브라우저 프로필, 로그, 습식장비 실험 파일과 회사 내부 자료를 인용한 문서.
-- 100 MB 넘는 파일은 없습니다(가장 큰 파일 약 2.5 MB). 저장소 크기 약 30 MB.
-- 비밀 키·토큰은 코드에 없습니다(검색 확인). 1회성 스크립트에 로컬 경로(`C:/Users/…`)가 남아 있습니다.
-- 공개(Public) 전환 전에: 회사 관련 내용이 없는지, NVIDIA 자산이 빠졌는지 다시 확인하세요.
+- 100 MB 넘는 파일은 없습니다(가장 큰 파일 약 2.4 MB).
+
+### 공개 상태 점검 (2026-11-09)
+| 항목 | 결과 |
+|---|---|
+| 개인 절대경로(`C:/Users/<이름>/…`) | 런타임·스크립트·문서에서 모두 제거(`tests/server_security.test.js`가 런타임 파일 재유입 검사). **단, 이전 커밋 기록에는 남아 있습니다** — 지우려면 기록 재작성(`git filter-repo`) 후 강제 푸시가 필요합니다. |
+| 비밀 키·토큰 패턴 | 발견 안 됨 |
+| NVIDIA 자산 | 저장소에 없음(다운로드 스크립트만) |
+| 회사 내부 자료 | 키워드 검색으로는 발견 안 됨 — 사람이 `docs/` 전체를 한 번 더 읽어 볼 것 |
 
 clone 후 실행:
 
