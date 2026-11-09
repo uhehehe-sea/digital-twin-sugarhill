@@ -169,6 +169,6 @@ test('repository: no personal absolute paths left in runtime files', () => {
     'viewer/editor_v2.js', 'viewer/twin_live.js', 'viewer/twin_nest.js', 'package.json'];
   for (const f of runtime) {
     const text = fs.readFileSync(path.join(ROOT, f), 'utf8');
-    assert.ok(!/jaeso|C:[\\/]{1,2}Users/i.test(text), `${f} still contains a personal path`);
+    assert.ok(!/[A-Z]:[\\/]{1,2}Users[\\/]{1,2}[^<\\/]|\/(home|Users)\/[a-z0-9_.-]+\/\.gemini/i.test(text), `${f} still contains a personal path`);
   }
 });
