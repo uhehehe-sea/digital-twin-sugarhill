@@ -237,7 +237,7 @@
     const thk = parseFloat($('tn-thk').value);
     const picked = [];
     library.filter(p => p.thickness === thk).forEach(p => { const q = sel.get(p.id) || 0; for (let k = 0; k < q; k++) picked.push(p); });
-    if (!picked.length) { last = null; drawPreview(); $('tn-code').value = ''; renderVerify(null); $('tn-send').disabled = $('tn-dl').disabled = true; return msg('부품을 체크하면 자동으로 네스팅됩니다.'); }
+    if (!picked.length) { last = null; drawPreview(); $('tn-code').value = ''; renderVerify(null); $('tn-send').disabled = $('tn-dl').disabled = $('tn-cam').disabled = true; return msg('부품을 체크하면 자동으로 네스팅됩니다.'); }
     const ts = currentToolSettings();
     const opts = {
       sheetL: num('tn-L', 2440), sheetW: num('tn-W', 1220), marginMm: num('tn-m', 15),
@@ -260,6 +260,7 @@
       (gen.warnings.length ? ` · 경고: ${gen.warnings.join(' / ')}` : ''), !!res.unplaced.length || !!gen.warnings.length || !verify.ok);
     $('tn-send').disabled = !res.placements.length || !routers().length || !verify.ok;
     $('tn-dl').disabled = false;
+    $('tn-cam').disabled = !res.placements.length;
   }
 
   // ------------------------------------------------------------------ preview canvas
@@ -267,7 +268,8 @@
     const cv = $('tn-cv'), ctx = cv.getContext('2d');
     const W = cv.width = cv.clientWidth * devicePixelRatio, H = cv.height = cv.clientHeight * devicePixelRatio;
     ctx.clearRect(0, 0, W, H);
-    if (!last) return;
+    // window closed (send() → close() → schedule()): a 0-px canvas gives a negative scale and arc() throws
+    if (!last || W <= 40 || H <= 40) return;
     const { opts, res, items, gen, prog } = last;
     const s = Math.min((W - 20) / opts.sheetL, (H - 20) / opts.sheetW), ox = (W - opts.sheetL * s) / 2, oy = (H + opts.sheetW * s) / 2;
     const P = (x, y) => [ox + x * s, oy - y * s];
@@ -308,6 +310,69 @@
     log(`💾 [G-code] ${a.download} 저장 (초안 — 기계 투입 전 시뮬레이션·사람 검토 필수)`);
   }
 
+  // ------------------------------------------------------------------ CNC 검증 (CAMotics)
+  // Step 1 (works everywhere, incl. GitHub Pages): save the .nc and show the CAMotics setup values.
+  // Step 2 (local server only): POST /api/camotics opens CAMotics on this computer with a server-made
+  // temp file — only when the server has CAMOTICS_PATH set and runs on loopback.
+  // CAMotics is a separate GPL program; nothing of it is bundled here.
+  async function camoticsStatus() {
+    try {
+      const r = await fetch('/api/exec-status', { cache: 'no-store' });
+      if (!r.ok) return { state: 'no_server' };
+      const s = await r.json();
+      return { state: s.execEnabled ? s.camotics : 'disabled', token: s.tokenRequired };
+    } catch { return { state: 'no_server' }; }
+  }
+  const CAM_STATE_TEXT = {
+    ready: '이 컴퓨터의 CAMotics를 바로 열 수 있습니다.',
+    not_configured: '서버에 CAMOTICS_PATH가 설정되지 않아 바로 열기는 꺼져 있습니다 (아래 1~3 단계로 직접 여세요).',
+    not_found: '서버의 CAMOTICS_PATH 경로에 실행 파일이 없습니다.',
+    disabled: '서버가 루프백이 아닌 주소로 실행 중이라 바로 열기가 꺼져 있습니다.',
+    no_server: '정적 페이지(서버 없음)에서는 바로 열기를 쓸 수 없습니다.'
+  };
+  async function openCamoticsPanel() {
+    if (!last) return;
+    const p = $('tn-camp'), o = last.opts, t = last.thickness, d = o.tool.dia;
+    const st = await camoticsStatus();
+    p.innerHTML = `
+      <div class="hd"><b>🔍 CNC 검증 — CAMotics에서 보기</b><span class="chip">외부 3축 시뮬레이터 · 눈으로 확인용</span><span style="flex:1"></span><button id="tn-camp-x">닫기</button></div>
+      <div style="padding:12px 16px;display:grid;gap:10px">
+        <div>트윈의 절삭 화면은 높이맵 근사(셀 ≥ 4 mm)라 좁은 홈이 넓어 보이고 제거 부피가 크게 나옵니다. 같은 G-code를 CAMotics에서 열어 재료 제거·공구 경로를 따로 확인하세요.</div>
+        <ol style="margin:0;padding-left:18px;display:grid;gap:4px">
+          <li><button id="tn-camp-dl">💾 ${esc(last.name.replace(/\s+/g, '_'))}.nc 저장</button></li>
+          <li>CAMotics 설치 (무료, Windows / macOS / Linux): <a href="https://camotics.org/" target="_blank" rel="noopener" style="color:#7dd3fc">camotics.org</a></li>
+          <li>CAMotics → File → Open → 저장한 .nc 선택 후 아래 값을 확인·입력</li>
+        </ol>
+        <table style="border-collapse:collapse;font-size:12px">
+          <tr><td style="color:#64748b;padding:2px 10px 2px 0">공구 T1</td><td>평 엔드밀 Ø${d} mm · 길이 ${Math.max(20, Math.ceil(t + 15))} mm 이상 (단위 mm)</td></tr>
+          <tr><td style="color:#64748b;padding:2px 10px 2px 0">원판(Workpiece)</td><td>X 0 ~ ${o.sheetL} · Y 0 ~ ${o.sheetW} · Z −${t} ~ 0 mm (자동 크기 대신 직접 지정)</td></tr>
+          <tr><td style="color:#64748b;padding:2px 10px 2px 0">좌표 기준</td><td>G54 원점 = 원판 왼쪽 아래 모서리, Z0 = 원판 윗면, 관통 −${(t + 0.3).toFixed(1)} mm</td></tr>
+          <tr><td style="color:#64748b;padding:2px 10px 2px 0">트윈 예상</td><td>절삭 ${(last.prog.cutLenMm / 1000).toFixed(1)} m · ${fmtS(last.prog.totalS)} (이송 속도만으로 계산, 가감속 미포함 — 실제 사이클 타임 아님)</td></tr>
+        </table>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="pri" id="tn-camp-open" ${st.state === 'ready' ? '' : 'disabled'}>▶ CAMotics에서 바로 열기</button>
+          <span style="color:${st.state === 'ready' ? '#4ade80' : '#94a3b8'}">${CAM_STATE_TEXT[st.state] || st.state}</span>
+        </div>
+        <div style="color:#64748b;font-size:11px">CAMotics는 3축 전용입니다. 이 G-code의 Fanuc형 머리말(%, O번호, G54, T1 M06)을 CAMotics가 그대로 읽는지는 설치 후 직접 확인해야 합니다(미검증). 공구 길이 보정(G43 H)은 아직 넣지 않았습니다 — 공구 교환 정보를 받은 뒤 추가 예정.</div>
+      </div>`;
+    p.style.display = 'block';
+    $('tn-camp-x').onclick = () => { p.style.display = 'none'; };
+    $('tn-camp-dl').onclick = download;
+    $('tn-camp-open').onclick = async () => {
+      const b = $('tn-camp-open'); b.disabled = true; b.textContent = '여는 중…';
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (st.token) { const tok = prompt('서버 실행 토큰 (TWIN_EXEC_TOKEN)'); if (!tok) throw new Error('토큰이 필요합니다'); headers['X-Twin-Token'] = tok; }
+        const r = await fetch('/api/camotics', { method: 'POST', headers, body: JSON.stringify({ gcode: last.gen.text }) });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.success) throw new Error(j.message || j.error || j.reason || `HTTP ${r.status}`);
+        log(`🔍 [CNC 검증] CAMotics 실행 — ${j.file}`);
+        b.textContent = '✓ 열림';
+      } catch (e) { b.textContent = '⚠ ' + String(e.message).slice(0, 40); log(`⚠️ [CNC 검증] ${e.message}`); }
+      setTimeout(() => { b.textContent = '▶ CAMotics에서 바로 열기'; b.disabled = false; }, 4000);
+    };
+  }
+
   function send() {
     if (!last) return;
     if (last.verify && !last.verify.ok) return msg('검증 실패 — 공구 경로가 원판을 벗어납니다. 전송이 차단되었습니다.', true);
@@ -337,7 +402,7 @@
     await loadLibrary();
     $('tn-thk').value = String(thk); fillThickness(thk);
     renderLibrary(); schedule();
-    log(`📥 [DXF] ${file.name}: 부품 ${added}개 추가 (${r.units}${r.units === 'inch' ? ' → mm 변환' : ''})${r.warnings.length ? ' · ' + r.warnings.join(' / ') : ''}`);
+    log(`📥 [DXF] ${file.name}: 부품 ${added}개 추가 (${r.units}${r.units !== 'mm' ? ' → mm 변환' : ''})${r.warnings.length ? ' · ' + r.warnings.join(' / ') : ''}`);
     if (r.warnings.length) setTimeout(() => msg(r.warnings.join(' / '), true), 300);
   }
 
@@ -587,6 +652,8 @@
   #tn .verify div{padding:2px 8px;border-radius:5px;background:#0e141f;border:1px solid #1e293b;color:#94a3b8}
   #tn .verify .v-ok b{color:#4ade80}#tn .verify .v-warn{border-color:rgba(245,158,11,.5)}#tn .verify .v-warn b{color:#f59e0b}
   #tn .verify .v-err{border-color:rgba(239,68,68,.6)}#tn .verify .v-err b{color:#f87171}
+  #tn .camp{position:absolute;inset:60px 10% auto 10%;max-height:calc(100% - 80px);overflow:auto;background:#0b111b;border:1px solid #2b3a55;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:2}
+  @media (max-width:860px){#tn .camp{inset:50px 8px auto 8px}}
   @media (max-width:860px){#tn{inset:8px}#tn .body{grid-template-columns:1fr}#tn .side{border-right:0;border-bottom:1px solid #1e293b;max-height:45vh}}
   .tn-save{display:flex;gap:6px;margin-top:8px}.tn-save input{flex:1;min-width:0;background:#0c1017;border:1px solid #233047;color:#e2e8f0;border-radius:4px;padding:4px 6px;font-size:12px}`;
 
@@ -620,20 +687,22 @@
         <div class="main">
           <canvas id="tn-cv"></canvas>
           <div class="bar">
-            <button id="tn-dl" disabled>💾 .nc 저장</button><button class="pri" id="tn-send" disabled>라우터로 보내기 ▶</button>
+            <button id="tn-dl" disabled>💾 .nc 저장</button><button id="tn-cam" disabled title="외부 시뮬레이터 CAMotics로 이 G-code의 재료 제거를 눈으로 확인">🔍 CNC 검증</button><button class="pri" id="tn-send" disabled>라우터로 보내기 ▶</button>
             <span class="msg" id="tn-msg">부품을 체크하면 자동으로 네스팅됩니다.</span>
             <span class="legend"><span><i style="background:rgba(56,189,248,.5)"></i>부품</span><span><i style="background:#1f2937"></i>공구 경로</span><span><i style="background:#ef4444"></i>탭</span></span>
           </div>
           <div id="tn-verify" class="verify"></div>
           <textarea id="tn-code" readonly placeholder="G-code 미리보기"></textarea>
         </div>
-      </div>`;
+      </div>
+      <div id="tn-camp" class="camp" style="display:none"></div>`;
     document.body.appendChild(w);
     $('tn-mat').innerHTML = SHEET_MATERIAL_IDS.map(id => { const m = sheetMaterial(id); return `<option value="${id}">${esc(m.name)}</option>`; }).join('');
     updateMatInfo();
     $('tn-mat').onchange = () => { applyMaterialToInputs(); schedule(); };
     $('tn-x').onclick = close;
     $('tn-dl').onclick = download;
+    $('tn-cam').onclick = openCamoticsPanel;
     $('tn-send').onclick = send;
     $('tn-dxf-b').onclick = () => $('tn-dxf').click();
     $('tn-dxf').onchange = async e => { for (const f of e.target.files) await importDxf(f); e.target.value = ''; };

@@ -62,6 +62,8 @@
     const home = { spindle_rpm: 0, axis_x_mm: 0, axis_y_mm: 0, axis_z_mm: ROUTER.safeZmm, vacuum_on: false, pass: 0 };
     if (phase === 'LOADING' || phase === 'UNLOADING') return Object.assign(home, { vacuum_on: phase === 'LOADING' });
     if (phase !== 'RUNNING' && phase !== 'HOLD') return home;
+    // no toolpath (job queued without one) → hold at safe Z with the spindle on instead of throwing every frame
+    if (!part || !Array.isArray(path) || !path.length) return Object.assign(home, { spindle_rpm: ROUTER.rpm || 18000, vacuum_on: true });
     const passes = Math.max(1, Math.ceil(part.thicknessMm / ROUTER.stepDownMm));
     const loopLen = path.reduce((s, l) => s + l.len, 0);
     const total = passes * loopLen;

@@ -99,9 +99,18 @@
   function createRuntime() {
     const machines = new Map();       // name -> machine
     const events = [];
-    let t = 0, jobSeq = 1, completed = 0;
+    let t = 0, jobSeq = 1, completed = 0, eventSeq = 0;
 
-    function log(type, data) { events.push(Object.assign({ t, type }, data)); if (events.length > 500) events.shift(); }
+    // events keeps the last 500 entries; every event carries a monotonically increasing seq so consumers
+    // can resume with eventsSince(lastSeq). (Index-based reading broke once the array started to shift.)
+    function log(type, data) { events.push(Object.assign({ seq: ++eventSeq, t, type }, data)); if (events.length > 500) events.shift(); }
+    /** Events with seq > afterSeq, oldest first (at most the retained 500). */
+    function eventsSince(afterSeq) {
+      if (!events.length || events[events.length - 1].seq <= afterSeq) return [];
+      let i = events.length - 1;
+      while (i > 0 && events[i - 1].seq > afterSeq) i--;
+      return events.slice(i);
+    }
 
     /** Register a placed asset as a machine (no-op for non-machines). */
     function registerMachine(name, assetId) {
@@ -210,7 +219,7 @@
 
     return {
       registerMachine, unregisterMachine, assign, assignProgram, setInterlock, step, snapshot,
-      machines, events, get t() { return t; }
+      machines, events, eventsSince, get t() { return t; }
     };
   }
 

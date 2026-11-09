@@ -258,11 +258,12 @@
     partObj.visible = true;
   }
 
-  let lastEventIdx = 0;
+  let lastEventSeq = 0;
   function handleEvents() {
-    for (; lastEventIdx < rt.events.length; lastEventIdx++) {
-      const e = rt.events[lastEventIdx];
+    for (const e of rt.eventsSince(lastEventSeq)) {
+      lastEventSeq = e.seq;
       if (window.TwinNest) window.TwinNest.onEvent(e);
+      closeup.onEvent(e);
       const partObj = partObjects.get(e.job);
       const machineObj = placedObjects.find(o => o.name === e.machine);
       if (e.type === 'JOB_START' && partObj && machineObj) {
@@ -316,6 +317,162 @@
     controls.target.copy(look);
     controls.update();
   }
+
+  // ------------------------------------------------------------------ auto close-up (review 2026-11-09 §7)
+  // When a job starts, the camera glides (0.8 s) to the working zone and keeps it in frame:
+  //   router  → tool tip (spindle)      · printer → laser spot / build plate · lathe → chuck
+  // Several machines busy: the most recently started one, unless the user pinned one with its card's
+  // ‘보기’ (pin lasts until that job ends). Any camera input by the user pauses following; a new job
+  // resumes it if the camera has been left alone for 20 s. Job done → next busy machine, or back to
+  // the view from before the first close-up. At ≥ 600× the tool moves too fast to follow comfortably,
+  // so the camera frames the whole work area instead.
+  const closeup = (function () {
+    const LS = 'twin.closeup.v1';
+    const opts = { auto: true, xray: true, ret: true };
+    try { Object.assign(opts, JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) { /* storage blocked */ }
+    const save = () => { try { localStorage.setItem(LS, JSON.stringify(opts)); } catch (e) { /* ignore */ } };
+    let target = null, pinned = null, paused = false, pausedAt = 0, saved = null, tween = null, offset = null, focusPt = null;
+    let lastFrame = performance.now(), returnTimer = 0, mode = '', offsetBand = 'normal';
+    const startedAt = new Map();
+    const q = new THREE.Quaternion();
+    const ease = u => (u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2);
+    const busy = name => { const m = rt.machines.get(name); return !!(m && m.job); };
+
+    function workPoint(name) {
+      const a = animators.get(name);
+      if (!a) return null;
+      const v = new THREE.Vector3();
+      if (a.kind === 'router') {
+        if (speed >= 600 || !a.tip) { mode = '작업 영역 전체'; return a.obj.localToWorld(new THREE.Vector3(0, 0, a.rig ? a.rig.tableZ : 800)); }
+        mode = '공구 추적'; return a.tip.getWorldPosition(v);
+      }
+      if (a.kind === 'am') {
+        if (a.spot.visible && speed < 600) { mode = '레이저 스폿 추적'; return a.spot.getWorldPosition(v); }
+        mode = '조형판'; return a.obj.localToWorld(new THREE.Vector3(a.plateX, 0, a.plateZ + 20));
+      }
+      mode = '척'; return a.pivot.getWorldPosition(v);
+    }
+    function offsetFor(name) {
+      const a = animators.get(name), [W, D] = assetDims(a.obj);
+      let local;
+      if (a.kind === 'router') local = speed >= 600 ? new THREE.Vector3(W * 0.55 + 600, -D * 0.45, Math.max(W, D) * 0.55 + 600) : new THREE.Vector3(1350, -750, 1050);
+      else if (a.kind === 'am') local = new THREE.Vector3(150, -(D * 0.5 + 650), 550);
+      else local = new THREE.Vector3(250, -(D * 0.5 + 800), 350);
+      return local.applyQuaternion(a.obj.getWorldQuaternion(q));
+    }
+    function engage(name, why) {
+      if (!animators.get(name) || typeof controls === 'undefined') return;
+      clearTimeout(returnTimer);
+      if (!saved) saved = { pos: camera.position.clone(), tgt: controls.target.clone(), xray };
+      const p = workPoint(name); if (!p) return;
+      target = name; paused = false;
+      offset = offsetFor(name); offsetBand = speed >= 600 ? 'fast' : 'normal'; focusPt = p.clone();
+      tween = { p0: camera.position.clone(), t0: controls.target.clone(), start: performance.now(), dur: 800 };
+      // shells are see-through only for enclosed machines (printer chamber, lathe guard); the router is an
+      // open gantry, and an x-rayed table would hide the sheet being cut
+      const wantX = opts.xray && animators.get(name).kind !== 'router' ? true : saved.xray;
+      if (xray !== wantX) { setXray(wantX); syncXrayButton(); }
+      log(`🎥 [클로즈업] ${name} ${why || '작업 시작'} — ${mode}`);
+    }
+    function release(back) {
+      clearTimeout(returnTimer);
+      target = null; pinned = null; tween = null;
+      if (back && saved && typeof controls !== 'undefined') {
+        const goal = saved;
+        tween = { p0: camera.position.clone(), t0: controls.target.clone(), start: performance.now(), dur: 900, goal };
+        if (xray !== goal.xray) { setXray(goal.xray); syncXrayButton(); }
+      }
+      saved = null;
+    }
+    function nextBusy(except) {
+      let best = null, bt = -Infinity;
+      rt.machines.forEach(m => { if (m.name !== except && m.job && (startedAt.get(m.name) ?? -1) > bt) { best = m.name; bt = startedAt.get(m.name) ?? -1; } });
+      return best;
+    }
+    function onEvent(e) {
+      if (e.type === 'JOB_START') {
+        startedAt.set(e.machine, e.t);
+        if (!opts.auto) return;
+        if (paused && performance.now() - pausedAt > 20000) paused = false;
+        if (paused) return;
+        if (pinned && pinned !== e.machine && busy(pinned)) return;
+        engage(e.machine);
+      } else if (e.type === 'JOB_DONE' && e.machine === target) {
+        if (pinned === e.machine) pinned = null;
+        clearTimeout(returnTimer);
+        returnTimer = setTimeout(() => {               // linger 1.5 s so the finished part is seen
+          if (target !== e.machine) return;
+          const nb = opts.auto && !paused ? nextBusy(e.machine) : null;
+          if (nb) engage(nb, '이어서 가공 중');
+          else release(opts.ret);
+        }, 1500);
+      }
+    }
+    function pauseByUser() {
+      if (!target && !tween) return;
+      if (tween && tween.goal) { tween = null; return; }  // user grabbed the camera during the return glide
+      paused = true; pausedAt = performance.now(); tween = null;
+    }
+    function frame(now) {
+      requestAnimationFrame(frame);
+      const dt = Math.min(0.1, (now - lastFrame) / 1000); lastFrame = now;
+      if (typeof controls === 'undefined') return;
+      if (tween && tween.goal) {                         // gliding back to the saved view
+        const u = ease(Math.min(1, (now - tween.start) / tween.dur));
+        camera.position.lerpVectors(tween.p0, tween.goal.pos, u);
+        controls.target.lerpVectors(tween.t0, tween.goal.tgt, u);
+        controls.update();
+        if (u >= 1) tween = null;
+        return;
+      }
+      if (!target || paused) return;
+      const p = workPoint(target); if (!p) { target = null; return; }
+      const band = speed >= 600 ? 'fast' : 'normal';
+      if (band !== offsetBand) {                        // speed changed while following: re-frame smoothly
+        offsetBand = band; offset = offsetFor(target);
+        if (!tween) tween = { p0: camera.position.clone(), t0: controls.target.clone(), start: now, dur: 700 };
+      }
+      const tau = speed <= 60 ? 0.12 : speed < 600 ? 0.5 : 1.0;
+      focusPt.lerp(p, 1 - Math.exp(-dt / tau));
+      const wantPos = focusPt.clone().add(offset);
+      if (tween) {
+        const u = ease(Math.min(1, (now - tween.start) / tween.dur));
+        camera.position.lerpVectors(tween.p0, wantPos, u);
+        controls.target.lerpVectors(tween.t0, focusPt, u);
+        if (u >= 1) tween = null;
+      } else {
+        camera.position.copy(wantPos);
+        controls.target.copy(focusPt);
+      }
+      controls.update();
+    }
+    function attachUserInput() {
+      if (typeof controls === 'undefined' || !controls.addEventListener) return setTimeout(attachUserInput, 500);
+      controls.addEventListener('start', pauseByUser);   // OrbitControls: drag / wheel / touch
+      addEventListener('keydown', e => {
+        if (/^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || '')) return;
+        if (/^(Arrow|Page)|^[wasdqe]$/i.test(e.key)) pauseByUser();
+      });
+      requestAnimationFrame(frame);
+    }
+    function pin(name) {
+      if (!busy(name)) { release(false); focusMachine(name); return; }
+      pinned = name; engage(name, '선택');
+    }
+    function resume() { paused = false; const n = (target && busy(target)) ? target : nextBusy(null); if (n) engage(n, '다시 따라가기'); }
+    function status() {
+      if (!opts.auto) return { text: '꺼짐 — 작업이 시작돼도 카메라가 움직이지 않습니다', cls: '' };
+      if (target && paused) return { text: `일시정지 — 카메라를 직접 움직였습니다 (${target})`, cls: 'warn', resume: true };
+      if (target) { const m = rt.machines.get(target); return { text: `따라가는 중: ${target} · ${PHASE_KO[m ? m.phase : ''] || ''}${m && m.job ? ' ' + Math.round(m.job.progress * 100) + '%' : ''} · ${mode}${pinned ? ' · 고정' : ''}`, cls: 'ok' }; }
+      return { text: '대기 — 작업이 시작되면 그 설비로 다가갑니다', cls: '' };
+    }
+    return {
+      onEvent, pin, resume, status, attachUserInput, release,
+      get target() { return target; }, get paused() { return paused; }, get opts() { return opts; },
+      set(k, v) { opts[k] = !!v; save(); if (k === 'auto' && !v) release(opts.ret); }
+    };
+  })();
+  function syncXrayButton() { const b = document.getElementById('tl-xray'); if (b) b.classList.toggle('on', xray); }
 
   // ------------------------------------------------------------------ live telemetry
   let ws = null, wsState = '연결 안 됨', sent = 0, viewers = 0, seq = 0;
@@ -387,6 +544,15 @@
       background:#0f172a;border:1px solid #38bdf8;color:#e2e8f0;opacity:0;transform:translateY(6px);transition:.2s;pointer-events:none}
   #tl-toast.show{opacity:1;transform:none}
   #tl-toast.err{border-color:#ef4444}
+  #tl label.muted{display:flex;align-items:center;gap:3px;cursor:pointer}
+  #tl button.sm{padding:1px 6px;font-size:11px}
+  #tl .cu{font-size:11px;color:#94a3b8;margin:-2px 0 8px;min-height:16px}#tl .cu .ok{color:#4ade80}#tl .cu .warn{color:#f59e0b}
+  #tl-chip{position:fixed;top:64px;left:50%;transform:translateX(-50%);z-index:52;display:none;gap:6px;flex-wrap:wrap;justify-content:center;
+      font:12px system-ui,"Malgun Gothic",sans-serif;pointer-events:none}
+  #tl-chip button{pointer-events:auto;display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;cursor:pointer;
+      background:rgba(15,23,42,.92);border:1px solid #38bdf8;color:#e2e8f0;box-shadow:0 6px 18px rgba(0,0,0,.45);font:inherit}
+  #tl-chip button:hover{background:#0c4a6e}#tl-chip b{color:#7dd3fc;font-weight:600}#tl-chip .dot{width:8px;height:8px;border-radius:50%}
+  #tl-chip span{color:#94a3b8;align-self:center}
   @media (max-width:760px){#tl{left:8px;right:8px;width:auto}#tl-toast{left:8px}}`;
 
   let toastTimer = 0;
@@ -409,9 +575,13 @@
       </div>
       <div class="bd" id="tl-body">
         <div class="tools">
+          <button id="tl-auto" title="작업이 시작되면 카메라가 가공 부위로 다가가 따라갑니다">🎥 자동 클로즈업</button>
           <button id="tl-xray" title="설비 외장을 반투명으로 — 내부 축 동작 보기">◎ 내부 보기</button>
-          <span class="muted">카드의 ‘보기’로 설비 앞으로 카메라 이동</span>
+          <span class="sp"></span>
+          <label class="muted" title="클로즈업할 때 외장을 반투명으로"><input type="checkbox" id="tl-cu-xray"> 내부</label>
+          <label class="muted" title="작업이 끝나면 원래 보던 화면으로"><input type="checkbox" id="tl-cu-ret"> 복귀</label>
         </div>
+        <div id="tl-cu" class="cu"></div>
         <div id="tl-machines"></div>
         <div class="sec">모델링 부품 → 설비 배정</div>
         <div class="assign">
@@ -431,15 +601,38 @@
       const b = p.querySelector('#tl-body'); const hide = b.style.display !== 'none';
       b.style.display = hide ? 'none' : ''; e.target.textContent = hide ? '▸' : '▾';
     };
-    p.querySelector('#tl-xray').onclick = e => { setXray(!xray); e.target.classList.toggle('on', xray); };
+    p.querySelector('#tl-xray').onclick = () => { setXray(!xray); syncXrayButton(); };
+    const autoB = p.querySelector('#tl-auto'), cx = p.querySelector('#tl-cu-xray'), cr = p.querySelector('#tl-cu-ret');
+    autoB.classList.toggle('on', closeup.opts.auto); cx.checked = closeup.opts.xray; cr.checked = closeup.opts.ret;
+    autoB.onclick = () => { closeup.set('auto', !closeup.opts.auto); autoB.classList.toggle('on', closeup.opts.auto); };
+    cx.onchange = () => closeup.set('xray', cx.checked);
+    cr.onchange = () => closeup.set('ret', cr.checked);
+    p.querySelector('#tl-cu').addEventListener('click', e => { if (e.target.closest('[data-resume]')) closeup.resume(); });
+    const chip = document.createElement('div'); chip.id = 'tl-chip'; document.body.appendChild(chip);
+    chip.addEventListener('click', e => { const b = e.target.closest('[data-follow]'); if (b) closeup.pin(b.dataset.follow); });
     p.querySelector('#tl-assign').onclick = () => {
       const part = placedObjects.find(o => o.name === p.querySelector('#tl-part').value);
       const m = p.querySelector('#tl-machine').value;
       if (part && m) assignPart(part, m);
     };
     p.querySelector('#tl-machines').addEventListener('click', e => {
-      const b = e.target.closest('[data-focus]'); if (b) focusMachine(b.dataset.focus);
+      const b = e.target.closest('[data-focus]'); if (!b) return;
+      if (closeup.opts.auto) closeup.pin(b.dataset.focus);   // busy machine → follow it; idle → plain view
+      else focusMachine(b.dataset.focus);
     });
+  }
+
+  // status line under the toolbar + corner chip for busy machines the camera is not showing
+  function renderCloseup(snap) {
+    const s = closeup.status(), el = document.getElementById('tl-cu');
+    if (el) el.innerHTML = `<span class="${s.cls}">${s.text}</span>${s.resume ? ' <button data-resume class="sm">다시 따라가기</button>' : ''}`;
+    const chip = document.getElementById('tl-chip'); if (!chip) return;
+    const others = snap.machines.filter(m => m.jobId && m.phase !== 'IDLE' && !(m.name === closeup.target && !closeup.paused));
+    chip.style.display = others.length ? 'flex' : 'none';
+    chip.innerHTML = others.slice(0, 3).map(m => {
+      const col = hex(PHASE_COLOR[m.phase] || 0x64748b);
+      return `<button data-follow="${m.name}" title="이 설비로 카메라 이동"><span class="dot" style="background:${col};box-shadow:0 0 6px ${col}"></span>${m.name} · ${PHASE_KO[m.phase] || m.phase} ${m.progress}% <b>보기 ›</b></button>`;
+    }).join('') + (others.length > 3 ? `<span>+${others.length - 3}</span>` : '');
   }
 
   function fillSelect(sel, values, labels) {
@@ -478,6 +671,7 @@
         <div class="ax">${chips}</div>${massLine}
       </div>`;
     }).join('') : '<div class="muted">배치된 생산 설비 없음</div>';
+    renderCloseup(snap);
 
     const parts = partCandidates();
     fillSelect(document.getElementById('tl-part'), parts.map(o => o.name), parts.map(o => o.name + (o.userData.processedBy ? ' ✓가공됨' : '')));
@@ -507,6 +701,7 @@
   function start() {
     if (typeof placedObjects === 'undefined') return setTimeout(start, 500);
     buildPanel();
+    closeup.attachUserInput();
     connectWs();
     setInterval(tick, 40);
     setInterval(renderPanel, 250);
@@ -514,5 +709,6 @@
   }
   window.twinFocusMachine = focusMachine;
   window.twinSetXray = setXray;
+  window.twinCloseup = closeup;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

@@ -159,7 +159,7 @@ function drive(name,m,now){
   }
 }
 let li=0;
-function events(){for(;li<rt.events.length;li++){const e=rt.events[li];if(e.type!=='JOB_DONE')continue;
+function events(){for(const e of rt.eventsSince(li)){li=e.seq;if(e.type!=='JOB_DONE')continue;
   const P=parts.find(p=>p.name===e.part&&p.busy===e.machine);if(!P)continue;const A=machines[e.machine];
   const out=A.g.localToWorld(new THREE.Vector3(0,-(A.dims[1]/2+700),0));P.mesh.position.set(out.x,out.y,P.part.thicknessMm/2);P.mesh.visible=true;P.busy=false;P.done=(P.done||[]).concat(e.machine)}}
 // ---------------------------------------------------------------- x-ray

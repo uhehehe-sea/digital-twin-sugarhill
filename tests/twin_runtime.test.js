@@ -84,3 +84,17 @@ test('lathe rejects flat sketch panels; router and printer accept them', () => {
   assert.equal(rt.assign('ROUTER_01', p).est.kind, 'router');
   assert.equal(rt.assign('SLM_01', p).est.kind, 'am');
 });
+test('event stream: consumers reading by seq never miss events after the 500-entry buffer starts shifting', () => {
+  const rt = T.createRuntime();
+  rt.registerMachine('CNC', Object.keys(T.MACHINE_KINDS).find(k => T.MACHINE_KINDS[k] === 'router'));
+  let lastSeq = 0, seen = 0, done = 0;
+  const drain = () => { for (const e of rt.eventsSince(lastSeq)) { assert.equal(e.seq, lastSeq + 1, 'no gaps'); lastSeq = e.seq; seen++; if (e.type === 'JOB_DONE') done++; } };
+  // 400 interlock toggles = 800 HOLD/RESUME events, with a job running
+  rt.assign('CNC', T.partFromSketch('p', RECT, [], 10));
+  rt.step(50);
+  for (let i = 0; i < 400; i++) { rt.setInterlock('CNC', false); rt.step(0.1); rt.setInterlock('CNC', true); rt.step(0.1); drain(); }
+  rt.step(100000); drain();
+  assert.ok(rt.events.length <= 500);
+  assert.ok(seen > 800, `saw ${seen}`);
+  assert.equal(done, 1, 'JOB_DONE after 800+ events is still delivered');
+});
