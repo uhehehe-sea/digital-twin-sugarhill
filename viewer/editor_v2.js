@@ -1465,25 +1465,18 @@ function buildAssetMeshGroup(assetDef) {
 const DEFAULT_SCENE_PLACEMENTS = [
   // 판재 가공용 3축 CNC 라우터 (빠른 스케치 부품의 가공 설비) — 위치는 가정값
   { assetId: 'cnc_router_3axis', name: 'CNC_Router_3Axis_01', pos: [11800, 13300, 0], rot: [0, 0, 0], scale: [1, 1, 1], materialId: 'SUS_304_306_Brushed_2B' },
-  // 중앙 메인 홀 제조 셀 (전면 도어·척·레이저 챔버·HMI 터치스크린이 작업자 통로 +Y 방향을 향하도록 180° 배치)
-  { assetId: 'cnc_sealjet_630pro', name: 'CNC_SealJet_630PRO_01', pos: [4500, 9200, 0], rot: [0, 0, 180], scale: [1, 1, 1], materialId: 'SUS_304_306_Brushed_2B' },
-  { assetId: 'slm_eos_m290', name: 'EOS_M290_Stainless3DP_01', pos: [7800, 9200, 0], rot: [0, 0, 180], scale: [1, 1, 1], materialId: 'SUS_316L_SLM_3DPrinted_AsBuilt' },
-  { assetId: 'argon_filter_station', name: 'Argon_Filter_Unit_01', pos: [9950, 9200, 0], rot: [0, 0, 180], scale: [1, 1, 1], materialId: 'SUS_304_306_Brushed_2B' },
-  { assetId: 'slm_trumpf_truprint3000', name: 'TRUMPF_TruPrint3000_SUS314', pos: [12600, 9200, 0], rot: [0, 0, 180], scale: [1, 1, 1], materialId: 'SUS_314_HeatResistant_Wrought' },
+  // CNC 선반 (전면 도어·척이 작업자 통로 +Y 방향을 향하도록 180° 배치)
+  { assetId: 'cnc_sealjet_630pro', name: 'CNC_SealJet_630PRO_01', pos: [4500, 9200, 0], rot: [0, 0, 180], scale: [1, 1, 1], materialId: 'SUS_304_306_Brushed_2B' }
+  // 2026-11-09 사용자 요청: 기본 화면은 CNC 장비만. 금속 3D 프린터 2대·아르곤 필터·작업대(바이스·씰·빌렛)·
+  // 작업자 카트·IBC 탱크·1층 사무실 세트(책상·의자·PC·프린터·서랍장)는 기본 배치에서 뺐습니다.
+  // 필요하면 콘텐츠 드로어(Ctrl+Space)에서 다시 끌어다 놓을 수 있습니다.
+];
 
-  { assetId: 'stainless_worktable_sus316', name: 'SUS316_Worktable_01', pos: [7800, 12100, 0], rot: [0, 0, 0], scale: [1, 1, 1], materialId: 'SUS_316L_Electropolished' },
-  { assetId: 'cnc_machine_vise', name: 'CNC_Vise_OnTable_01', pos: [7350, 12100, 860], rot: [0, 0, 0], scale: [1, 1, 1], materialId: 'SUS_304_306_Brushed_2B' },
-  { assetId: 'fkm_fpm_seal_set', name: 'FKM_FPM_Viton_Seals_01', pos: [7950, 12100, 860], rot: [0, 0, 0], scale: [1, 1, 1], materialId: 'FKM_FPM_Viton_Black_85A' },
-  { assetId: 'pp_seal_billet_set', name: 'PP_Seal_Billets_01', pos: [8450, 12100, 860], rot: [0, 0, 0], scale: [1, 1, 1], materialId: 'PP_Natural_SealGrade' },
-  { assetId: 'operator_computer_cart', name: 'CNC_Operator_Cart_01', pos: [5800, 12100, 0], rot: [0, 0, 180], scale: [1, 1, 1], materialId: 'SUS_304_306_Brushed_2B' },
-  { assetId: 'stainless_ibc_tank', name: 'SUS316L_IBC_Tank_01', pos: [15800, 9200, 0], rot: [0, 0, 180], scale: [1, 1, 1], materialId: 'SUS_316L_Electropolished' },
-
-  // 1층 사무실 용품 세트 (전면 모니터/프린터/서랍장이 카메라를 향하도록 배치)
-  { assetId: 'office_desk_a01', name: 'Office1F_Desk_01', pos: [16200, 3100, 0], rot: [0, 0, 180], scale: [1, 1, 1], materialId: 'SUS_304_306_Brushed_2B' },
-  { assetId: 'office_manager_chair', name: 'Office1F_ManagerChair_01', pos: [16200, 4050, 0], rot: [0, 0, 180], scale: [1, 1, 1], materialId: 'FKM_FPM_Viton_Black_85A' },
-  { assetId: 'office_pc_workstation_set', name: 'Office1F_CAD_Workstation_01', pos: [16200, 3050, 750], rot: [0, 0, 180], scale: [1, 1, 1], materialId: 'PP_GF30_Structural_Grey' },
-  { assetId: 'office_laser_printer', name: 'Office1F_LaserPrinter_01', pos: [14800, 3100, 0], rot: [0, 0, 180], scale: [1, 1, 1], materialId: 'PP_Natural_SealGrade' },
-  { assetId: 'office_file_cabinet', name: 'Office1F_FileCabinet_01', pos: [17600, 3100, 0], rot: [0, 0, 180], scale: [1, 1, 1], materialId: 'SUS_304_306_Brushed_2B' }
+// 건물 OBJ에서 기본으로 빼는 부재 — 라운지 부스 2개(주황 소파 + 회색 칸막이 벽). 저장된 건물 편집
+// 상태(scene_layout.json의 building)가 있으면 그것이 우선합니다.
+const DEFAULT_BUILDING_REMOVED = [
+  'Lounge_Booth1_GreyShell_Back', 'Lounge_Booth1_GreyShell_L', 'Lounge_Booth1_GreyShell_R', 'Lounge_Booth1_OrangeSeat', 'Lounge_Booth1_OrangeBack',
+  'Lounge_Booth2_GreyShell_Back', 'Lounge_Booth2_GreyShell_L', 'Lounge_Booth2_GreyShell_R', 'Lounge_Booth2_OrangeSeat', 'Lounge_Booth2_OrangeBack'
 ];
 // v1 catalog entries restored verbatim from editor_v1_backup.js.
 // The v2 upgrade replaced ASSET_CATALOG and dropped these, so every DEFAULT_SCENE_PLACEMENTS
@@ -2756,13 +2749,14 @@ function loadInitialSceneLayout() {
   fetch('/api/layout')
     .then(r => r.json())
     .then(data => {
-      if (data && data.building) applyBuildingState(data.building);   // deferred until the shell OBJ has loaded
+      // deferred until the shell OBJ has loaded; no saved building state → default removals
+      applyBuildingState(data && data.building ? data.building : { removed: DEFAULT_BUILDING_REMOVED, moved: {}, clones: [] });
       if (data && Array.isArray(data.items) && data.items.length > 0) {
         rebuildPlacedAssetsFromList(data.items);
         log(`[LAYOUT] 저장된 씬 레이아웃(${data.items.length}개 에셋) 로드 완료.`);
       } else {
         rebuildPlacedAssetsFromList(DEFAULT_SCENE_PLACEMENTS);
-        log(`[LAYOUT] 기본 제조 셀(CNC/3D프린터/스테인리스 작업대) 및 1층 사무실 에셋 15종 자동 배치 완료.`);
+        log(`[LAYOUT] 기본 배치: CNC 장비 ${DEFAULT_SCENE_PLACEMENTS.length}대(라우터·선반).`);
       }
 
       // 게이트 설치 벽면 기본값 복원 (서버 저장값 우선 -> 로컬 스토리지 -> 기본값 NORTH)
@@ -2786,6 +2780,7 @@ function loadInitialSceneLayout() {
       }
     })
     .catch(() => {
+      applyBuildingState({ removed: DEFAULT_BUILDING_REMOVED, moved: {}, clones: [] });
       rebuildPlacedAssetsFromList(DEFAULT_SCENE_PLACEMENTS);
       const targetWall = localStorage.getItem('cargoGateWall') || 'NORTH';
       relocateCargoGate(targetWall, false);
