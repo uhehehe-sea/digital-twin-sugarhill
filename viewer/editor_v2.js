@@ -1851,6 +1851,7 @@ function init3D() {
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.maxPolarAngle = Math.PI / 2 - 0.01;
+  initOrbitPivot();
 
   // TransformControls (Blender / Unreal Engine 3D Gizmo)
   transformControl = new THREE.TransformControls(camera, renderer.domElement);
@@ -2349,6 +2350,49 @@ function focusSelected() {
   controls.update();
   log(`[FOCUS] '${selectedObject.name}' 포커스 이동`);
 }
+
+// ----------------------------------------------------------------------------
+// Orbit around selection: when the user starts rotating the view (drag with the rotate button) while an
+// object is selected, the orbit pivot glides (a pan, ~0.25 s) to the selection's bounding-box centre, so the
+// camera revolves around that object. Selecting alone never moves the camera (gizmo editing is undisturbed);
+// pan / wheel / WASD still move freely, and the next rotate re-centres on the selection.
+// ----------------------------------------------------------------------------
+const orbitPivot = { enabled: true, armed: false, x: 0, y: 0, button: -1, mod: false, glide: null };
+function selectionCenter(obj) {
+  const box = new THREE.Box3().setFromObject(obj);
+  return box.isEmpty() ? obj.getWorldPosition(new THREE.Vector3()) : box.getCenter(new THREE.Vector3());
+}
+function initOrbitPivot() {
+  // capture phase on window: runs before OrbitControls' own pointerdown handler
+  window.addEventListener('pointerdown', e => {
+    if (e.target !== renderer.domElement) return;
+    orbitPivot.button = e.button; orbitPivot.x = e.clientX; orbitPivot.y = e.clientY;
+    orbitPivot.mod = e.ctrlKey || e.metaKey || e.shiftKey;      // OrbitControls turns modifier+rotate into pan
+  }, true);
+  controls.addEventListener('start', () => { orbitPivot.armed = true; });
+  controls.addEventListener('end', () => { orbitPivot.armed = false; });
+  window.addEventListener('pointermove', e => {
+    if (!orbitPivot.armed) return;
+    if (Math.hypot(e.clientX - orbitPivot.x, e.clientY - orbitPivot.y) < 4) return;   // a click, not a drag
+    orbitPivot.armed = false;
+    const mb = controls.mouseButtons;
+    const action = orbitPivot.button === 0 ? mb.LEFT : orbitPivot.button === 1 ? mb.MIDDLE : orbitPivot.button === 2 ? mb.RIGHT : -1;
+    if (action !== THREE.MOUSE.ROTATE || orbitPivot.mod) return;
+    if (!orbitPivot.enabled || !selectedObject || !selectedObject.parent) return;
+    const c = selectionCenter(selectedObject);
+    if (c.distanceTo(controls.target) > 1) orbitPivot.glide = { to: c };
+  });
+}
+function updateOrbitPivot(dt) {
+  const g = orbitPivot.glide;
+  if (!g) return;
+  const rest = g.to.clone().sub(controls.target);
+  const step = rest.length() < 1 ? rest : rest.multiplyScalar(1 - Math.exp(-dt / 0.06));
+  controls.target.add(step);
+  camera.position.add(step);                       // pan: the view keeps its angle and distance
+  if (g.to.distanceTo(controls.target) < 1) orbitPivot.glide = null;
+}
+window.orbitPivot = orbitPivot;
 
 function setTransformMode(mode) {
   transformControl.setMode(mode);
@@ -3393,6 +3437,7 @@ function animate() {
 
   try {
     updateWASDCameraMovement(dt);
+    updateOrbitPivot(dt);
   } catch (camErr) {
     console.warn('updateWASDCameraMovement warning:', camErr);
   }
