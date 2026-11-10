@@ -60,3 +60,16 @@
 - [포털 라이트와 등기구 조명의 역할 분담](https://novedge.com/blogs/design-news/cinema-4d-tip-optimizing-redshift-interior-lighting-with-portal-area-lights)
 - [three.js 포럼: 사실적인 빛과 그림자 — 구운 에셋이 최선](https://discourse.threejs.org/t/how-to-get-photorrealism-light-shadows-in-three-js/28874)
 - [three.js 포럼: 라이트 프로브](https://discourse.threejs.org/t/threejs-light-probes/55981)
+
+## 조명 굽기 (2026-11-10)
+
+실내가 사실적으로 보이는 핵심은 간접광입니다. 실시간으로는 이 PC(내장 그래픽)에서 감당이 안 되므로 미리 계산해 둡니다.
+
+```
+node tools/build_factory_shell.mjs   # 건물 치수·구조를 바꿨을 때
+node tools/bake_lightmap.mjs         # 약 2분. --texel 60 --size 4096 으로 더 세밀하게
+```
+
+- 결과 `assets/lightmap/`이 있으면 뷰어가 자동으로 씁니다. 지우면 예전 실시간 조명으로 돌아갑니다.
+- 밝기는 `viewer/visual_upgrade.js`의 `BAKED.gain`, 기계 그림자 진하기는 `BAKED.shadowOpacity`.
+- 바닥 얼룩·벽 물때를 빼려면 `--no-grunge`.

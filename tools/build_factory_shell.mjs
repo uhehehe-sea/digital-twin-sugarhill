@@ -204,6 +204,14 @@ if (MZ) {
   box('Mezzanine_Beam_North', x0, yN - 200, under, x1, yN, deck - slabT);
   box('Mezzanine_Beam_West', x0, 0, under, x0 + 200, yN - 200, deck - slabT);
   box('Mezzanine_Beam_Mid', x0 + 200, yN / 2 - 100, under, x1, yN / 2 + 100, deck - slabT);
+  // strip lights under the deck (assumed: the video does not show them clearly; without them the baked lighting leaves the cage black)
+  if (MZ.lights !== false) {
+    let li = 0;
+    for (const fx of [0.25, 0.75]) for (const fy of [0.25, 0.75]) {
+      const cx = x0 + (x1 - x0) * fx, cy = yN * fy;
+      box(`HighBay_LED_Mezz_${++li}`, cx - 600, cy - 150, deck - slabT - 60, cx + 600, cy + 150, deck - slabT);
+    }
+  }
   // posts: along the open north edge and the middle beam, about every 6 m
   const nx = Math.max(1, Math.round((x1 - x0) / 6000));
   let p = 0;

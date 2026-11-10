@@ -80,7 +80,13 @@ window.addEventListener('load', function () {
     if (!sun.target.parent) scene.add(sun.target);
     const cam = sun.shadow.camera, pad = 1500;
     cam.left = -size.x / 2 - pad; cam.right = size.x / 2 + pad; cam.top = size.y / 2 + pad; cam.bottom = -size.y / 2 - pad;
-    cam.near = 50; cam.far = SHADOW.height + 2500;
+    // depth range along the (leaning) light direction must cover the whole footprint, floor to light height
+    const dir = new THREE.Vector3(-SHADOW.lean[0], -SHADOW.lean[1], -SHADOW.height).normalize(), q = new THREE.Vector3();
+    let dMin = Infinity, dMax = -Infinity;
+    for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [0, SHADOW.height]) {
+      const d = q.set(x, y, z).sub(sun.position).dot(dir); if (d < dMin) dMin = d; if (d > dMax) dMax = d;
+    }
+    cam.near = dMin - 500; cam.far = dMax + 500;
     cam.updateProjectionMatrix();
     sun.shadow.mapSize.set(SHADOW.mapSize, SHADOW.mapSize);
     sun.shadow.bias = -0.0002; sun.shadow.normalBias = 18; sun.shadow.radius = SHADOW.radius;
@@ -92,6 +98,7 @@ window.addEventListener('load', function () {
     factoryMeshGroup.traverse(o => {
       if (!o.isMesh) return;
       o.receiveShadow = true;
+      if (o.userData.baked) { o.castShadow = false; o.receiveShadow = false; return; }   // its shadows are in the lightmap
       if (NO_CAST.test(o.name) || (o.material && o.material.transparent && o.material.opacity < 0.9)) o.castShadow = false;
       else if (o.name) { o.castShadow = true; casters++; }
     });
@@ -133,7 +140,7 @@ window.addEventListener('load', function () {
       box.setFromObject(o); box.getSize(size); box.getCenter(c);
       const w = Math.max(size.x, 150), h = Math.max(size.y, 150), d = box.min.z;
       n++;
-      if ((idx + Math.floor(idx / 7)) % every !== 0) return;       // staggered pick so lit fixtures do not line up in one row
+      if (status.baked || (idx + Math.floor(idx / 7)) % every !== 0) return;   // baked lighting already contains every fixture       // staggered pick so lit fixtures do not line up in one row
       lights++;
       // RectAreaLight intensity is luminance; irradiance straight below = L · area / distance² (unit-free ratio, so mm are fine)
       const light = new THREE.RectAreaLight(FIXTURE.color, FIXTURE.irradiance * every * d * d / (w * h), w, h);
@@ -172,7 +179,7 @@ window.addEventListener('load', function () {
         const old = scene.environment;
         scene.environment = env;
         scene.environmentRotation.set(0, 0, 0);
-        scene.environmentIntensity = 0.5;      // captured light is fill; direct light must dominate or shadows wash out
+        scene.environmentIntensity = status.baked ? BAKED.objectEnv : 0.5;      // captured light is fill; direct light must dominate or shadows wash out
         if (old && old.userData.interior) old.dispose();
       }
       status.interiorCapture = { passes: passes || 1, at: [Math.round(cubeCam.position.x), Math.round(cubeCam.position.y), Math.round(cubeCam.position.z)] };
@@ -286,10 +293,67 @@ window.addEventListener('load', function () {
     });
     status.uvMeshes = n;
     applyLook();
+    if (await applyLightmap()) { SHADOW.strength = BAKED.sun; SHADOW.lean = BAKED.lean; FILL.DirectionalLight = 0; FILL.PointLight = 0; scene.traverse(o => { if (o.isLight && o.userData.visualDimmed && !o.castShadow && o.userData.legacyIntensity !== undefined && FILL[o.type] !== undefined) o.intensity = 0; }); }
     setupShadows();
     setupFixtures();
     setTimeout(() => captureInterior(2), 400);      // after the first frames, so shadow maps and textures are on the GPU
     if (typeof log === 'function') log(`🧱 [비주얼] 건물 부재 ${n}개에 UV 생성 + 표면 텍스처 적용 (${Object.keys(sets).filter(k => sets[k]).join(', ')})`);
+  }
+
+  // ------------------------------------------------------------------ 2b. baked lighting (tools/bake_lightmap.mjs)
+  /**
+   * The building's light (every fixture, soft shadows, two bounces, door daylight) is precomputed into one
+   * texture. With it the real-time area lights are not needed at all: the building is lit by the bake, and
+   * machines / placed objects by the captured interior plus one straight-down shadow light.
+   * A part whose vertex count differs from the bake (model regenerated without re-baking) keeps real-time light.
+   */
+  const BAKED = { gain: 0.9,sun: 2.0, lean: [2600, -1900], objectEnv: 1.0, shadowOpacity: 0.5 };
+  /** Baked surfaces take their diffuse light from the lightmap only (it already holds lamps, bounces and daylight); reflections still come from the room capture. */
+  function bakedOnly(m) {
+    if (m.userData.bakedPatched) return;
+    m.userData.bakedPatched = true;
+    const NL = String.fromCharCode(10);
+    m.onBeforeCompile = sh => {
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <lights_fragment_maps>', ['#include <lights_fragment_maps>', '#if defined( RE_IndirectDiffuse )', 'iblIrradiance = vec3( 0.0 );', '#endif'].join(NL))
+        .replace('#include <lights_fragment_end>', ['#include <lights_fragment_end>', 'reflectedLight.directDiffuse = vec3( 0.0 );', 'reflectedLight.directSpecular *= 0.25;'].join(NL));
+    };
+    m.customProgramCacheKey = () => 'baked-only';
+  }
+  /** Machines and placed objects still need shadows on the baked floor: an invisible plane that only shows shadow. */
+  function addShadowCatcher() {
+    const box = new THREE.Box3().setFromObject(factoryMeshGroup), c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3());
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(sz.x, sz.y), new THREE.ShadowMaterial({ opacity: BAKED.shadowOpacity, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    mesh.position.set(c.x, c.y, 3); mesh.receiveShadow = true; mesh.name = 'Baked_Shadow_Catcher'; mesh.renderOrder = 2;
+    mesh.raycast = function () {};                       // never selectable
+    scene.add(mesh);
+  }
+  async function applyLightmap() {
+    try {
+      const meta = await fetch('/assets/lightmap/lightmap.json', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null));
+      if (!meta || !meta.parts) return false;
+      const v = '?v=' + encodeURIComponent(meta.generatedAt || '');
+      const uv = new Float32Array(await fetch('/assets/lightmap/lightmap_uv.bin' + v).then(r => r.arrayBuffer()));
+      const tex = await new Promise((res, rej) => texLoader.load('/assets/lightmap/lightmap.png' + v, res, undefined, rej));
+      tex.colorSpace = THREE.SRGBColorSpace; tex.channel = 1;
+      tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;   // mipmaps would bleed between charts
+      let n = 0, skipped = 0;
+      factoryMeshGroup.traverse(o => {
+        if (!o.isMesh || !o.geometry || !o.material || Array.isArray(o.material)) return;
+        const e = meta.parts[o.name], pos = o.geometry.attributes.position;
+        if (!e) return;
+        if (!pos || pos.count !== e[1] || o.geometry.index) { skipped++; return; }
+        o.geometry.setAttribute('uv1', new THREE.BufferAttribute(uv.subarray(e[0], e[0] + e[1] * 2), 2));
+        const m = o.material;
+        m.lightMap = tex; m.lightMapIntensity = meta.maxE * BAKED.gain;
+        if (m.isMeshStandardMaterial) bakedOnly(m);
+        m.needsUpdate = true; o.userData.baked = true; n++;
+      });
+      if (n) addShadowCatcher();
+      status.baked = { parts: n, skipped, size: meta.size, texelMm: meta.texelMm, bounces: meta.bounces, at: meta.generatedAt };
+      if (typeof log === 'function') log('🔥 [비주얼] 구운 조명(라이트맵) 적용: 부재 ' + n + '개, ' + meta.size[0] + '×' + meta.size[1] + ' px, 반사 ' + meta.bounces + '회');
+      return n > 0;
+    } catch (e) { console.warn('[visual] no baked lighting:', e); return false; }
   }
 
   // ------------------------------------------------------------------ 3. ambient occlusion + AA
