@@ -35,8 +35,6 @@ npm test
 | 8f28632 | 트윈 1~4단계 엔진: 가감속 시간 모델, 설비 프로파일·보정, 생산량 계산, 실기계 수신(`/api/ingest`, MTConnect), 사이클 기록, 모의 기계. **화면 연결은 아직** (v6) |
 | 73efba7 | three.js r128 → 0.187(로컬 제공, CDN 제거), HDRI 조명, 건물 UV + 표면 텍스처, AO, 건물 glTF 내보내기, 셰이딩 메뉴 버그 수정 (v6) |
 
-알려진 문제(이번 작업 전부터): 상단 툴바 폭이 약 2050 px라 1600 px 화면에서는 오른쪽 버튼(저장·CAD 모델링 창·Zen·패널)이 화면 밖으로 잘립니다.
-
 `scene_layout.json`에 `building: { removed, moved, clones }` 필드가 새로 생깁니다. 이전 형식 파일도 그대로 읽힙니다.
 
 v6부터 `npm install`이 three.js 0.187을 받습니다(전에는 CDN). 텍스처·HDRI는 `assets/`에 있고 설명은 `assets/README.md`(Megascans로 교체하는 방법·받을 목록 포함), 전체 계획은 `docs/DIGITAL_TWIN_PLAN_2026-11-09.md`.
