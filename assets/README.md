@@ -49,20 +49,40 @@ Fab 로그인이 필요해서 Claude가 대신 받을 수 없었습니다. **Epi
    - 노멀이 DirectX 방식이면 초록 채널을 뒤집어야 합니다(같이 요청).
 3. `surfaces/manifest.json`에서 해당 슬롯의 `"set"`을 새 폴더 이름으로 바꾸고 새로고침.
 
-### 받을 목록
+### 받을 목록 (2026-11-10 수정 — 건물 내부 마감만, 소품 없음)
 
-| 우선 | Fab 검색어 (Quixel Megascans 안에서) | 종류 | 넣을 슬롯 | 비고 |
+목표는 **공장 내부 인테리어(바닥·벽·천장·철골·계단)의 재현**입니다. 팔레트·드럼통·상자 같은 소품은 받지 않습니다.
+(이전 목록에 소품 줄이 있었던 것은 잘못이었고 지웠습니다.)
+
+검색어는 Fab에서 Quixel Megascans 판매자 안에서 쓰는 말입니다. Claude가 Fab에 로그인해 확인한 이름이 아니라서,
+**정확히 같은 이름이 없으면 "고르는 기준"에 맞는 것**을 고르면 됩니다. 종류는 모두 Surface(머티리얼) 또는 Decal입니다.
+
+| 우선 | 어디에 쓰나 | Fab 검색어 | 고르는 기준 (현장 영상 기준) | 넣을 슬롯 |
 |---|---|---|---|---|
-| 1 | `Industrial Concrete Floor` 또는 `Dusty Concrete Floor` | 머티리얼 | `floor` | 화면의 절반이 바닥이라 효과가 가장 큼 |
-| 1 | `Corrugated Metal` (Sheet / Panel) | 머티리얼 | `cladding` | 깨끗한 은회색. 녹이 심한 것은 피함 |
-| 2 | `Painted Wall` 또는 `Plaster Wall` (white, clean) | 머티리얼 | `interior_walls` | 지금 것은 약간 회색빛 |
-| 2 | `Plywood` | 머티리얼 | `wood` | |
-| 2 | `Metal Tread Plate` / `Diamond Plate` | 머티리얼 | `tread_plate` | 계단 |
-| 3 | `Painted Metal` / `Steel Beam` (grey or white paint) | 머티리얼 | 새 슬롯 `steel` | 기둥·보·중도리용. 슬롯 추가는 요청하면 넣음 |
-| 3 | `Floor Stain`, `Oil Leak`, `Tire Marks` | 데칼 | (다음 단계) | 바닥의 깨끗한 CG 느낌 제거. 데칼 표시 기능 구현 필요 |
-| 3 | `Wooden Pallet`, `Metal Barrel`, `Cardboard Box`, `Traffic Cone` | 3D | (다음 단계) | FBX/glTF로 받아 설비·비품 라이브러리에 추가 |
+| 1 | 바닥 | `Dirty Concrete Floor`, `Stained Concrete`, `Worn Concrete Floor` | 밝은 회색, 광택 낮음, 얼룩과 닳은 자국이 있는 것. 타일 무늬나 깨진 콘크리트는 제외 | `floor` |
+| 1 | 벽 하단 골판 | `Painted Corrugated Metal`, `Metal Siding`, `Ribbed Metal Panel` | 흰색이나 옅은 색 도장, 넓은 리브(간격 약 30 cm). 녹슨 것 제외 | `wainscot` |
+| 1 | 벽 상부·지붕 안쪽 단열 마감 | `White Plastic Sheet`, `Vinyl`, `Tarp White`, `Insulation` | 흰색~크림색, 약간 주름진 비닐·방수포 느낌 | `wall_upper`, `roof_liner` (지금은 단색) |
+| 2 | 철골 (기둥·서까래·중도리·띠장) | `Painted Metal`, `Painted Steel` | 무광 도장면, 살짝 벗겨짐·먼지. 색은 적갈색으로 덧입히므로 색은 상관없음 | `steel_frame` (지금은 단색) |
+| 2 | 계단·난간 (검은 철) | `Black Painted Metal`, `Powder Coated Metal` | 검은 무광, 가장자리 마모 | `stair_black` |
+| 2 | 계단 디딤판 | `Diamond Plate`, `Metal Tread Plate` | 검정 또는 짙은 회색 | `tread_plate` |
+| 2 | 계단 옆판·화장실 벽·2층 사무실 벽 | `Painted Drywall`, `Painted Plaster Wall` | 흰색~크림색, 매끈함 | `interior_walls` |
+| 3 | 롤업 도어·팬·루버·히터 | `Galvanized Metal`, `Brushed Aluminum` | 은회색 아연도금 | `rollup`, `vents` |
+| 3 | 메자닌 난간 (목재) | `Rough Wood Plank`, `Lumber`, `Plywood` | 밝은 원목, 거친 면 | `wood` |
+| 3 | 메자닌 아래 철망 | `Chain Link Fence` | 투명 배경(Opacity 맵)이 있는 것 | 새 슬롯 `cage` |
 
-Megascans에는 CNC 라우터·선반 같은 **기계 모델이 없습니다.** 기계는 제조사 CAD(STEP)나 Fab의 다른 판매자 모델이 필요합니다.
+**데칼(표면 위의 자국 — 소품이 아니라 건물 표면의 일부):**
+
+| 우선 | 어디에 | Fab 검색어 | 고르는 기준 |
+|---|---|---|---|
+| 1 | 바닥 | `Tire Marks`, `Floor Stain`, `Dirt Decal`, `Concrete Crack` | 검은 타이어 자국, 갈색·검은 얼룩, 가는 균열 |
+| 2 | 벽 상부 | `Water Leak`, `Leak Stain`, `Rust Drip` | 세로로 흘러내린 갈색 물 자국 |
+
+**받는 설정:** 품질 2K, 텍스처 JPG, 맵은 Base Color · Normal(**OpenGL**) · Roughness · AO (금속이면 Metalness, 철망·데칼은 Opacity도).
+받은 폴더는 그대로 다운로드 폴더(Downloads) 에 두고 알려 주면 Claude가 형식을 맞춰 넣습니다.
+
+**라이선스:** Megascans 원본은 공개 저장소에 올리지 않습니다(재배포 조항 미확인). 로컬과 Drive에만 둡니다.
+
+**받지 않는 것:** 3D 소품(팔레트, 드럼통, 상자, 콘, 선반 등), HDRI(이미 있음), 기계 모델(Megascans에 없음).
 
 ## 건물 glTF
 
