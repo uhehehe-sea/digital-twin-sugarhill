@@ -49,7 +49,7 @@ const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.mjs': 'application/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8', '.wasm': 'application/wasm', '.png': 'image/png', '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg', '.ktx2': 'image/ktx2', '.mdl': 'text/plain; charset=utf-8', '.usd': 'application/octet-stream',
-  '.obj': 'text/plain; charset=utf-8', '.py': 'text/x-python; charset=utf-8', '.step': 'application/step'
+  '.obj': 'text/plain; charset=utf-8', '.hdr': 'application/octet-stream', '.exr': 'application/octet-stream', '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream', '.webp': 'image/webp', '.py': 'text/x-python; charset=utf-8', '.step': 'application/step'
 };
 const mimeOf = (file, fallback = 'application/octet-stream') => MIME[path.extname(file).toLowerCase()] || fallback;
 
@@ -96,7 +96,7 @@ route(['/polymer', '/polymer/', '/cam_nesting', '/polymer_auto_cam_nesting_studi
 route(['/monitor', '/monitor/'], { file: V('monitor.html') });
 route(['/v1', '/index.html'], { file: V('index.html') }); // original v1 viewer, kept for comparison
 route(['/splat.html'], { file: V('splat.html') });
-for (const js of ['editor_v2.js', 'editor.js', 'twin_live.js', 'twin_nest.js']) route(['/' + js], { file: V(js) });
+for (const js of ['editor_v2.js', 'editor.js', 'twin_live.js', 'twin_nest.js', 'three_global.js', 'visual_upgrade.js']) route(['/' + js], { file: V(js) });
 route(['/demo'], { file: B('dist/sugarhill_twin_demo.html'), notFound: 'Run: node tools/build_standalone.mjs' });
 route(['/model.obj'], { file: () => (fs.existsSync(precisionObj) ? precisionObj : unifiedObj), notFound: 'Model not found' });
 route(['/model_unified.obj'], { file: unifiedObj, notFound: 'Model not found' });
@@ -117,7 +117,10 @@ const PREFIX = [
   { prefix: '/lib/', dir: V('lib'), only: /\.js$/ }, // pure modules, also required by the Node tests
   { prefix: '/libs/', dir: V('libs'), type: f => (f.endsWith('.wasm') ? 'application/wasm' : 'application/javascript') },
   { prefix: '/renders_cycles/', dir: renderDir, type: () => 'image/png' },
-  { prefix: '/assets/', dir: B('nvidia_isaac_assets'), cache: 'public, max-age=3600', notFound: 'Asset not found' }
+  // three.js is served from node_modules so the viewer works with no internet connection
+  { prefix: '/vendor/three/', dir: B('node_modules/three'), only: /\.(js|wasm)$/, cache: 'public, max-age=3600' },
+  // HDRI, surface textures, glTF models (assets/README.md says what goes where)
+  { prefix: '/assets/', dir: B('assets'), cache: 'public, max-age=3600', notFound: 'Asset not found' }
 ];
 
 // ---------------------------------------------------------------------------

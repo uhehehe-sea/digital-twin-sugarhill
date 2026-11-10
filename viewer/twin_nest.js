@@ -522,8 +522,11 @@
       const c = d >= 0.999 ? THRU_RGB : CUT_RGB, s = d >= 0.999 ? 1 : 0.35 + 0.65 * d;
       for (let j = 0; j < 3; j++) ca[k * 3 + j] = SHEET_RGB[j] + (c[j] - SHEET_RGB[j]) * s;
     }
-    attr.updateRange.offset = colA.updateRange.offset = v.dirtyMin * 3;
-    attr.updateRange.count = colA.updateRange.count = (v.dirtyMax - v.dirtyMin + 1) * 3;
+    const start = v.dirtyMin * 3, count = (v.dirtyMax - v.dirtyMin + 1) * 3;
+    for (const at of [attr, colA]) {
+      if (at.addUpdateRange) { at.clearUpdateRanges(); at.addUpdateRange(start, count); }   // three r159+
+      else { at.updateRange.offset = start; at.updateRange.count = count; }
+    }
     attr.needsUpdate = true; colA.needsUpdate = true;
     v.dirtyMin = Infinity; v.dirtyMax = -Infinity;
     v.lastFlush = now;

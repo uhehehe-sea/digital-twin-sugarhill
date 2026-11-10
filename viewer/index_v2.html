@@ -690,17 +690,10 @@
   </style>
 
   <!-- Three.js + OrbitControls + TransformControls + OBJLoader + PostProcessing -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/OBJLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Reflector.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+  <!-- three.js (current release) is loaded from node_modules through /vendor/three/ — no CDN, works offline.
+       three_global.js exposes it as the global THREE the viewer scripts use and absorbs API changes since r128. -->
+  <script type="importmap">{ "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/" } }</script>
+  <script type="module" src="three_global.js"></script>
 </head>
 
 <body class="sidebar-open">
@@ -796,6 +789,11 @@
             <button class="btn-tb" onclick="setExteriorWallOpacity(0.40, true)" title="40%">반투명</button>
             <button class="btn-tb" onclick="setExteriorWallOpacity(1.0, true)" title="100%">불투명</button>
           </div>
+          <label class="tb-pop-row" title="앰비언트 오클루전 + 안티에일리어싱. 그래픽 카드가 약하면 끄세요">
+            <span>고화질</span>
+            <input type="checkbox" id="chk-visual-hq" checked style="accent-color:var(--accent-blue);">
+            <span>음영(AO) · 계단 현상 제거</span>
+          </label>
           <div class="tb-pop-row" title="WASD 이동 속도 ( [ / ] 키로도 조절 )">
             <span>카메라 속도</span>
             <input type="range" id="slider-cam-speed" min="0.2" max="5.0" step="0.1" value="1.0" oninput="setCameraSpeedMultiplier(this.value)" style="flex:1; accent-color:#38bdf8; cursor:pointer;">
@@ -1663,16 +1661,17 @@
       if (e.key === 'Escape') document.querySelectorAll('.tb-menu.open').forEach(m => m.classList.remove('open'));
     });
   </script>
-  <script src="lib/sketch_core.js"></script>
-  <script src="lib/twin_runtime.js"></script>
-  <script src="lib/machine_kinematics.js"></script>
-  <script src="lib/nesting.js"></script>
-  <script src="lib/nc_program.js"></script>
-  <script src="lib/sheet_carve.js"></script>
-  <script src="lib/dxf_import.js"></script>
-  <script src="editor_v2.js"></script>
-  <script src="twin_live.js"></script>
-  <script src="twin_nest.js"></script>
-  <script src="lib/i18n_toggle.js"></script>
+  <script defer src="lib/sketch_core.js"></script>
+  <script defer src="lib/twin_runtime.js"></script>
+  <script defer src="lib/machine_kinematics.js"></script>
+  <script defer src="lib/nesting.js"></script>
+  <script defer src="lib/nc_program.js"></script>
+  <script defer src="lib/sheet_carve.js"></script>
+  <script defer src="lib/dxf_import.js"></script>
+  <script defer src="editor_v2.js"></script>
+  <script defer src="visual_upgrade.js"></script>
+  <script defer src="twin_live.js"></script>
+  <script defer src="twin_nest.js"></script>
+  <script defer src="lib/i18n_toggle.js"></script>
 </body>
 </html>

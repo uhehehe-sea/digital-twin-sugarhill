@@ -262,3 +262,34 @@
 - `DEFAULT_BUILDING_REMOVED`: 라운지 부스 2개(주황 소파 + 회색 칸막이 벽, 10개 부재). 저장된 `building` 상태가 있으면 그쪽이 우선.
 - 브라우저 확인: 배치 2개, 생산 패널 설비 카드 2개, 부스 부재 제거·라운지 테이블은 유지.
 - 기본값은 `scene_layout.json`에 저장된 배치가 없을 때만 쓰입니다. 화면에서 지우고 "저장"하면 서버 폴더의 `scene_layout.json`에 기록되어 그 서버를 여는 모든 사람에게 같은 화면이 보이고, zip/git에 넣으면 뮤즈에게도 전달됩니다.
+
+### 2026-11-09 추가 4 — UI 정리 · 트윈 1~4단계 엔진 · three.js 최신화 · 비주얼 (Claude Code, Fable)
+기획서 `docs/DIGITAL_TWIN_PLAN_2026-11-09.md`의 ①③④와 ②의 엔진 부분.
+
+**UI 정리** (커밋 a9487c9)
+- 상단 툴바 약 2,050 px → 1,366 px 안에 전부 표시. `보기 ▾`(셰이딩·외벽 투명도·카메라 속도·고화질), `더보기 ▾`(Zen·패널·Cycles) 메뉴.
+- 사이드바 탭 5개 → 3개: 배치·생산 / 만들기 / 설비·신호. 예전 탭 이름(`gates`, `plc`, `layout`)으로 부르는 코드는 새 탭으로 연결.
+- 중복 제거: 툴바 게이트 버튼, 속성 탭 게이트 줄, 툴바 CAD 버튼, 작업 메뉴 드롭다운. 표기 수정: 복제 (Shift+D), 셰이딩·라이브러리 이름.
+- 셰이딩 메뉴 버그 수정: 와이어프레임/X-Ray에서 "사실적"으로 돌아와도 풀리지 않던 문제(토글을 그대로 호출하던 구조) → 항상 기본 상태에서 시작.
+
+**트윈 1~4단계 엔진** (커밋 8f28632, 화면 연결은 다음 작업)
+- 1단계 `nc_program.timing(segs, kin)`: 가감속 사다리꼴 + 모서리 각도 감속(junction deviation) + 원호 구심 가속 한계 + 보정 계수. `load(text, kin)`은 `idealS`(이송만)와 `totalS`를 함께 돌려줌. kin 없이 부르면 예전과 동일.
+- `lib/machine_profile.js`: 설비별 프로파일(기종·컨트롤러·접속·가속도·급속·로딩/언로딩·공구 수명), 검증, 실측 보정(`calibrate`).
+- 2단계 `lib/capacity.js`: 수량 → 장수·순가공/총 시간·작업일·완료일, OEE, 병렬 설비, what-if.
+- 3단계 `lib/twin_real.js` + 서버: 실기계 표본 정규화, MTConnect `/current` 해석·폴링, 사이클 추적, `/api/machines` `/api/ingest` `/api/real` `/api/cycles`, WebSocket `real`/`cycle` 메시지. 쓰기는 없음(읽기 전용). 비-루프백은 `TWIN_INGEST_TOKEN` 필요.
+- 4단계: `planVsActual`(지연 판정·완료 예측), `summarize`(실측/예측 중앙값 → 보정 계수 제안), `toolWear`.
+- `tools/mock_machine.mjs`: G-code를 자기만의 가감속으로 "실행"해 `/api/ingest`로 보고하는 모의 기계.
+- 테스트 71 → 92 (시간 모델 8, 계산기 5, 실데이터 5, 서버 실데이터 3). 모의 기계 종단 테스트: 기록된 사이클 = 기계의 실제 시간(±0.5 s), 제안 계수 = 실제/예측 비.
+
+**three.js r128 → 0.187 + 비주얼**
+- CDN 스크립트 11개 제거 → `node_modules/three`를 `/vendor/three/`로 제공(importmap). `viewer/three_global.js`가 전역 `THREE`를 만들고 r128 이후 변경(색 공간, 조명 단위, 기즈모, 버퍼 갱신)을 한곳에서 흡수. 렌더러는 WebGLRenderer 유지(WebGPU 전환은 커스텀 셰이더 재작성이 필요해 보류).
+- `viewer/visual_upgrade.js`: 실제 HDRI(IBL) + AgX 톤매핑, 건물 부재 UV 생성(박스 투영, 미터 단위) + 표면 텍스처(`assets/surfaces/manifest.json`), GTAO 앰비언트 오클루전 + SMAA. `보기 ▾ → 고화질` 체크로 끌 수 있음.
+- `assets/`: HDRI 1개 + 표면 5세트(Poly Haven, CC0 — Megascans는 Fab 로그인이 없어 임시 대체. 교체 방법과 받을 목록은 `assets/README.md`).
+- `tools/build_building_gltf.mjs` → `assets/models/factory_building.glb`(226부재, 미터·Y-up, UV 포함). Blender 베이크·언리얼 임포트용.
+- 브라우저 확인(r187): 선택·기즈모, 셰이딩 5종 왕복, 고화질 on/off, 스케치 → 배치 → 라우터 가공(절삭 정점 1,866개 진행) 모두 콘솔 오류 없음.
+
+**하지 않은 것 / 한계**
+- 조명 "굽기"(라이트맵)는 Blender가 필요합니다(이 PC에 없음). 지금은 실시간 AO로 대신합니다.
+- 설비 모델은 여전히 상자·원통 조합입니다(기계 CAD 필요).
+- 1~4단계는 계산 엔진·서버까지입니다. 생산 패널의 프로파일 입력, 계산기 화면, 계획 대 실제 표시는 다음 작업.
+- /v1, /splat.html, /monitor는 예전 방식 그대로.

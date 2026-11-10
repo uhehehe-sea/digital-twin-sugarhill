@@ -1868,7 +1868,8 @@ function init3D() {
       syncInspectorFromSelected();
     }
   });
-  scene.add(transformControl);
+  // three r169+: TransformControls is a controller, its visible gizmo is getHelper()
+  scene.add(transformControl.getHelper ? transformControl.getHelper() : transformControl);
 
   // =========================================================================
   // 물리 기반 다중 조명 시스템 (Hemisphere + Sun Shadow + 실내 High-Bay 포인트 광원)
@@ -2965,25 +2966,23 @@ function switchRightSidebarTab(tabName) {
 window.switchRightSidebarTab = switchRightSidebarTab;
 
 function switchViewportPreset(preset) {
-  if (preset === 'pbr') {
-    isPhotorealPBR = true;
-    isCadEdgesVisible = false;
-    isWireframeVisible = false;
-    isXRay = false;
-  } else if (preset === 'cad_edges') {
-    isCadEdgesVisible = true;
-  } else if (preset === 'xray') {
-    toggleXRay();
-  } else if (preset === 'wireframe') {
-    toggleWireframe();
-  } else if (preset === 'splat') {
-    toggleGaussianSplats();
-  }
+  // The mode functions below are on/off flips. Return to the plain state first so every preset
+  // starts clean (before: going wireframe → 사실적 left everything in wireframe).
+  if (isWireframe) toggleWireframe();
+  if (isXRay) toggleXRay();
+  if (typeof isSplatVisible !== 'undefined' && isSplatVisible) toggleGaussianSplats();
+  isPhotorealPBR = true;
+  isWireframeVisible = false;
+  isCadEdgesVisible = preset === 'cad_edges';
+  if (preset === 'xray') toggleXRay();
+  else if (preset === 'wireframe') toggleWireframe();
+  else if (preset === 'splat') toggleGaussianSplats();
 
-  // Update Three.js materials
+  // Update Three.js materials (textured surfaces from visual_upgrade.js keep their own reflection strength)
   scene.traverse(c => {
     if (c.isMesh && c.material) {
-      if ('envMapIntensity' in c.material) c.material.envMapIntensity = isPhotorealPBR ? 1.4 : 0.3;
+      const textured = typeof c.material.name === 'string' && c.material.name.startsWith('surface:');
+      if ('envMapIntensity' in c.material && !textured) c.material.envMapIntensity = 1.0;
       if (c.userData.isCadEdge) c.visible = isCadEdgesVisible;
     }
   });
@@ -3595,7 +3594,8 @@ function animate() {
   }
 
   try {
-    renderer.render(scene, camera);
+    // visual_upgrade.js renders through ambient occlusion + anti-aliasing when quality is 'high'
+    if (window.twinVisual) window.twinVisual.render(); else renderer.render(scene, camera);
   } catch (renderErr) {
     console.error('Critical WebGL render error:', renderErr);
   }
