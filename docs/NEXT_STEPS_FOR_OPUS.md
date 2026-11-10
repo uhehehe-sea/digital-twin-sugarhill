@@ -46,6 +46,10 @@ npm test             # 92개 통과가 기준
 
 ## 3. 할 일 (우선순위 순)
 
+### 0. 건물 치수 (사용자 답 대기)
+현장 사진을 받았고 색·재질·빈 건물은 반영했습니다(`docs/SITE_REFERENCE_2026-11-09.md`). 치수는 추정이 서로 달라 보류했습니다.
+사용자가 줄자 실측 1개나 영상 원본을 주면: 파라메트릭 건물 생성기(`tools/`)를 만들어 OBJ를 다시 만들고, `editor_v2.js`의 고정 좌표(16000/24000, 카메라 시점, 게이트·조명·기본 설비 위치)를 건물 크기에서 계산하도록 바꿉니다. 영상 프레임 추출 도구(ffmpeg/OpenCV)는 설치 허락을 받아야 합니다.
+
 ### A. 트윈 1~4단계를 화면에 연결 — **가장 먼저** (엔진은 다 있음)
 
 엔진: `viewer/lib/nc_program.js`(`timing(segs, kin)`, `load(text, kin)`), `machine_profile.js`, `capacity.js`, `twin_real.js`, 서버 `/api/machines` `/api/ingest` `/api/real` `/api/cycles`, WebSocket `{type:'real'|'cycle'}`, `tools/mock_machine.mjs`.

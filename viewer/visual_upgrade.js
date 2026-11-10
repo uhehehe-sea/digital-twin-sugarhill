@@ -101,7 +101,7 @@ window.addEventListener('load', function () {
    * bounced once off floor and walls — a cheap stand-in for global illumination, like Unreal's
    * sky-light / reflection captures. Static: call twinVisual.recapture() after big layout changes.
    */
-  const FIXTURE = { color: 0xfff1df, irradiance: 0.6, emissive: 5 };   // ≈4500 K LED; irradiance = light arriving on the floor right under one lamp
+  const FIXTURE = { color: 0xfff1df, irradiance: 0.6, emissive: 5 };   // irradiance = light arriving on the floor right under one lamp; colour is overridden by manifest.lighting.fixtureColor
   let hdrTex = null;
   function setupFixtures() {
     const box = new THREE.Box3(), size = new THREE.Vector3(), c = new THREE.Vector3();
@@ -138,7 +138,8 @@ window.addEventListener('load', function () {
     scene.traverse(o => {                                                     // editor helpers must not end up in the lighting
       if (o.visible && (o.isTransformControlsRoot || o.isLine || o.isPoints || o.isSprite || o.userData.isCadEdge || o.isBoxHelper || o.isGridHelper)) { o.visible = false; hidden.push(o); }
     });
-    if (hdrTex) { scene.background = hdrTex; scene.backgroundRotation.set(Math.PI / 2, 0, 0); }   // the outside, seen through doors and translucent cladding
+    if (hdrTex) { scene.background = hdrTex; scene.backgroundRotation.set(Math.PI / 2, 0, 0); }   // the outside, seen through door openings
+    const shellWas = shellApplied; setShellOpacity(1);                                             // light bounces off the real roof liner and walls
     scene.fog = null;
     const pm = new THREE.PMREMGenerator(renderer);
     try {
@@ -155,6 +156,7 @@ window.addEventListener('load', function () {
       status.interiorCapture = { passes: passes || 1, at: [Math.round(cubeCam.position.x), Math.round(cubeCam.position.y), Math.round(cubeCam.position.z)] };
     } finally {
       for (const o of hidden) o.visible = true;
+      shellApplied = -1;                                                                           // updateShell() restores the right value next frame
       scene.background = prev.bg; scene.backgroundRotation.copy(prev.rot); scene.fog = prev.fog;
       scene.remove(cubeCam); rt.dispose(); pm.dispose();
     }
@@ -213,6 +215,21 @@ window.addEventListener('load', function () {
     return Promise.all([tex('diff.jpg', true), tex('nor.jpg', false), tex('arm.jpg', false)]).then(([diff, nor, arm]) => (diff ? { diff, nor, arm } : null));
   }
 
+  /** A slot with "paint" instead of "set": plain painted surface (matte steel, drywall, insulation facing). */
+  function applyPaint(mesh, slot) {
+    const old = mesh.material;
+    const mat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(slot.paint), roughness: slot.roughness === undefined ? 0.7 : slot.roughness, metalness: slot.metalness || 0,
+      envMapIntensity: slot.envMapIntensity === undefined ? 1 : slot.envMapIntensity,
+      transparent: !!(old && old.transparent), opacity: old && old.opacity !== undefined ? old.opacity : 1,
+      side: old ? old.side : THREE.FrontSide, depthWrite: old ? old.depthWrite : true
+    });
+    mat.name = 'surface:paint:' + slot.id;
+    mesh.material = mat;
+    mesh.userData.surfaceSlot = 'paint:' + slot.id;
+    return true;
+  }
+
   function applySlot(mesh, slot, set) {
     if (!generateBoxUVs(mesh, slot.tileM || 2)) return false;
     const old = mesh.material;
@@ -226,6 +243,7 @@ window.addEventListener('load', function () {
       side: old ? old.side : THREE.FrontSide, depthWrite: old ? old.depthWrite : true
     });
     if (set.nor) mat.normalScale.set(slot.normalScale || 1, slot.normalScale || 1);
+    if (slot.brightness) mat.color.multiplyScalar(slot.brightness);   // texture darker/lighter than the real surface
     mat.name = 'surface:' + slot.set;
     mesh.material = mat;
     mesh.userData.surfaceSlot = slot.set;
@@ -236,12 +254,13 @@ window.addEventListener('load', function () {
   async function applySurfaces(manifest) {
     const slots = Object.entries(manifest.slots || {}).map(([id, s]) => Object.assign({ id, re: new RegExp(s.match) }, s));
     const sets = {};
-    await Promise.all([...new Set(slots.map(s => s.set))].map(async n => { sets[n] = await loadSet(n); status.surfaces[n] = sets[n] ? 'loaded' : 'missing'; }));
+    await Promise.all([...new Set(slots.filter(s => s.set).map(s => s.set))].map(async n => { sets[n] = await loadSet(n); status.surfaces[n] = sets[n] ? 'loaded' : 'missing'; }));
     let n = 0;
     factoryMeshGroup.traverse(o => {
       if (!o.isMesh || !o.name || o.userData.surfaceSlot) return;
       const slot = slots.find(s => s.re.test(o.name));
-      if (slot && sets[slot.set] && applySlot(o, slot, sets[slot.set])) n++;
+      if (!slot) return;
+      if (slot.paint ? applyPaint(o, slot) : (sets[slot.set] && applySlot(o, slot, sets[slot.set]))) n++;
     });
     status.uvMeshes = n;
     applyLook();
@@ -282,8 +301,32 @@ window.addEventListener('load', function () {
     return c;
   }
 
+  // ------------------------------------------------------------------ 4. shell: solid from inside, see-through from outside
+  /**
+   * The outer skin (walls, roof) is see-through so the overview from outside shows the interior.
+   * From inside that made the white roof liner and cream walls look dark (the background shows
+   * through). Rule: camera inside the building → skin opaque; outside → the 외벽 투명도 slider value.
+   */
+  let shellBox = null, shellApplied = -1;
+  function setShellOpacity(v) {
+    if (typeof exteriorCladdingMeshes === 'undefined') return;
+    exteriorCladdingMeshes.forEach(m => {
+      if (!m || !m.material) return;
+      m.material.transparent = v < 0.98; m.material.opacity = v; m.material.depthWrite = v > 0.55; m.material.needsUpdate = true;
+    });
+    shellApplied = v;
+  }
+  function updateShell() {
+    if (typeof factoryMeshGroup === 'undefined' || !factoryMeshGroup || typeof exteriorWallOpacity === 'undefined') return;
+    if (!shellBox) { const b = new THREE.Box3().setFromObject(factoryMeshGroup); if (b.isEmpty()) return; shellBox = b; }
+    const p = camera.position, inside = p.x > shellBox.min.x && p.x < shellBox.max.x && p.y > shellBox.min.y && p.y < shellBox.max.y && p.z < shellBox.max.z;
+    const want = inside ? 1 : exteriorWallOpacity;
+    if (Math.abs(want - shellApplied) > 1e-3) { setShellOpacity(want); status.shell = inside ? 'inside: opaque' : 'outside: ' + Math.round(want * 100) + '%'; }
+  }
+
   const _size = new THREE.Vector2();
   function render() {
+    updateShell();
     if (quality !== 'high') return renderer.render(scene, camera);
     if (!composerHQ) { try { composerHQ = buildComposer(); status.ao = true; } catch (e) { console.warn('[visual] AO unavailable, basic rendering:', e); quality = 'basic'; return renderer.render(scene, camera); } }
     renderer.getSize(_size);
@@ -309,6 +352,10 @@ window.addEventListener('load', function () {
 
   fetch('/assets/surfaces/manifest.json', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(manifest => {
     if (!manifest) { status.hdri = 'no manifest'; return; }
+    if (manifest.lighting) {
+      if (manifest.lighting.fixtureColor) FIXTURE.color = new THREE.Color(manifest.lighting.fixtureColor).getHex();
+      if (manifest.lighting.fixtureIrradiance) FIXTURE.irradiance = manifest.lighting.fixtureIrradiance;
+    }
     if (manifest.hdri) loadHdri(manifest.hdri);
     // the building arrives asynchronously (OBJ); wait until its parts are registered
     const wait = setInterval(() => {

@@ -1472,12 +1472,11 @@ const DEFAULT_SCENE_PLACEMENTS = [
   // 필요하면 콘텐츠 드로어(Ctrl+Space)에서 다시 끌어다 놓을 수 있습니다.
 ];
 
-// 건물 OBJ에서 기본으로 빼는 부재 — 라운지 부스 2개(주황 소파 + 회색 칸막이 벽). 저장된 건물 편집
-// 상태(scene_layout.json의 building)가 있으면 그것이 우선합니다.
-const DEFAULT_BUILDING_REMOVED = [
-  'Lounge_Booth1_GreyShell_Back', 'Lounge_Booth1_GreyShell_L', 'Lounge_Booth1_GreyShell_R', 'Lounge_Booth1_OrangeSeat', 'Lounge_Booth1_OrangeBack',
-  'Lounge_Booth2_GreyShell_Back', 'Lounge_Booth2_GreyShell_L', 'Lounge_Booth2_GreyShell_R', 'Lounge_Booth2_OrangeSeat', 'Lounge_Booth2_OrangeBack'
-];
+// 기본 화면의 건물은 "텅 빈 공간"입니다 (2026-11-09 사용자 요청): 바닥·벽·지붕·철골·천장등·문·환기구와
+// 노란 바닥선만 남기고, 메자닌·계단·화장실·사무실 칸막이·케이지·라운지·전기반 등 내부 구조물은 뺍니다.
+// 아래 정규식에 맞는 이름만 남습니다. 저장된 건물 편집 상태(scene_layout.json의 building)가 있으면 그것이 우선합니다.
+const DEFAULT_SHELL_KEEP = /^(Floor_Slab|Joint_|Col_|Roof_|Girt_|Wall_|LinerPanel_|HighBay_|SafetyLine_|Floor_Stop_Decal|Door_Sectional|Door_Rollup|Exit_|Fire_Extinguisher|Shutter_Fan|WallVent_|Window_Frame|Main_Glass_Entry_Frame|Ceiling_Gas_UnitHeater)/;
+const DEFAULT_BUILDING_REMOVED = 'DEFAULT_EMPTY_SHELL';   // resolved in applyBuildingState once the part list is known
 // v1 catalog entries restored verbatim from editor_v1_backup.js.
 // The v2 upgrade replaced ASSET_CATALOG and dropped these, so every DEFAULT_SCENE_PLACEMENTS
 // item (Seal-Jet CNC, EOS / TRUMPF metal printers, worktable, office set ...) failed to spawn.
@@ -2499,7 +2498,8 @@ function applyBuildingState(st) {
   if (!factoryMeshGroup || !buildingOriginals.size) { pendingBuildingState = st || null; return; }
   st = st || {};
   if (isBuildingPart(selectedObject)) selectAssetObject(null);
-  const removed = new Set(st.removed || []), moved = st.moved || {};
+  const removedList = st.removed === 'DEFAULT_EMPTY_SHELL' ? [...buildingOriginals.keys()].filter(n => !DEFAULT_SHELL_KEEP.test(n)) : (st.removed || []);
+  const removed = new Set(removedList), moved = st.moved || {};
   buildingOriginals.forEach((o, name) => {
     if (removed.has(name)) { if (o.mesh.parent) o.mesh.parent.remove(o.mesh); return; }
     if (!o.mesh.parent) factoryMeshGroup.add(o.mesh);

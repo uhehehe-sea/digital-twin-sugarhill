@@ -1,11 +1,15 @@
 {
-  "_about": "Which texture set each building part gets. A set is a folder here with diff.jpg (colour, sRGB), nor.jpg (OpenGL normal map) and arm.jpg (R = ambient occlusion, G = roughness, B = metalness). 'match' is a regular expression on the part name from factory_precision.obj. tileM = real-world size of one texture repeat in metres. To use a Megascans surface: export it as these three files into a new folder and change 'set'.",
+  "_about": "Which surface each building part gets. First matching slot wins. A slot has either 'set' (a folder here with diff.jpg = colour sRGB, nor.jpg = OpenGL normal map, arm.jpg = R ambient occlusion / G roughness / B metalness; tileM = real-world size of one repeat in metres) or 'paint' (plain colour with roughness / metalness, no texture). 'match' is a regular expression on the part name from factory_precision.obj. Colours follow the site photos of 2026-11-09 (docs/SITE_REFERENCE_2026-11-09.md). To use a Megascans surface: export it as the three files into a new folder and change 'set'.",
   "hdri": "hdri/empty_warehouse_01_2k.hdr",
+  "lighting": { "fixtureColor": "#f2f6ff", "fixtureIrradiance": 0.6, "_note": "site: round high-bay LEDs, cool white (about 5000 K)" },
   "slots": {
-    "floor": { "set": "concrete_floor_worn_001", "match": "^(Floor_Slab|Mezzanine_Slab)", "tileM": 3, "tint": "#c4c8cc", "roughness": 0.55, "envMapIntensity": 1.0, "opaque": true },
-    "cladding": { "set": "corrugated_iron", "match": "^(Wall_|Roof_Gable_Cladding|LinerPanel_)", "tileM": 2, "tint": "#c3cad2", "metal": true, "envMapIntensity": 0.8 },
-    "interior_walls": { "set": "white_plaster_02", "match": "^(Stair_WhiteWall|Mezz_Upper_Wall|Restroom_Box|Office_Enclosed_Wall)", "tileM": 2.5, "tint": "#ffffff" },
+    "floor": { "set": "concrete_floor_worn_001", "match": "^(Floor_Slab|Mezzanine_Slab)", "tileM": 3, "tint": "#d9d8d3", "brightness": 1.9, "roughness": 0.6, "envMapIntensity": 1.0, "opaque": true },
+    "steel_frame": { "paint": "#3a211b", "match": "^(Col_|Roof_Purlin|Roof_Gable_Rafter|Girt_|Mezzanine_Beam|Mezzanine_Post|Mezz_Joist)", "roughness": 0.62, "metalness": 0.1, "envMapIntensity": 0.7 },
+    "roof_liner": { "paint": "#f3f3ef", "match": "^Roof_Gable_Cladding", "roughness": 0.9 },
+    "wall_upper": { "paint": "#ebe6d8", "match": "^Wall_", "roughness": 0.88 },
+    "wainscot": { "set": "corrugated_iron", "match": "^LinerPanel_", "tileM": 1.6, "tint": "#d6ebe5", "roughness": 0.7, "envMapIntensity": 0.6 },
+    "interior_walls": { "paint": "#eee9dc", "match": "^(Stair_WhiteWall|Mezz_Upper_Wall|Restroom_Box|Office_Enclosed_Wall)", "roughness": 0.86 },
     "wood": { "set": "plywood", "match": "^(Plywood_|Wood_Guardrail|Office_Door_Brown)", "tileM": 1.2, "tint": "#d9c4a3" },
-    "tread_plate": { "set": "metal_plate", "match": "^(Stair_BlackStep|Stair_BlackLanding_Deck)", "tileM": 0.8, "tint": "#5b6470", "metal": true }
+    "tread_plate": { "set": "metal_plate", "match": "^(Stair_BlackStep|Stair_BlackLanding_Deck)", "tileM": 0.8, "tint": "#3b3f45", "metal": true }
   }
 }

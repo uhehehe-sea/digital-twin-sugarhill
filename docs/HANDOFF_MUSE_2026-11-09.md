@@ -1,7 +1,7 @@
 # 뮤즈 전달 메모 — 2026-11-09 Claude Code 작업분
 
 ## 받는 파일
-`factory-digital-twin_claude_2026-11-09_v7.zip` — 저장소 전체 + **`.git` 기록 포함**(`node_modules/`, `dist/` 제외). 풀고 `npm install && npm test` → 92/92.
+`factory-digital-twin_claude_2026-11-09_v8.zip` — 저장소 전체 + **`.git` 기록 포함**(`node_modules/`, `dist/` 제외). 풀고 `npm install && npm test` → 92/92.
 같은 날짜에 여러 번 올릴 때는 `_v1`, `_v2`, `_v3` … 으로 구분합니다. **번호가 가장 큰 것이 최신**입니다. (v1·v2는 이름 규칙을 정하기 전에 같은 이름으로 덮어써서 Drive에 남아 있지 않습니다. 내용은 모두 최신 버전에 포함되어 있습니다.)
 
 ## 기준과 커밋
@@ -35,6 +35,7 @@ npm test
 | 8f28632 | 트윈 1~4단계 엔진: 가감속 시간 모델, 설비 프로파일·보정, 생산량 계산, 실기계 수신(`/api/ingest`, MTConnect), 사이클 기록, 모의 기계. **화면 연결은 아직** (v6) |
 | 73efba7 | three.js r128 → 0.187(로컬 제공, CDN 제거), HDRI 조명, 건물 UV + 표면 텍스처, AO, 건물 glTF 내보내기, 셰이딩 메뉴 버그 수정 (v6) |
 | (v7) | 실내 그림자, 등기구 면광원 8개 + 실내 큐브 캡처(간접광·반사) + 블룸, 조명 설계 메모(`docs/LIGHTING_NOTES.md`), 다음 작업 계획(`docs/NEXT_STEPS_FOR_OPUS.md`) |
+| (v8) | 현장 사진 반영: 철골·지붕·벽·바닥 색과 재질, 기본 건물을 빈 껍데기로(노란 바닥선 유지), 안에서는 외벽 불투명. 치수는 보류(`docs/SITE_REFERENCE_2026-11-09.md`) |
 
 `scene_layout.json`에 `building: { removed, moved, clones }` 필드가 새로 생깁니다. 이전 형식 파일도 그대로 읽힙니다.
 
