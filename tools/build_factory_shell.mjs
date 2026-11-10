@@ -128,7 +128,13 @@ for (let k = 0; k <= nPurlin; k++) {
 });
 
 // ------------------------------------------------------------------ skin
-box('Wall_South_Full', 0, -WALL_T, 0, LX, 0, EAVE);
+const ST = cfg.structures || {};
+const entry = ST.entrance ? { x0: mm(ST.entrance.x0M), x1: mm(ST.entrance.x0M + ST.entrance.widthM), top: mm(ST.entrance.heightM || 2.2) } : null;
+if (entry) {                                                 // entrance wall with the glass door opening
+  box('Wall_South_WestSeg', 0, -WALL_T, 0, entry.x0, 0, EAVE);
+  box('Wall_South_EastSeg', entry.x1, -WALL_T, 0, LX, 0, EAVE);
+  box('Wall_South_TopEntry', entry.x0, -WALL_T, entry.top, entry.x1, 0, EAVE);
+} else box('Wall_South_Full', 0, -WALL_T, 0, LX, 0, EAVE);
 box('Wall_North_WestSeg', 0, WY, 0, door.x0, WY + WALL_T, EAVE);
 box('Wall_North_EastSeg', door.x1, WY, 0, LX, WY + WALL_T, EAVE);
 box('Wall_North_TopDoor1', door.x0, WY, door.top, door.x1, WY + WALL_T, EAVE);
@@ -140,7 +146,11 @@ function gablePeak(name, x0, x1) {                           // triangular prism
 }
 gablePeak('Wall_West_Gable_Peak', -WALL_T, 0);
 gablePeak('Wall_East_Gable_Peak', LX, LX + WALL_T);
-box('LinerPanel_South', 0, 10, 0, LX, 10 + LINER_T, WAINSCOT);
+if (entry) {
+  box('LinerPanel_South_WestSeg', 0, 10, 0, entry.x0, 10 + LINER_T, WAINSCOT);
+  box('LinerPanel_South_EastSeg', entry.x1, 10, 0, LX, 10 + LINER_T, WAINSCOT);
+  if (entry.top < WAINSCOT) box('LinerPanel_South_TopEntry', entry.x0, 10, entry.top, entry.x1, 10 + LINER_T, WAINSCOT);
+} else box('LinerPanel_South', 0, 10, 0, LX, 10 + LINER_T, WAINSCOT);
 box('LinerPanel_North_WestSeg', 0, WY - 10 - LINER_T, 0, door.x0, WY - 10, WAINSCOT);
 box('LinerPanel_North_EastSeg', door.x1, WY - 10 - LINER_T, 0, LX, WY - 10, WAINSCOT);
 box('LinerPanel_West', 10, 0, 0, 10 + LINER_T, WY, WAINSCOT);
@@ -169,6 +179,101 @@ postLines.forEach((y, i) => {                                // aisle edges besi
   const ya = y + (y < WY / 2 ? off : -off);
   box(`SafetyLine_Aisle_${i + 1}`, inset, ya - lw, 0, LX - inset, ya + lw, 4);
 });
+
+// ------------------------------------------------------------------ built-in structures (video of 2026-11-09)
+// Entrance, restrooms, stair and the mezzanine office at the office end of the entrance wall (Y = 0).
+// Names reuse the viewer's conventions (Mezzanine_*, Mezz_*, Stair_*, Restroom_*, Cage_*, Wood_Guardrail_*,
+// Main_Glass_Entry_*) so materials apply, and every piece is its own part so it can be moved, copied or deleted.
+let structureParts = 0;
+const before = parts;
+if (entry) {
+  const f = 60, y0 = -WALL_T + 30, y1 = y0 + 50, mid = (entry.x0 + entry.x1) / 2;
+  box('Main_Glass_Entry_Frame_L', entry.x0, y0, 0, entry.x0 + f, y1, entry.top);
+  box('Main_Glass_Entry_Frame_R', entry.x1 - f, y0, 0, entry.x1, y1, entry.top);
+  box('Main_Glass_Entry_Frame_Top', entry.x0 + f, y0, entry.top - f, entry.x1 - f, y1, entry.top);
+  box('Main_Glass_Entry_Frame_Mid', mid - f / 2, y0, 0, mid + f / 2, y1, entry.top - f);
+  box('Main_Glass_Entry_Panel_L', entry.x0 + f, y0 + 18, 0, mid - f / 2, y0 + 30, entry.top - f);
+  box('Main_Glass_Entry_Panel_R', mid + f / 2, y0 + 18, 0, entry.x1 - f, y0 + 30, entry.top - f);
+  box('Exit_Sign_Entry_Red', mid - 180, 100, entry.top + 120, mid + 180, 140, entry.top + 320);
+}
+const MZ = ST.mezzanine, SR = ST.stair, RR = ST.restrooms;
+if (MZ) {
+  const x0 = mm(MZ.x0M), x1 = LX, yN = mm(MZ.depthM), deck = mm(MZ.deckM), wallH = mm(MZ.officeWallM || 2.7), slabT = 150, beamD = 280;
+  const under = deck - slabT - beamD;                        // clear height under the beams
+  box('Mezzanine_Slab', x0, 0, deck - slabT, x1, yN, deck);
+  box('Mezzanine_Beam_North', x0, yN - 200, under, x1, yN, deck - slabT);
+  box('Mezzanine_Beam_West', x0, 0, under, x0 + 200, yN - 200, deck - slabT);
+  box('Mezzanine_Beam_Mid', x0 + 200, yN / 2 - 100, under, x1, yN / 2 + 100, deck - slabT);
+  // posts: along the open north edge and the middle beam, about every 6 m
+  const nx = Math.max(1, Math.round((x1 - x0) / 6000));
+  let p = 0;
+  for (let i = 0; i <= nx; i++) {
+    const x = Math.min(Math.max(Math.round(x0 + i * (x1 - x0) / nx), x0 + 100), x1 - 100);
+    for (const y of [yN - 100, yN / 2]) { p++; box(`Mezzanine_Post_${p}`, x - 75, y - 75, 0, x + 75, y + 75, under); }
+  }
+  // second-floor office: walls on the two open sides (the other two are the building's own walls), door at the stair top
+  box('Mezz_Upper_Wall_North', x0, yN - 140, deck, x1, yN, deck + wallH);
+  box('Mezz_Upper_Wall_West', x0, 0, deck, x0 + 140, yN - 140, deck + wallH);
+  const nWin = 3, winW = 1500;
+  for (let k = 0; k < nWin; k++) {
+    const xc = x0 + (k + 0.5) * (x1 - x0) / nWin;
+    box(`Mezz_Upper_Window_N${k + 1}`, xc - winW / 2, yN - 4, deck + 1000, xc + winW / 2, yN + 12, deck + 2100);
+  }
+  if (SR) {                                                  // office door opening onto the stair landing
+    const topY = mm(SR.footYM) - (SR.risers - 1) * mm(SR.treadM), dy = topY - 1300;
+    box('Mezz_Upper_Door_Grey', x0 - 14, dy, deck, x0 + 4, dy + 950, deck + 2100);
+  }
+  // chain-link cage under the deck: along the open north edge, and the west edge where the stair does not cover it
+  const cageH = under, westFrom = SR ? mm(SR.footYM) : 0;
+  box('Cage_Mesh_North_Panel', x0, yN - 60, 0, x1, yN - 40, cageH);
+  if (yN - 200 - westFrom > 500) box('Cage_Mesh_West_Panel', x0 + 40, westFrom, 0, x0 + 60, yN - 200, cageH);
+  const nc = Math.max(1, Math.round((x1 - x0) / 3000));
+  for (let i = 1; i < nc; i++) { const x = Math.round(x0 + i * (x1 - x0) / nc); box(`Cage_Post_N${i}`, x - 30, yN - 80, 0, x + 30, yN - 20, cageH); }
+}
+if (SR) {
+  const x0 = mm(SR.xM), w = mm(SR.widthM), x1 = x0 + w, foot = mm(SR.footYM), n = SR.risers, tread = mm(SR.treadM);
+  const deck = MZ ? mm(MZ.deckM) : 3050, rise = deck / n, top = foot - (n - 1) * tread;          // y of the last nosing
+  const landEnd = RR ? mm(RR.depthYM) : top - 1500, panelT = 100, guard = 1000;
+  for (let i = 0; i < n - 1; i++) {                          // open-riser steel treads
+    const yA = foot - i * tread, z = (i + 1) * rise;
+    box(`Stair_BlackStep_${i + 1}`, x0 + panelT, yA - tread, z - 40, x1 - 60, yA, z);
+  }
+  box('Stair_BlackLanding_Deck', x0, landEnd, deck - 60, (MZ ? mm(MZ.x0M) : x1), top, deck);
+  // cream panel on the hall side: follows the flight, then level along the landing (one five-sided slab)
+  const P = (x) => [[x, foot, 0], [x, landEnd, 0], [x, landEnd, deck + guard], [x, top, deck + guard], [x, foot, rise + guard]];
+  const a = P(x0), b = P(x0 + panelT);
+  solid('Stair_WhiteWall_West', [[a[0], a[1], a[2], a[3], a[4]], [b[0], b[4], b[3], b[2], b[1]],          // hall face (−X), stair face (+X)
+    [a[0], b[0], b[1], a[1]], [a[1], b[1], b[2], a[2]], [a[2], b[2], b[3], a[3]], [a[3], b[3], b[4], a[4]], [a[4], b[4], b[0], a[0]]]);
+  slopedY('Stair_BlackCap_West_Slope', x0 - 15, x0 + panelT + 15, top, foot, deck + guard + 40, rise + guard + 40, 40);
+  box('Stair_BlackCap_West_Level', x0 - 15, landEnd, deck + guard, x0 + panelT + 15, top, deck + guard + 40);
+  // mezzanine side: stringer and handrail
+  slopedY('Stair_BlackStringer_East', x1 - 60, x1, top, foot, deck, rise, 260);
+  slopedY('Stair_BlackHandrail_East', x1 - 50, x1, top, foot, deck + guard, rise + guard, 50);
+  box('Stair_BlackPost_Foot', x1 - 60, foot - 60, 0, x1, foot, rise + guard);
+  box('Stair_BlackPost_Top', x1 - 60, top, deck, x1, top + 60, deck + guard);
+}
+if (RR) {
+  const x0 = mm(RR.x0M), x1 = mm(RR.x1M), yN = mm(RR.depthYM), h = mm(RR.heightM), t = 120, y0 = 10 + LINER_T;
+  const dw = mm(RR.doorWidthM), dh = mm(RR.doorHeightM), doors = (RR.doorsYM || []).map(mm).sort((p, q) => p - q);
+  let y = y0, seg = 0;                                       // hall-side wall, cut by the door openings
+  doors.forEach((d, k) => {
+    if (d - y > 10) box(`Restroom_Box_Wall_West_${++seg}`, x0, y, 0, x0 + t, d, h);
+    box(`Restroom_Box_Wall_West_Header${k + 1}`, x0, d, dh, x0 + t, d + dw, h);
+    box(`Restroom_OpenDoor_Grey_${k + 1}`, x0 + t, d + dw - 45, 0, x0 + t + dw - 60, d + dw, dh);     // door leaf standing open into the room
+    y = d + dw;
+  });
+  if (yN - y > 10) box(`Restroom_Box_Wall_West_${++seg}`, x0, y, 0, x0 + t, yN, h);
+  box('Restroom_Box_Wall_North', x0 + t, yN - t, 0, x1, yN, h);
+  box('Restroom_Box_Wall_East', x1 - t, y0, 0, x1, yN - t, h);
+  if (doors.length > 1) { const yd = (doors[0] + dw + doors[1]) / 2; box('Restroom_Box_Wall_Divider', x0 + t, yd - t / 2, 0, x1 - t, yd + t / 2, h); }
+  // roof of the part that is not under the mezzanine: a platform level with the stair landing, with the wooden guard seen in the video
+  const xr = MZ ? Math.min(x1, mm(MZ.x0M)) : x1, deck = MZ ? mm(MZ.deckM) : h + 150;
+  box('Restroom_Box_Roof', x0, y0, h, xr, yN, deck);
+  [y0 + 50, (y0 + yN) / 2, yN - 50].forEach((yp, k) => box(`Wood_Guardrail_Post${k + 1}`, x0 + 20, yp - 45, deck, x0 + 110, yp + 45, deck + 1050));
+  box('Wood_Guardrail_TopRail', x0 + 20, y0, deck + 960, x0 + 110, yN, deck + 1050);
+  box('Wood_Guardrail_MidRail', x0 + 20, y0, deck + 480, x0 + 110, yN, deck + 560);
+}
+structureParts = parts - before;
 
 // ------------------------------------------------------------------ the animated gate, copied from the original model
 let gateParts = 0;
@@ -205,4 +310,4 @@ const meta = {
   door: { wall: 'NORTH', centerX: door.cx, x0: door.x0, x1: door.x1, top: door.top, legacyCenterX: LEGACY_DOOR.cx, legacyWallY: LEGACY_DOOR.wallY }
 };
 fs.writeFileSync(path.join(path.dirname(outPath), 'building_meta.json'), JSON.stringify(meta, null, 2) + '\n');
-console.log(`wrote ${path.relative(root, outPath)}: ${parts} parts (${gateParts} gate parts copied), ${(LX / 1000).toFixed(2)} x ${(WY / 1000).toFixed(2)} m, eave ${(EAVE / 1000).toFixed(2)} m, ridge ${(RIDGE / 1000).toFixed(2)} m, ${nBays} bays, ${postLines.length} post line(s)`);
+console.log(`wrote ${path.relative(root, outPath)}: ${parts} parts (${structureParts} structure parts, ${gateParts} gate parts copied),${(LX / 1000).toFixed(2)} x ${(WY / 1000).toFixed(2)} m, eave ${(EAVE / 1000).toFixed(2)} m, ridge ${(RIDGE / 1000).toFixed(2)} m, ${nBays} bays, ${postLines.length} post line(s)`);

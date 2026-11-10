@@ -1,24 +1,32 @@
 {
-  "_about": "Building dimensions for tools/build_factory_shell.mjs. Change a number, run `node tools/build_factory_shell.mjs`, reload /v2. Values come from the site video of 2026-11-09 (docs/SITE_REFERENCE_2026-11-09.md); 'confidence' says how sure each one is. X = length, Y = width, Z = up. Metres.",
+  "_about": "Building dimensions for tools/build_factory_shell.mjs. Change a number, run `node tools/build_factory_shell.mjs`, reload /v2. Values come from the site video of 2026-11-09 (docs/SITE_REFERENCE_2026-11-09.md); 'confidence' says how sure each one is. X = length (0 = far end wall, increasing toward the office end), Y = width (0 = the wall with the entrance, Y max = the wall with the cargo doors), Z = up. Metres.",
   "lengthM": 60.96,
-  "widthM": 45.72,
+  "widthM": 30.48,
   "eaveM": 6.1,
   "roofSlope": 0.0833,
   "bayM": 7.62,
-  "postLinesM": [15.24, 30.48],
+  "postLinesM": [15.24],
   "wainscotM": 2.4,
   "girtsM": [2.4, 4.0],
   "columnMm": 250,
   "postMm": 150,
-  "door": { "centerXM": 36.0, "_note": "the animated sectional gate from the original model (3.8 m wide, 4.2 m high) on the north side wall, in the 5th bay from the far (X = 0) end like the real 12 x 12 ft door" },
-  "lights": { "rows": 3, "sizeMm": 500, "dropMm": 700 },
+  "door": { "centerXM": 36.0, "_note": "the animated sectional gate from the original model (3.8 m wide, 4.2 m high) on the cargo-door wall, in the 5th bay from the far (X = 0) end like the real 12 x 12 ft door" },
+  "lights": { "rows": 2, "sizeMm": 500, "dropMm": 700 },
   "floorLines": { "insetM": 2.5, "aisleOffsetM": 1.5 },
+  "structures": {
+    "_about": "The big built-in structures seen in the video, at the office end of the entrance wall. Every piece is a separate, editable building part in the viewer. Positions are estimates from the video (see confidence.structures).",
+    "mezzanine": { "x0M": 42.0, "depthM": 15.24, "deckM": 3.05, "officeWallM": 2.7, "_note": "second-floor office over a chain-link cage; from x0 to the end wall, from the entrance wall to the centre post line" },
+    "stair": { "xM": 40.5, "widthM": 1.4, "footYM": 12.2, "risers": 17, "treadM": 0.28, "_note": "straight black steel stair on the hall side of the mezzanine, rising toward the entrance wall; cream panel on the hall side" },
+    "restrooms": { "x0M": 40.5, "x1M": 44.5, "depthYM": 6.0, "heightM": 2.9, "doorsYM": [0.9, 3.6], "doorWidthM": 0.9, "doorHeightM": 2.1, "_note": "two rooms between the stair top and the entrance wall, both doors facing the hall" },
+    "entrance": { "x0M": 38.3, "widthM": 1.8, "heightM": 2.2, "_note": "glass double door in the entrance wall, right beside the restroom block" }
+  },
   "confidence": {
     "bayM": "high — 354 px between wall columns in a frontal frame, scaled by the 12 ft door, the man door and the 2.4 m wainscot (all three agree): 7.62 m = 25 ft",
     "eaveM": "high — same frame: wall top 5.9 to 6.1 m = 20 ft",
-    "postLinesM": "medium — interior post row measured 14.5 to 16.7 m from the door wall in two frames: 15.24 m = 50 ft module",
-    "widthM": "medium — end wall visible for about 40 m in the lengthwise frame and the camera stood 28 m from the door wall with building behind it: three 50 ft spans = 150 ft. Could be 100 ft (30.48) if that reading is wrong",
-    "lengthM": "medium — 5 bays from the far end to the sectional door column plus the door/roll-up bay plus about 2 more: 8 bays = 200 ft. Could be 7 bays (53.34)",
-    "roofSlope": "low — looks like a low-slope 1:12 metal building roof"
+    "widthM": "medium-high — the stair foot is 18.7 m and the wall beyond the stair top 29.7 m from the cargo-door wall (three frames agree), and the end wall measures about 30.4 m by its wainscot: 30.48 m = 100 ft. (An earlier reading of 45.72 m was wrong: part of a side wall was mistaken for the end wall.)",
+    "postLinesM": "medium-high — one interior post row 14.5 m from the cargo-door wall = the centre line of a 100 ft building",
+    "lengthM": "medium — 5 bays from the far end to the sectional door column, the door/roll-up bay, and about 2 more to the office end: 8 bays = 200 ft. Could be 7 bays (53.34)",
+    "roofSlope": "low — looks like a low-slope 1:12 metal building roof",
+    "structures": "medium for where they are (stair hall-side face at X about 40 to 41 and 18.7 to 22.5 m from the cargo-door wall; restroom doors beside it toward the entrance wall; entrance door next to the restroom corner); low for the mezzanine length and for sizes that were not directly measurable (restroom depth, office wall height)"
   }
 }

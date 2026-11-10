@@ -1,7 +1,7 @@
 # 뮤즈 전달 메모 — 2026-11-09 Claude Code 작업분
 
 ## 받는 파일
-`factory-digital-twin_claude_2026-11-10_v1.zip` — 저장소 전체 + **`.git` 기록 포함**(`node_modules/`, `dist/` 제외). 풀고 `npm install && npm test` → 94/94.
+`factory-digital-twin_claude_2026-11-10_v2.zip` — 저장소 전체 + **`.git` 기록 포함**(`node_modules/`, `dist/` 제외). 풀고 `npm install && npm test` → 95/95.
 같은 날짜에 여러 번 올릴 때는 `_v1`, `_v2`, `_v3` … 으로 구분합니다. **번호가 가장 큰 것이 최신**입니다. (v1·v2는 이름 규칙을 정하기 전에 같은 이름으로 덮어써서 Drive에 남아 있지 않습니다. 내용은 모두 최신 버전에 포함되어 있습니다.)
 
 ## 기준과 커밋
@@ -37,6 +37,7 @@ npm test
 | (v7) | 실내 그림자, 등기구 면광원 8개 + 실내 큐브 캡처(간접광·반사) + 블룸, 조명 설계 메모(`docs/LIGHTING_NOTES.md`), 다음 작업 계획(`docs/NEXT_STEPS_FOR_OPUS.md`) |
 | (v8) | 현장 사진 반영: 철골·지붕·벽·바닥 색과 재질, 기본 건물을 빈 껍데기로(노란 바닥선 유지), 안에서는 외벽 불투명. 치수는 보류(`docs/SITE_REFERENCE_2026-11-09.md`) |
 | (11/10 v1) | 영상 분석으로 건물 60.96 × 45.72 m·처마 6.1 m로 재생성(`tools/build_factory_shell.mjs`, `building.config.json`), 편집기 좌표를 건물 크기에서 계산, 화질 단계(자동/높음/균형/기본) |
+| (11/10 v2) | **폭 정정 45.72 → 30.48 m**(기둥 1줄), 영상의 큰 구조물 추가: 2층 사무실 메자닌·계단·화장실 2칸·유리 출입문(모두 편집 가능한 부재) |
 
 `scene_layout.json`에 `building: { removed, moved, clones }` 필드가 새로 생깁니다. 이전 형식 파일도 그대로 읽힙니다.
 

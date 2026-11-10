@@ -66,3 +66,44 @@ test('shell: door opening matches building_meta.json, gate parts are copied, flo
   const keep = /^(Floor_Slab|Joint_|Col_|Roof_|Girt_|Wall_|LinerPanel_|HighBay_|SafetyLine_|Door_Sectional)/;
   assert.deepEqual([...b.parts.keys()].filter(n => !keep.test(n)), []);
 });
+
+test('structures: entrance, restrooms, stair and mezzanine are separate parts at the configured places', () => {
+  const b = build({
+    lengthM: 60.96, widthM: 30.48, eaveM: 6.1, roofSlope: 0.0833, bayM: 7.62, postLinesM: [15.24], girtsM: [2.4, 4.0], door: { centerXM: 36 },
+    structures: {
+      mezzanine: { x0M: 42, depthM: 15.24, deckM: 3.05, officeWallM: 2.7 },
+      stair: { xM: 40.5, widthM: 1.4, footYM: 12.2, risers: 17, treadM: 0.28 },
+      restrooms: { x0M: 40.5, x1M: 44.5, depthYM: 6, heightM: 2.9, doorsYM: [0.9, 3.6], doorWidthM: 0.9, doorHeightM: 2.1 },
+      entrance: { x0M: 38.3, widthM: 1.8, heightM: 2.2 }
+    }
+  });
+  // entrance: the wall is open exactly where the glass door stands
+  assert.equal(b.parts.get('Wall_South_WestSeg').max[0], 38300);
+  assert.equal(b.parts.get('Wall_South_EastSeg').min[0], 40100);
+  assert.equal(b.parts.get('Wall_South_TopEntry').min[2], 2200);
+  assert.equal(names(b, /^Main_Glass_Entry_Panel_/).length, 2);
+  // mezzanine: deck at 3.05 m from x = 42 m to the end wall, half the width deep; office walls above, cage below
+  const slab = b.parts.get('Mezzanine_Slab');
+  assert.deepEqual([slab.min[0], slab.max[0], slab.max[1], slab.max[2]], [42000, 60960, 15240, 3050]);
+  assert.equal(b.parts.get('Mezz_Upper_Wall_North').max[2], 5750);
+  assert.ok(b.parts.get('Cage_Mesh_North_Panel').max[2] < slab.min[2], 'cage stops under the deck beams');
+  assert.equal(names(b, /^Mezz_Upper_Window_N\d$/).length, 3);
+  // stair: 16 treads rise evenly to the landing at deck level, foot 12.2 m from the entrance wall, rising toward it
+  const steps = names(b, /^Stair_BlackStep_\d+$/).map(n => b.parts.get(n));
+  assert.equal(steps.length, 16);
+  assert.equal(b.parts.get('Stair_BlackStep_1').max[1], 12200);
+  assert.ok(Math.abs(b.parts.get('Stair_BlackStep_16').max[2] - 16 * 3050 / 17) < 0.2);
+  assert.ok(b.parts.get('Stair_BlackStep_16').min[1] < b.parts.get('Stair_BlackStep_1').min[1], 'higher steps are nearer the entrance wall');
+  assert.equal(b.parts.get('Stair_BlackLanding_Deck').max[2], 3050);
+  const panel = b.parts.get('Stair_WhiteWall_West');
+  assert.deepEqual([panel.min[0], panel.min[1], panel.max[1], panel.max[2]], [40500, 6000, 12200, 4050]);
+  // restrooms: two door openings in the hall-side wall, each with a header and a door leaf
+  assert.equal(names(b, /^Restroom_Box_Wall_West_Header\d$/).length, 2);
+  assert.equal(names(b, /^Restroom_OpenDoor_Grey_\d$/).length, 2);
+  assert.equal(b.parts.get('Restroom_Box_Wall_West_Header1').min[2], 2100);
+  assert.equal(b.parts.get('Restroom_Box_Roof').max[2], 3050, 'restroom roof is level with the stair landing');
+  for (const [n, p] of b.parts) assert.equal(p.noNormal, 0, n);
+  // the viewer's default keep-list covers every generated part
+  const keep = /^(Floor_Slab|Joint_|Col_|Roof_|Girt_|Wall_|LinerPanel_|HighBay_|SafetyLine_|Door_Sectional|Exit_|Main_Glass_Entry_|Mezzanine_|Mezz_|Stair_|Restroom_|Cage_|Wood_Guardrail_)/;
+  assert.deepEqual([...b.parts.keys()].filter(n => !keep.test(n)), []);
+});

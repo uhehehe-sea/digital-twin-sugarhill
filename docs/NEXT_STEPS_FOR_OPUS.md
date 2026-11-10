@@ -47,7 +47,7 @@ npm test             # 92개 통과가 기준
 ## 3. 할 일 (우선순위 순)
 
 ### 0. 건물 치수 (반영 완료, 확인만 남음)
-영상 분석으로 건물을 60.96 × 45.72 m, 처마 6.1 m로 다시 만들었습니다(`building.config.json` → `node tools/build_factory_shell.mjs`).
+영상 분석으로 건물을 60.96 × 30.48 m, 처마 6.1 m로 다시 만들었고(처음 반영한 폭 45.72 m는 틀려서 정정), 2층 사무실·계단·화장실·출입문을 넣었습니다(`building.config.json` → `node tools/build_factory_shell.mjs`).
 칸 간격·처마는 확신이 높고, 전체 길이·폭은 칸 수 추정입니다(`docs/SITE_REFERENCE_2026-11-09.md` 2절). 사용자가 실측값을 주면 config 숫자만 바꿔 다시 생성하세요.
 이 PC는 Intel 내장 그래픽이라 화질 "자동"이 균형 단계를 씁니다. 무거운 효과를 더할 때는 `twinVisual.status.frameMs`를 확인하세요.
 

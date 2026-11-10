@@ -2,14 +2,13 @@
   "generatedFrom": "building.config.json",
   "units": "mm",
   "lengthX": 60960,
-  "widthY": 45720,
+  "widthY": 30480,
   "eave": 6100,
-  "ridge": 8004,
+  "ridge": 7369,
   "bays": 8,
   "bay": 7620,
   "postLinesY": [
-    15240,
-    30480
+    15240
   ],
   "wainscot": 2400,
   "door": {
