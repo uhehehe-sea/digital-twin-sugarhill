@@ -1,24 +1,169 @@
 {
-  "_about": "Building dimensions for tools/build_factory_shell.mjs. Change a number, run `node tools/build_factory_shell.mjs`, reload /v2. Values come from the site video of 2026-11-09 (docs/SITE_REFERENCE_2026-11-09.md); 'confidence' says how sure each one is. X = length (0 = far end wall, increasing toward the office end), Y = width (0 = the wall with the entrance, Y max = the wall with the cargo doors), Z = up. Metres.",
+  "_about": "Building dimensions for tools/build_factory_shell.mjs. Change a number, run `node tools/build_factory_shell.mjs`, reload /v2. Values come from the site video of 2026-11-09 (docs/SITE_REFERENCE_2026-11-09.md); 'confidence' says how sure each one is. X = length (0 = far end wall, increasing toward the office end), Y = width (0 = the long wall on the mezzanine side, Y max = the long wall with the cargo doors); the glass entrance is in the office-end wall (X max), Z = up. Metres.",
   "lengthM": 60.96,
   "widthM": 30.48,
   "eaveM": 6.1,
   "roofSlope": 0.0833,
   "bayM": 7.62,
-  "postLinesM": [15.24],
+  "postLinesM": [
+    15.24
+  ],
   "wainscotM": 2.4,
-  "girtsM": [2.4, 4.0],
+  "girtsM": [
+    2.4,
+    4
+  ],
   "columnMm": 250,
   "postMm": 150,
-  "door": { "centerXM": 36.0, "_note": "the animated sectional gate from the original model (3.8 m wide, 4.2 m high) on the cargo-door wall, in the 5th bay from the far (X = 0) end like the real 12 x 12 ft door" },
-  "lights": { "rows": 2, "sizeMm": 500, "dropMm": 700 },
-  "floorLines": { "insetM": 2.5, "aisleOffsetM": 1.5 },
+  "door": {
+    "centerXM": 36,
+    "_note": "the animated sectional gate from the original model (3.8 m wide, 4.2 m high) on the cargo-door wall, in the 5th bay from the far (X = 0) end like the real 12 x 12 ft door"
+  },
+  "lights": {
+    "rows": 2,
+    "sizeMm": 420,
+    "dropMm": 700,
+    "round": true,
+    "thickMm": 150
+  },
+  "floorLines": {
+    "insetM": 2.5,
+    "aisleOffsetM": 1.5
+  },
   "structures": {
-    "_about": "The big built-in structures seen in the video, at the office end of the entrance wall. Every piece is a separate, editable building part in the viewer. Positions are estimates from the video (see confidence.structures).",
-    "mezzanine": { "x0M": 42.0, "depthM": 15.24, "deckM": 3.05, "officeWallM": 2.7, "_note": "second-floor office over a chain-link cage; from x0 to the end wall, from the entrance wall to the centre post line" },
-    "stair": { "xM": 40.5, "widthM": 1.4, "footYM": 12.2, "risers": 17, "treadM": 0.28, "_note": "straight black steel stair on the hall side of the mezzanine, rising toward the entrance wall; cream panel on the hall side" },
-    "restrooms": { "x0M": 40.5, "x1M": 44.5, "depthYM": 6.0, "heightM": 2.9, "doorsYM": [0.9, 3.6], "doorWidthM": 0.9, "doorHeightM": 2.1, "_note": "two rooms between the stair top and the entrance wall, both doors facing the hall" },
-    "entrance": { "x0M": 38.3, "widthM": 1.8, "heightM": 2.2, "_note": "glass double door in the entrance wall, right beside the restroom block" }
+    "_about": "Built-in structures and fixed items seen in the video (docs/STRUCTURE_SURVEY_2026-11-10.md). Every piece is a separate, editable building part in the viewer. Positions are estimates (see confidence.structures).",
+    "mezzanine": {
+      "x0M": 42,
+      "depthM": 15.24,
+      "deckM": 3.05,
+      "officeWallM": 2.7,
+      "_note": "second-floor office over a chain-link cage; from x0 to the end wall, from the entrance wall to the centre post line"
+    },
+    "stair": {
+      "xM": 40.5,
+      "widthM": 1.4,
+      "footYM": 12.2,
+      "risers": 17,
+      "treadM": 0.28,
+      "_note": "straight black steel stair on the hall side of the mezzanine, rising toward the entrance wall; cream panel on the hall side"
+    },
+    "restrooms": {
+      "x0M": 40.5,
+      "x1M": 44.5,
+      "depthYM": 6,
+      "heightM": 2.9,
+      "doorsYM": [
+        0.9,
+        3.6
+      ],
+      "doorWidthM": 0.9,
+      "doorHeightM": 2.1,
+      "_note": "two rooms between the stair top and the entrance wall, both doors facing the hall"
+    },
+    "entrance": {
+      "wall": "east",
+      "startM": 17,
+      "widthM": 1.8,
+      "heightM": 2.2,
+      "_note": "glass double door in the office-end wall, about 13.5 m from the cargo-wall corner (video 0-12 s and 63-66 s). Earlier placed in the Y = 0 wall by mistake."
+    },
+    "rollup": {
+      "centerXM": 43.3,
+      "widthM": 3.4,
+      "heightM": 4,
+      "_note": "roll-up door in the bay east of the sectional gate (frontal frame at 44.3 s)"
+    },
+    "exits": [
+      {
+        "wall": "north",
+        "atM": 39.6,
+        "_note": "between the sectional gate and the roll-up door"
+      },
+      {
+        "wall": "west",
+        "atM": 16.5,
+        "_note": "far end wall, red floor patch (31-39 s); position along the wall is approximate"
+      },
+      {
+        "wall": "south",
+        "atM": 17,
+        "_note": "seen at 46.0 s; position approximate"
+      }
+    ],
+    "fans": [
+      {
+        "wall": "north",
+        "atM": 10.6
+      },
+      {
+        "wall": "north",
+        "atM": 25.9
+      },
+      {
+        "wall": "north",
+        "atM": 39.4
+      },
+      {
+        "wall": "north",
+        "atM": 52
+      },
+      {
+        "wall": "north",
+        "atM": 5.5,
+        "sizeM": 0.6,
+        "heightM": 3.3
+      },
+      {
+        "wall": "west",
+        "atM": 11.4,
+        "louver": true,
+        "sizeM": 1.1,
+        "heightM": 4.7
+      },
+      {
+        "wall": "west",
+        "atM": 19,
+        "louver": true,
+        "sizeM": 1.1,
+        "heightM": 4.7
+      },
+      {
+        "wall": "west",
+        "atM": 26.7,
+        "louver": true,
+        "sizeM": 1.1,
+        "heightM": 4.7
+      },
+      {
+        "wall": "south",
+        "atM": 26,
+        "louver": true,
+        "sizeM": 1.1,
+        "heightM": 4.7
+      }
+    ],
+    "heaters": [
+      {
+        "xM": 41,
+        "yM": 20.5
+      },
+      {
+        "xM": 22,
+        "yM": 22
+      },
+      {
+        "xM": 9,
+        "yM": 8.5
+      }
+    ],
+    "stairEast": {
+      "footXM": 59.4,
+      "widthM": 1.3,
+      "risers": 17,
+      "treadM": 0.28,
+      "landingM": 1.4,
+      "_note": "ASSUMED SHAPE. A second black stair stands beside the glass entrance at the office end (61.5-63.5 s, 68.7 s); the video does not settle its shape. Modelled as one straight flight along the mezzanine hall face."
+    }
   },
   "confidence": {
     "bayM": "high — 354 px between wall columns in a frontal frame, scaled by the 12 ft door, the man door and the 2.4 m wainscot (all three agree): 7.62 m = 25 ft",
@@ -27,6 +172,6 @@
     "postLinesM": "medium-high — one interior post row 14.5 m from the cargo-door wall = the centre line of a 100 ft building",
     "lengthM": "medium — 5 bays from the far end to the sectional door column, the door/roll-up bay, and about 2 more to the office end: 8 bays = 200 ft. Could be 7 bays (53.34)",
     "roofSlope": "low — looks like a low-slope 1:12 metal building roof",
-    "structures": "medium for where they are (stair hall-side face at X about 40 to 41 and 18.7 to 22.5 m from the cargo-door wall; restroom doors beside it toward the entrance wall; entrance door next to the restroom corner); low for the mezzanine length and for sizes that were not directly measurable (restroom depth, office wall height)"
+    "structures": "medium for where the west stair, restrooms and mezzanine are; glass entrance: wall high, position along it medium; cargo-wall order (sectional gate, exit door, roll-up door) high, positions medium; fans, louvers, heaters, far exits: count and wall medium, exact positions low; east stair: exists (high), shape and size ASSUMED; mezzanine length, restroom depth, office wall height low"
   }
 }

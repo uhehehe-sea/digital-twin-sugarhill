@@ -68,6 +68,13 @@ function hexa(name, b, t) {
 function box(name, x0, y0, z0, x1, y1, z1) {
   hexa(name, [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0]], [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]]);
 }
+/** Upright 12-sided disc (round high-bay light). */
+function disc(name, cx, cy, r, z0, z1) {
+  const N = 12, ring = z => Array.from({ length: N }, (_, i) => [cx + r * Math.cos(2 * Math.PI * i / N), cy + r * Math.sin(2 * Math.PI * i / N), z]);
+  const b = ring(z0), t = ring(z1), faces = [b.slice().reverse(), t];
+  for (let i = 0; i < N; i++) { const j = (i + 1) % N; faces.push([b[i], b[j], t[j], t[i]]); }
+  solid(name, faces);
+}
 /** Member running in Y from y0 to y1 whose top follows zTop0 → zTop1 (rafters, roof slabs). */
 function slopedY(name, x0, x1, y0, y1, zTop0, zTop1, depth) {
   hexa(name, [[x0, y0, zTop0 - depth], [x1, y0, zTop0 - depth], [x1, y1, zTop1 - depth], [x0, y1, zTop1 - depth]],
@@ -117,44 +124,59 @@ for (let k = 0; k <= nPurlin; k++) {
   const y = Math.round(k * WY / nPurlin), yc = Math.min(Math.max(y, 50), WY - 50), z = roofZ(y);
   box(`Roof_Purlin_Y${y}`, 0, yc - 50, z - PURLIN_D, LX, yc + 50, z);
 }
-// girts on the inside face of all four walls (the north ones stop at the door opening)
+// ------------------------------------------------------------------ openings (doors) in the four walls
+// A run is the wall's own axis: X for the north/south walls, Y for the east/west walls. { a, b } in mm along it, top in mm.
+const ST = cfg.structures || {};
+const OPEN = { north: [{ a: door.x0, b: door.x1, top: door.top, tag: 'Door1' }], south: [], west: [], east: [] };
+const span = (c, w) => ({ a: mm(c - w / 2), b: mm(c + w / 2) });
+const E = ST.entrance;
+const entry = E ? (E.wall === 'east'
+  ? { wall: 'east', a: mm(E.startM), b: mm(E.startM + E.widthM), top: mm(E.heightM || 2.2) }
+  : { wall: 'south', a: mm(E.x0M), b: mm(E.x0M + E.widthM), top: mm(E.heightM || 2.2) }) : null;
+if (entry) OPEN[entry.wall].push({ a: entry.a, b: entry.b, top: entry.top, tag: 'Entry' });
+const RU = ST.rollup ? Object.assign(span(ST.rollup.centerXM, ST.rollup.widthM), { top: mm(ST.rollup.heightM), tag: 'Rollup' }) : null;
+if (RU) OPEN.north.push(RU);
+const EXITS = (ST.exits || []).map((e, i) => Object.assign(span(e.atM, e.widthM || 0.95), { wall: e.wall, top: mm(e.heightM || 2.13), tag: 'Exit' + (i + 1) }));
+EXITS.forEach(e => OPEN[e.wall].push(e));
+for (const w of Object.keys(OPEN)) {
+  OPEN[w].sort((m, n) => m.a - n.a);
+  OPEN[w].forEach((o, i) => { if (i && o.a < OPEN[w][i - 1].b) throw new Error(`openings overlap on the ${w} wall: ${OPEN[w][i - 1].tag} and ${o.tag}`); });
+}
+/** Pieces of a run [0, len] around its openings: seg(n, a, b) for each solid stretch, head(opening) above each opening lower than zTop. */
+function cutRun(len, ops, zTop, seg, head) {
+  let at = 0, n = 0;
+  for (const o of ops) { if (o.a - at > 1) seg(++n, at, o.a); if (head && o.top < zTop - 1) head(o); at = Math.max(at, o.b); }
+  if (len - at > 1) seg(++n, at, len);
+}
+const SIDES = {                                              // box(name, along0, along1, depth0, depth1, z0, z1) per wall
+  south: { len: LX, cap: 'South', put: (n, a, b, d0, d1, z0, z1) => box(n, a, d0, z0, b, d1, z1), out: [-WALL_T, 0], liner: [10, 10 + LINER_T], girt: [20, 120] },
+  north: { len: LX, cap: 'North', put: (n, a, b, d0, d1, z0, z1) => box(n, a, d0, z0, b, d1, z1), out: [WY, WY + WALL_T], liner: [WY - 10 - LINER_T, WY - 10], girt: [WY - 120, WY - 20] },
+  west: { len: WY, cap: 'West', put: (n, a, b, d0, d1, z0, z1) => box(n, d0, a, z0, d1, b, z1), out: [-WALL_T, 0], liner: [10, 10 + LINER_T], girt: [20, 120] },
+  east: { len: WY, cap: 'East', put: (n, a, b, d0, d1, z0, z1) => box(n, d0, a, z0, d1, b, z1), out: [LX, LX + WALL_T], liner: [LX - 10 - LINER_T, LX - 10], girt: [LX - 120, LX - 20] }
+};
+// girts on the inside face of all four walls (they stop at any opening taller than they are)
 (cfg.girtsM || []).map(mm).forEach((z, gi) => {
   const tag = gi === 0 ? 'Low' : gi === 1 ? 'High' : 'L' + (gi + 1);
-  box(`Girt_South_${tag}`, 0, 20, z, LX, 120, z + 90);
-  if (z < door.top) { box(`Girt_North_${tag}_W`, 0, WY - 120, z, door.x0, WY - 20, z + 90); box(`Girt_North_${tag}_E`, door.x1, WY - 120, z, LX, WY - 20, z + 90); }
-  else box(`Girt_North_${tag}`, 0, WY - 120, z, LX, WY - 20, z + 90);
-  box(`Girt_West_${tag}`, 20, 0, z, 120, WY, z + 90);
-  box(`Girt_East_${tag}`, LX - 120, 0, z, LX - 20, WY, z + 90);
+  for (const [w, S] of Object.entries(SIDES)) {
+    const ops = OPEN[w].filter(o => o.top > z);
+    if (!ops.length) S.put(`Girt_${S.cap}_${tag}`, 0, S.len, S.girt[0], S.girt[1], z, z + 90);
+    else cutRun(S.len, ops, 0, (n, a, b) => S.put(`Girt_${S.cap}_${tag}_${n}`, a, b, S.girt[0], S.girt[1], z, z + 90));
+  }
 });
 
 // ------------------------------------------------------------------ skin
-const ST = cfg.structures || {};
-const entry = ST.entrance ? { x0: mm(ST.entrance.x0M), x1: mm(ST.entrance.x0M + ST.entrance.widthM), top: mm(ST.entrance.heightM || 2.2) } : null;
-if (entry) {                                                 // entrance wall with the glass door opening
-  box('Wall_South_WestSeg', 0, -WALL_T, 0, entry.x0, 0, EAVE);
-  box('Wall_South_EastSeg', entry.x1, -WALL_T, 0, LX, 0, EAVE);
-  box('Wall_South_TopEntry', entry.x0, -WALL_T, entry.top, entry.x1, 0, EAVE);
-} else box('Wall_South_Full', 0, -WALL_T, 0, LX, 0, EAVE);
-box('Wall_North_WestSeg', 0, WY, 0, door.x0, WY + WALL_T, EAVE);
-box('Wall_North_EastSeg', door.x1, WY, 0, LX, WY + WALL_T, EAVE);
-box('Wall_North_TopDoor1', door.x0, WY, door.top, door.x1, WY + WALL_T, EAVE);
-box('Wall_West', -WALL_T, 0, 0, 0, WY, EAVE);
-box('Wall_East', LX, 0, 0, LX + WALL_T, WY, EAVE);
+for (const [w, S] of Object.entries(SIDES)) {
+  const ops = OPEN[w];
+  if (!ops.length) { S.put(`Wall_${S.cap}`, 0, S.len, S.out[0], S.out[1], 0, EAVE); S.put(`LinerPanel_${S.cap}`, 0, S.len, S.liner[0], S.liner[1], 0, WAINSCOT); continue; }
+  cutRun(S.len, ops, EAVE, (n, a, b) => S.put(`Wall_${S.cap}_Seg${n}`, a, b, S.out[0], S.out[1], 0, EAVE), o => S.put(`Wall_${S.cap}_Top${o.tag}`, o.a, o.b, S.out[0], S.out[1], o.top, EAVE));
+  cutRun(S.len, ops, WAINSCOT, (n, a, b) => S.put(`LinerPanel_${S.cap}_Seg${n}`, a, b, S.liner[0], S.liner[1], 0, WAINSCOT), o => S.put(`LinerPanel_${S.cap}_Top${o.tag}`, o.a, o.b, S.liner[0], S.liner[1], o.top, WAINSCOT));
+}
 function gablePeak(name, x0, x1) {                           // triangular prism above the eave line
   const a = [x0, 0, EAVE], b = [x0, WY, EAVE], c = [x0, WY / 2, RIDGE], d = [x1, 0, EAVE], e = [x1, WY, EAVE], f = [x1, WY / 2, RIDGE];
   solid(name, [[a, c, b], [d, e, f], [a, b, e, d], [b, c, f, e], [c, a, d, f]]);
 }
 gablePeak('Wall_West_Gable_Peak', -WALL_T, 0);
 gablePeak('Wall_East_Gable_Peak', LX, LX + WALL_T);
-if (entry) {
-  box('LinerPanel_South_WestSeg', 0, 10, 0, entry.x0, 10 + LINER_T, WAINSCOT);
-  box('LinerPanel_South_EastSeg', entry.x1, 10, 0, LX, 10 + LINER_T, WAINSCOT);
-  if (entry.top < WAINSCOT) box('LinerPanel_South_TopEntry', entry.x0, 10, entry.top, entry.x1, 10 + LINER_T, WAINSCOT);
-} else box('LinerPanel_South', 0, 10, 0, LX, 10 + LINER_T, WAINSCOT);
-box('LinerPanel_North_WestSeg', 0, WY - 10 - LINER_T, 0, door.x0, WY - 10, WAINSCOT);
-box('LinerPanel_North_EastSeg', door.x1, WY - 10 - LINER_T, 0, LX, WY - 10, WAINSCOT);
-box('LinerPanel_West', 10, 0, 0, 10 + LINER_T, WY, WAINSCOT);
-box('LinerPanel_East', LX - 10 - LINER_T, 0, 0, LX - 10, WY, WAINSCOT);
 slopedY('Roof_Gable_Cladding_South', -200, LX + 200, -300, WY / 2, EAVE + 60 - 300 * SLOPE, RIDGE + 60, 60);
 slopedY('Roof_Gable_Cladding_North', -200, LX + 200, WY / 2, WY + 300, RIDGE + 60, EAVE + 60 - 300 * SLOPE, 60);
 
@@ -164,7 +186,7 @@ for (let r = 0; r < rows; r++) {
   const y = Math.round((r + 0.5) * WY / rows), z = roofZ(y) - PURLIN_D - drop;
   for (let i = 0; i < nBays; i++) {
     const x = Math.round((frameX[i] + frameX[i + 1]) / 2);
-    box(`HighBay_LED_Row${r + 1}_X${x}`, x - ls, y - ls, z, x + ls, y + ls, z + 120);
+    if (L.round) disc(`HighBay_LED_Row${r + 1}_X${x}`, x, y, ls, z, z + (L.thickMm || 150)); else box(`HighBay_LED_Row${r + 1}_X${x}`, x - ls, y - ls, z, x + ls, y + ls, z + 120);
   }
 }
 
@@ -181,21 +203,51 @@ postLines.forEach((y, i) => {                                // aisle edges besi
 });
 
 // ------------------------------------------------------------------ built-in structures (video of 2026-11-09)
-// Entrance, restrooms, stair and the mezzanine office at the office end of the entrance wall (Y = 0).
+// Entrance, doors, fans, heaters, restrooms, stairs and the mezzanine office (docs/STRUCTURE_SURVEY_2026-11-10.md).
 // Names reuse the viewer's conventions (Mezzanine_*, Mezz_*, Stair_*, Restroom_*, Cage_*, Wood_Guardrail_*,
 // Main_Glass_Entry_*) so materials apply, and every piece is its own part so it can be moved, copied or deleted.
 let structureParts = 0;
 const before = parts;
-if (entry) {
-  const f = 60, y0 = -WALL_T + 30, y1 = y0 + 50, mid = (entry.x0 + entry.x1) / 2;
-  box('Main_Glass_Entry_Frame_L', entry.x0, y0, 0, entry.x0 + f, y1, entry.top);
-  box('Main_Glass_Entry_Frame_R', entry.x1 - f, y0, 0, entry.x1, y1, entry.top);
-  box('Main_Glass_Entry_Frame_Top', entry.x0 + f, y0, entry.top - f, entry.x1 - f, y1, entry.top);
-  box('Main_Glass_Entry_Frame_Mid', mid - f / 2, y0, 0, mid + f / 2, y1, entry.top - f);
-  box('Main_Glass_Entry_Panel_L', entry.x0 + f, y0 + 18, 0, mid - f / 2, y0 + 30, entry.top - f);
-  box('Main_Glass_Entry_Panel_R', mid + f / 2, y0 + 18, 0, entry.x1 - f, y0 + 30, entry.top - f);
-  box('Exit_Sign_Entry_Red', mid - 180, 100, entry.top + 120, mid + 180, 140, entry.top + 320);
+if (entry) {                                                 // glass double door in its wall opening
+  const f = 60, S = SIDES[entry.wall], d0 = S.out[0] + 30, d1 = d0 + 50, mid = (entry.a + entry.b) / 2, inside = entry.wall === 'east' ? S.out[0] - 140 : 100;
+  S.put('Main_Glass_Entry_Frame_L', entry.a, entry.a + f, d0, d1, 0, entry.top);
+  S.put('Main_Glass_Entry_Frame_R', entry.b - f, entry.b, d0, d1, 0, entry.top);
+  S.put('Main_Glass_Entry_Frame_Top', entry.a + f, entry.b - f, d0, d1, entry.top - f, entry.top);
+  S.put('Main_Glass_Entry_Frame_Mid', mid - f / 2, mid + f / 2, d0, d1, 0, entry.top - f);
+  S.put('Main_Glass_Entry_Panel_L', entry.a + f, mid - f / 2, d0 + 18, d0 + 30, 0, entry.top - f);
+  S.put('Main_Glass_Entry_Panel_R', mid + f / 2, entry.b - f, d0 + 18, d0 + 30, 0, entry.top - f);
+  S.put('Exit_Sign_Entry_Red', mid - 180, mid + 180, inside, inside + 40, entry.top + 120, entry.top + 320);
 }
+/** Inside-face depth range of a wall: t0 mm to t1 mm in from the inner surface. */
+const inward = (w, t0, t1) => (w === 'south' || w === 'west' ? [t0, t1] : [(w === 'north' ? WY : LX) - t1, (w === 'north' ? WY : LX) - t0]);
+if (RU) {                                                    // roll-up door: closed curtain, coil housing above, side guides
+  const S = SIDES.north, [c0, c1] = inward('north', -90, -40), [h0, h1] = inward('north', 20, 420);
+  S.put('RollUp_Door_Curtain', RU.a, RU.b, c0, c1, 0, RU.top);
+  S.put('RollUp_Door_Coil', RU.a - 150, RU.b + 150, h0, h1, RU.top, RU.top + 400);
+  S.put('RollUp_Door_Guide_W', RU.a - 80, RU.a, h0, h0 + 90, 0, RU.top);
+  S.put('RollUp_Door_Guide_E', RU.b, RU.b + 80, h0, h0 + 90, 0, RU.top);
+}
+EXITS.forEach((e, i) => {                                    // steel man door, EXIT sign above, red floor patch in front
+  const S = SIDES[e.wall], [d0, d1] = inward(e.wall, -60, -15), [s0, s1] = inward(e.wall, 130, 170), [p0, p1] = inward(e.wall, 150, 1250), k = i + 1, mid = (e.a + e.b) / 2;
+  S.put(`Exit_Door_${k}_Leaf`, e.a + 40, e.b - 40, d0, d1, 0, e.top - 40);
+  S.put(`Exit_Door_${k}_Frame_A`, e.a, e.a + 40, d0 - 20, d1 + 60, 0, e.top);
+  S.put(`Exit_Door_${k}_Frame_B`, e.b - 40, e.b, d0 - 20, d1 + 60, 0, e.top);
+  S.put(`Exit_Door_${k}_Frame_Top`, e.a + 40, e.b - 40, d0 - 20, d1 + 60, e.top - 40, e.top);
+  S.put(`Exit_Sign_${k}_Red`, mid - 170, mid + 170, s0, s1, e.top + 120, e.top + 300);
+  S.put(`Floor_Stop_Decal_Red_Exit${k}`, e.a - 150, e.b + 150, p0, p1, 0, 3);
+});
+(ST.fans || []).forEach((fn, i) => {                         // wall exhaust fans / louvers on the upper wall
+  const S = SIDES[fn.wall], half = mm(fn.sizeM || 1.2) / 2, c = mm(fn.atM), z = mm(fn.heightM || 4.9), [d0, d1] = inward(fn.wall, 20, fn.louver ? 90 : 320);
+  const pre = fn.louver ? 'WallVent_Louver_' : 'Shutter_Fan_';
+  S.put(`${pre}${i + 1}_Frame`, c - half, c + half, d0, d1, z - half, z + half);
+  S.put(`${pre}${i + 1}_Core_Dark`, c - half + 90, c + half - 90, d1 - 4, d1 + 6, z - half + 90, z + half - 90);
+});
+(ST.heaters || []).forEach((h, i) => {                       // gas unit heaters hung under the rafters
+  const x = mm(h.xM), y = mm(h.yM), z = roofZ(y) - PURLIN_D - RAFTER_D - 650;
+  box(`Ceiling_Gas_UnitHeater_${i + 1}`, x - 350, y - 300, z, x + 350, y + 300, z + 520);
+  box(`Ceiling_Gas_UnitHeater_${i + 1}_Rod_A`, x - 300, y - 12, z + 520, x - 276, y + 12, roofZ(y) - PURLIN_D);
+  box(`Ceiling_Gas_UnitHeater_${i + 1}_Rod_B`, x + 276, y - 12, z + 520, x + 300, y + 12, roofZ(y) - PURLIN_D);
+});
 const MZ = ST.mezzanine, SR = ST.stair, RR = ST.restrooms;
 if (MZ) {
   const x0 = mm(MZ.x0M), x1 = LX, yN = mm(MZ.depthM), deck = mm(MZ.deckM), wallH = mm(MZ.officeWallM || 2.7), slabT = 150, beamD = 280;
@@ -280,6 +332,20 @@ if (RR) {
   [y0 + 50, (y0 + yN) / 2, yN - 50].forEach((yp, k) => box(`Wood_Guardrail_Post${k + 1}`, x0 + 20, yp - 45, deck, x0 + 110, yp + 45, deck + 1050));
   box('Wood_Guardrail_TopRail', x0 + 20, y0, deck + 960, x0 + 110, yN, deck + 1050);
   box('Wood_Guardrail_MidRail', x0 + 20, y0, deck + 480, x0 + 110, yN, deck + 560);
+}
+const S2 = ST.stairEast;
+if (S2 && MZ) {                                              // straight flight along the mezzanine's hall face, rising toward -X (shape assumed)
+  const yS = mm(MZ.depthM), w = mm(S2.widthM || 1.3), foot = mm(S2.footXM), n = S2.risers || 17, tread = mm(S2.treadM || 0.28), deck = mm(MZ.deckM), rise = deck / n, guard = 1000;
+  const top = foot - (n - 1) * tread, land = top - mm(S2.landingM || 1.4), y0 = yS, y1 = yS + w, pT = 100;
+  for (let i = 0; i < n - 1; i++) { const xA = foot - i * tread, z = (i + 1) * rise; box(`Stair_BlackStep_E${i + 1}`, xA - tread, y0 + 40, z - 40, xA, y1 - pT, z); }
+  box('Stair_BlackLanding_Deck_E', land, y0, deck - 60, top, y1, deck);
+  [[land + 40, y1 - 60], [top - 100, y1 - 60], [land + 40, y0 + 20]].forEach(([x, y], k) => box(`Stair_BlackPost_E${k + 1}`, x, y, 0, x + 60, y + 60, deck - 60));
+  const P = y => [[foot, y, 0], [land, y, 0], [land, y, deck + guard], [top, y, deck + guard], [foot, y, rise + guard]];
+  const a = P(y1), b = P(y1 - pT);                           // cream panel on the hall side (+Y)
+  solid('Stair_WhiteWall_East2', [[a[0], a[1], a[2], a[3], a[4]], [b[0], b[4], b[3], b[2], b[1]],
+    [a[0], b[0], b[1], a[1]], [a[1], b[1], b[2], a[2]], [a[2], b[2], b[3], a[3]], [a[3], b[3], b[4], a[4]], [a[4], b[4], b[0], a[0]]]);
+  box('Stair_BlackCap_East2_Level', land, y1 - pT - 15, deck + guard, top, y1 + 15, deck + guard + 40);
+  box('Mezz_Upper_Door2_Grey', land + 200, yS - 4, deck, land + 1150, yS + 14, deck + 2100);
 }
 structureParts = parts - before;
 

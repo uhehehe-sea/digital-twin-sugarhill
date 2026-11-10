@@ -1,15 +1,93 @@
 {
   "_about": "Which surface each building part gets. First matching slot wins. A slot has either 'set' (a folder here with diff.jpg = colour sRGB, nor.jpg = OpenGL normal map, arm.jpg = R ambient occlusion / G roughness / B metalness; tileM = real-world size of one repeat in metres) or 'paint' (plain colour with roughness / metalness, no texture). 'match' is a regular expression on the part name from factory_precision.obj. Colours follow the site photos of 2026-11-09 (docs/SITE_REFERENCE_2026-11-09.md). To use a Megascans surface: export it as the three files into a new folder and change 'set'.",
   "hdri": "hdri/empty_warehouse_01_2k.hdr",
-  "lighting": { "fixtureColor": "#f2f6ff", "fixtureIrradiance": 0.6, "_note": "site: round high-bay LEDs, cool white (about 5000 K)" },
+  "lighting": {
+    "fixtureColor": "#f2f6ff",
+    "fixtureIrradiance": 0.6,
+    "_note": "site: round high-bay LEDs, cool white (about 5000 K)"
+  },
   "slots": {
-    "floor": { "set": "concrete_floor_worn_001", "match": "^(Floor_Slab|Mezzanine_Slab)", "tileM": 3, "tint": "#d9d8d3", "brightness": 1.9, "roughness": 0.6, "envMapIntensity": 1.0, "opaque": true },
-    "steel_frame": { "paint": "#3a211b", "match": "^(Col_|Roof_Purlin|Roof_Gable_Rafter|Girt_|Mezzanine_Beam|Mezzanine_Post|Mezz_Joist)", "roughness": 0.62, "metalness": 0.1, "envMapIntensity": 0.7 },
-    "roof_liner": { "paint": "#f3f3ef", "match": "^Roof_Gable_Cladding", "roughness": 0.9 },
-    "wall_upper": { "paint": "#ebe6d8", "match": "^Wall_", "roughness": 0.88 },
-    "wainscot": { "set": "corrugated_iron", "match": "^LinerPanel_", "tileM": 1.6, "tint": "#d6ebe5", "roughness": 0.7, "envMapIntensity": 0.6 },
-    "interior_walls": { "paint": "#eee9dc", "match": "^(Stair_WhiteWall|Mezz_Upper_Wall|Restroom_Box|Office_Enclosed_Wall)", "roughness": 0.86 },
-    "wood": { "set": "plywood", "match": "^(Plywood_|Wood_Guardrail|Office_Door_Brown)", "tileM": 1.2, "tint": "#d9c4a3" },
-    "tread_plate": { "set": "metal_plate", "match": "^(Stair_BlackStep|Stair_BlackLanding_Deck)", "tileM": 0.8, "tint": "#3b3f45", "metal": true }
+    "vent_core": {
+      "paint": "#15171a",
+      "match": "^(Shutter_Fan|WallVent).*Core_Dark",
+      "roughness": 0.8
+    },
+    "vents": {
+      "paint": "#7b8084",
+      "match": "^(Shutter_Fan|WallVent|Ceiling_Gas_UnitHeater)",
+      "roughness": 0.55,
+      "metalness": 0.5
+    },
+    "rollup": {
+      "paint": "#b4babd",
+      "match": "^RollUp_Door_",
+      "roughness": 0.5,
+      "metalness": 0.45
+    },
+    "exit_door": {
+      "paint": "#cdd2d0",
+      "match": "^Exit_Door_",
+      "roughness": 0.6,
+      "metalness": 0.2
+    },
+    "stair_black": {
+      "paint": "#17181a",
+      "match": "^(Stair_Black(Cap|Stringer|Handrail|Post))",
+      "roughness": 0.6,
+      "metalness": 0.3
+    },
+    "floor": {
+      "set": "concrete_floor_worn_001",
+      "match": "^(Floor_Slab|Mezzanine_Slab)",
+      "tileM": 3,
+      "tint": "#d9d8d3",
+      "brightness": 1.9,
+      "roughness": 0.6,
+      "envMapIntensity": 1,
+      "opaque": true
+    },
+    "steel_frame": {
+      "paint": "#3a211b",
+      "match": "^(Col_|Roof_Purlin|Roof_Gable_Rafter|Girt_|Mezzanine_Beam|Mezzanine_Post|Mezz_Joist)",
+      "roughness": 0.62,
+      "metalness": 0.1,
+      "envMapIntensity": 0.7
+    },
+    "roof_liner": {
+      "paint": "#f3f3ef",
+      "match": "^Roof_Gable_Cladding",
+      "roughness": 0.9
+    },
+    "wall_upper": {
+      "paint": "#ebe6d8",
+      "match": "^Wall_",
+      "roughness": 0.88
+    },
+    "wainscot": {
+      "set": "corrugated_iron",
+      "match": "^LinerPanel_",
+      "tileM": 1.6,
+      "tint": "#d6ebe5",
+      "roughness": 0.7,
+      "envMapIntensity": 0.6
+    },
+    "interior_walls": {
+      "paint": "#eee9dc",
+      "match": "^(Stair_WhiteWall|Mezz_Upper_Wall|Restroom_Box|Office_Enclosed_Wall)",
+      "roughness": 0.86
+    },
+    "wood": {
+      "set": "plywood",
+      "match": "^(Plywood_|Wood_Guardrail|Office_Door_Brown)",
+      "tileM": 1.2,
+      "tint": "#d9c4a3"
+    },
+    "tread_plate": {
+      "set": "metal_plate",
+      "match": "^(Stair_BlackStep|Stair_BlackLanding_Deck)",
+      "tileM": 0.8,
+      "tint": "#3b3f45",
+      "metal": true
+    }
   }
 }

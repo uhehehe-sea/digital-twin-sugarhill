@@ -53,10 +53,10 @@ test('shell: door opening matches building_meta.json, gate parts are copied, flo
   const b = build({ lengthM: 60.96, widthM: 45.72, eaveM: 6.1, roofSlope: 0.0833, bayM: 7.62, postLinesM: [15.24, 30.48], girtsM: [2.4, 4.0], door: { centerXM: 36 } });
   const d = b.meta.door;
   assert.equal(d.centerX, 36000); assert.equal(d.x1 - d.x0, 3800); assert.equal(d.legacyCenterX, 14500);
-  assert.equal(b.parts.get('Wall_North_WestSeg').max[0], d.x0);
-  assert.equal(b.parts.get('Wall_North_EastSeg').min[0], d.x1);
+  assert.equal(b.parts.get('Wall_North_Seg1').max[0], d.x0);
+  assert.equal(b.parts.get('Wall_North_Seg2').min[0], d.x1);
   assert.equal(b.parts.get('Wall_North_TopDoor1').min[2], d.top);
-  assert.ok(b.parts.get('Girt_North_Low_W') && b.parts.get('Girt_North_Low_E'), 'girts below the door top stop at the opening');
+  assert.ok(b.parts.get('Girt_North_Low_1') && b.parts.get('Girt_North_Low_2'), 'girts below the door top stop at the opening');
   assert.ok(names(b, /^Door_Sectional_/).length >= 5, 'animated gate parts copied from the legacy model');
   assert.equal(names(b, /^SafetyLine_Border_/).length, 4);
   assert.equal(names(b, /^SafetyLine_Aisle_/).length, 2);
@@ -78,8 +78,8 @@ test('structures: entrance, restrooms, stair and mezzanine are separate parts at
     }
   });
   // entrance: the wall is open exactly where the glass door stands
-  assert.equal(b.parts.get('Wall_South_WestSeg').max[0], 38300);
-  assert.equal(b.parts.get('Wall_South_EastSeg').min[0], 40100);
+  assert.equal(b.parts.get('Wall_South_Seg1').max[0], 38300);
+  assert.equal(b.parts.get('Wall_South_Seg2').min[0], 40100);
   assert.equal(b.parts.get('Wall_South_TopEntry').min[2], 2200);
   assert.equal(names(b, /^Main_Glass_Entry_Panel_/).length, 2);
   // mezzanine: deck at 3.05 m from x = 42 m to the end wall, half the width deep; office walls above, cage below
@@ -105,5 +105,41 @@ test('structures: entrance, restrooms, stair and mezzanine are separate parts at
   for (const [n, p] of b.parts) assert.equal(p.noNormal, 0, n);
   // the viewer's default keep-list covers every generated part
   const keep = /^(Floor_Slab|Joint_|Col_|Roof_|Girt_|Wall_|LinerPanel_|HighBay_|SafetyLine_|Door_Sectional|Exit_|Main_Glass_Entry_|Mezzanine_|Mezz_|Stair_|Restroom_|Cage_|Wood_Guardrail_)/;
+  assert.deepEqual([...b.parts.keys()].filter(n => !keep.test(n)), []);
+});
+
+test('fixed items: the shipped config puts the glass entrance in the office-end wall and adds doors, fans, heaters, round lights, east stair', () => {
+  const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'building.config.json'), 'utf8'));
+  const b = build(cfg), S = cfg.structures, LX = cfg.lengthM * 1000, WY = cfg.widthM * 1000;
+  // entrance: east wall is open exactly at the door, the south wall is whole again
+  const top = b.parts.get('Wall_East_TopEntry');
+  assert.deepEqual([top.min[1], top.max[1], top.min[2]], [S.entrance.startM * 1000, (S.entrance.startM + S.entrance.widthM) * 1000, S.entrance.heightM * 1000]);
+  assert.equal(b.parts.get('Main_Glass_Entry_Panel_L').min[0] >= LX, true, 'glass sits in the east wall thickness');
+  assert.ok(!b.parts.has('Wall_South_TopEntry'));
+  // cargo wall, west to east: sectional gate, exit door, roll-up door — three openings, four solid stretches
+  assert.equal(names(b, /^Wall_North_Seg\d$/).length, 4);
+  const gate = b.meta.door, exit = b.parts.get('Wall_North_TopExit1'), ru = b.parts.get('Wall_North_TopRollup');
+  assert.ok(gate.x1 < exit.min[0] && exit.max[0] < ru.min[0], 'gate, then exit door, then roll-up door');
+  assert.equal(ru.min[2], S.rollup.heightM * 1000);
+  assert.equal(b.parts.get('RollUp_Door_Curtain').max[2], S.rollup.heightM * 1000);
+  assert.ok(b.parts.get('RollUp_Door_Curtain').min[1] >= WY, 'curtain closes the opening inside the wall thickness');
+  // girts stop at the tall openings but run over the man doors
+  assert.equal(names(b, /^Girt_North_Low_\d$/).length, 3);            // 2.4 m: cut by gate and roll-up (exit door is 2.13 m)
+  assert.ok(b.parts.get('Girt_West_Low') && b.parts.get('Girt_East_Low'));
+  assert.equal(names(b, /^Exit_Door_\d_Leaf$/).length, 3);
+  assert.equal(names(b, /^Exit_Sign_\d_Red$/).length, 3);
+  assert.equal(names(b, /^Shutter_Fan_\d+_Frame$/).length, 5);
+  assert.equal(names(b, /^WallVent_Louver_\d+_Frame$/).length, 4);
+  assert.equal(names(b, /^Ceiling_Gas_UnitHeater_\d$/).length, 3);
+  // round lights: 12-sided discs (14 faces), 2 rows x 8 bays
+  const lights = names(b, /^HighBay_LED_Row\d+_X\d+$/);
+  assert.equal(lights.length, 16);
+  assert.equal(b.parts.get(lights[0]).faces, 14);
+  // east stair (assumed shape): 16 treads up to deck level along the mezzanine's hall face
+  assert.equal(names(b, /^Stair_BlackStep_E\d+$/).length, 16);
+  assert.equal(b.parts.get('Stair_BlackLanding_Deck_E').max[2], S.mezzanine.deckM * 1000);
+  assert.equal(b.parts.get('Stair_BlackStep_E1').min[1] >= S.mezzanine.depthM * 1000, true);
+  for (const [n, p] of b.parts) assert.equal(p.noNormal, 0, n);
+  const keep = /^(Floor_Slab|Joint_|Col_|Roof_|Girt_|Wall_|LinerPanel_|HighBay_|SafetyLine_|Floor_Stop_Decal|Door_Sectional|RollUp_Door_|Exit_|Shutter_Fan|WallVent_|Main_Glass_Entry_|Ceiling_Gas_UnitHeater|Mezzanine_|Mezz_|Stair_|Restroom_|Cage_|Wood_Guardrail_)/;
   assert.deepEqual([...b.parts.keys()].filter(n => !keep.test(n)), []);
 });

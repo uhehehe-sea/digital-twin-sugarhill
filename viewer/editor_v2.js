@@ -1475,7 +1475,7 @@ const DEFAULT_SCENE_PLACEMENTS = [
 // 기본 화면의 건물: 바닥·벽·지붕·철골·천장등·문과 노란 바닥선, 그리고 영상에서 확인한 큰 구조물
 // (2층 사무실 메자닌·계단·화장실·출입문 — tools/build_factory_shell.mjs가 생성). 그 밖의 내부 물건은 뺍니다.
 // 아래 정규식에 맞는 이름만 남습니다. 저장된 건물 편집 상태(scene_layout.json의 building)가 있으면 그것이 우선합니다.
-const DEFAULT_SHELL_KEEP = /^(Floor_Slab|Joint_|Col_|Roof_|Girt_|Wall_|LinerPanel_|HighBay_|SafetyLine_|Floor_Stop_Decal|Door_Sectional|Door_Rollup|Exit_|Fire_Extinguisher|Shutter_Fan|WallVent_|Window_Frame|Main_Glass_Entry_|Ceiling_Gas_UnitHeater|Mezzanine_|Mezz_|Stair_|Restroom_|Cage_|Wood_Guardrail_)/;
+const DEFAULT_SHELL_KEEP = /^(Floor_Slab|Joint_|Col_|Roof_|Girt_|Wall_|LinerPanel_|HighBay_|SafetyLine_|Floor_Stop_Decal|Door_Sectional|Door_Rollup|RollUp_Door_|Exit_|Fire_Extinguisher|Shutter_Fan|WallVent_|Window_Frame|Main_Glass_Entry_|Ceiling_Gas_UnitHeater|Mezzanine_|Mezz_|Stair_|Restroom_|Cage_|Wood_Guardrail_)/;
 const DEFAULT_BUILDING_REMOVED = 'DEFAULT_EMPTY_SHELL';   // resolved in applyBuildingState once the part list is known
 // v1 catalog entries restored verbatim from editor_v1_backup.js.
 // The v2 upgrade replaced ASSET_CATALOG and dropped these, so every DEFAULT_SCENE_PLACEMENTS
