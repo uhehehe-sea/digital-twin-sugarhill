@@ -1,7 +1,7 @@
 # 뮤즈 전달 메모 — 2026-11-09 Claude Code 작업분
 
 ## 받는 파일
-`factory-digital-twin_claude_2026-11-09_v4.zip` — 저장소 전체 + **`.git` 기록 포함**(`node_modules/`, `dist/` 제외). 풀고 `npm install && npm test` → 71/71.
+`factory-digital-twin_claude_2026-11-09_v6.zip` — 저장소 전체 + **`.git` 기록 포함**(`node_modules/`, `dist/` 제외). 풀고 `npm install && npm test` → 92/92.
 같은 날짜에 여러 번 올릴 때는 `_v1`, `_v2`, `_v3` … 으로 구분합니다. **번호가 가장 큰 것이 최신**입니다. (v1·v2는 이름 규칙을 정하기 전에 같은 이름으로 덮어써서 Drive에 남아 있지 않습니다. 내용은 모두 최신 버전에 포함되어 있습니다.)
 
 ## 기준과 커밋
@@ -31,10 +31,15 @@ npm test
 | d238dfd | CAD 모델링 탭 → 빠른 스케치 창, 라우터 클램프 절반 크기, **절삭 위치 버그(반 장 밀림) 수정** + 공구 범위만 촘촘한 격자·깊이 색, 한/EN 토글 |
 | 8a70399 | 언어 토글을 로고 옆 큰 `KO / EN` 버튼으로 이동 (v4) |
 | (v5) | 기본 화면 정리: 기본 배치는 CNC 2대(라우터·선반)만. 3D 프린터·작업대·카트·탱크·사무실 책상 세트 제외. 건물의 라운지 부스 2개(주황 소파·회색 칸막이) 기본 제거(`DEFAULT_BUILDING_REMOVED`) |
+| a9487c9 | UI 정리: 툴바 1,366 px 안에 표시(보기/더보기 메뉴), 탭 5 → 3, 중복 버튼 제거, 표기 수정 (v6) |
+| 8f28632 | 트윈 1~4단계 엔진: 가감속 시간 모델, 설비 프로파일·보정, 생산량 계산, 실기계 수신(`/api/ingest`, MTConnect), 사이클 기록, 모의 기계. **화면 연결은 아직** (v6) |
+| 73efba7 | three.js r128 → 0.187(로컬 제공, CDN 제거), HDRI 조명, 건물 UV + 표면 텍스처, AO, 건물 glTF 내보내기, 셰이딩 메뉴 버그 수정 (v6) |
 
 알려진 문제(이번 작업 전부터): 상단 툴바 폭이 약 2050 px라 1600 px 화면에서는 오른쪽 버튼(저장·CAD 모델링 창·Zen·패널)이 화면 밖으로 잘립니다.
 
 `scene_layout.json`에 `building: { removed, moved, clones }` 필드가 새로 생깁니다. 이전 형식 파일도 그대로 읽힙니다.
+
+v6부터 `npm install`이 three.js 0.187을 받습니다(전에는 CDN). 텍스처·HDRI는 `assets/`에 있고 설명은 `assets/README.md`(Megascans로 교체하는 방법·받을 목록 포함), 전체 계획은 `docs/DIGITAL_TWIN_PLAN_2026-11-09.md`.
 
 자세한 내용: `docs/WORKLOG.md`의 2026-11-09 항목, `README.md`(환경변수 표 포함), `docs/TOOL_CHANGE.md`.
 
