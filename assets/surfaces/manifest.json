@@ -2,7 +2,7 @@
   "_about": "Which texture set each building part gets. A set is a folder here with diff.jpg (colour, sRGB), nor.jpg (OpenGL normal map) and arm.jpg (R = ambient occlusion, G = roughness, B = metalness). 'match' is a regular expression on the part name from factory_precision.obj. tileM = real-world size of one texture repeat in metres. To use a Megascans surface: export it as these three files into a new folder and change 'set'.",
   "hdri": "hdri/empty_warehouse_01_2k.hdr",
   "slots": {
-    "floor": { "set": "concrete_floor_worn_001", "match": "^(Floor_Slab|Mezzanine_Slab)", "tileM": 3, "tint": "#c4c8cc", "roughness": 0.8, "envMapIntensity": 0.9, "opaque": true },
+    "floor": { "set": "concrete_floor_worn_001", "match": "^(Floor_Slab|Mezzanine_Slab)", "tileM": 3, "tint": "#c4c8cc", "roughness": 0.55, "envMapIntensity": 1.0, "opaque": true },
     "cladding": { "set": "corrugated_iron", "match": "^(Wall_|Roof_Gable_Cladding|LinerPanel_)", "tileM": 2, "tint": "#c3cad2", "metal": true, "envMapIntensity": 0.8 },
     "interior_walls": { "set": "white_plaster_02", "match": "^(Stair_WhiteWall|Mezz_Upper_Wall|Restroom_Box|Office_Enclosed_Wall)", "tileM": 2.5, "tint": "#ffffff" },
     "wood": { "set": "plywood", "match": "^(Plywood_|Wood_Guardrail|Office_Door_Brown)", "tileM": 1.2, "tint": "#d9c4a3" },

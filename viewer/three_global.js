@@ -25,6 +25,7 @@ import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
@@ -56,6 +57,8 @@ Object.defineProperty(NS.WebGLRenderer.prototype, 'outputEncoding', {
   get() { return this.outputColorSpace === NS.SRGBColorSpace ? sRGBEncoding : LinearEncoding; },
   set(v) { this.outputColorSpace = v === sRGBEncoding ? NS.SRGBColorSpace : NS.LinearSRGBColorSpace; }
 });
+
+RectAreaLightUniformsLib.init();   // area lights (ceiling fixtures) need their lookup textures once
 
 window.THREE = Object.assign({}, NS, {
   OrbitControls, TransformControls, OBJLoader, GLTFLoader, KTX2Loader, HDRLoader, MeshoptDecoder, Reflector, RoomEnvironment,

@@ -33,8 +33,8 @@ window.addEventListener('load', function () {
     // a textured, opaque floor replaces the old see-through floor + mirror plane underneath
     if (status.floorOpaque && typeof floorReflector !== 'undefined' && floorReflector) floorReflector.visible = false;
   }
-  const EXPOSURE = 1.3;
-  const FILL = { HemisphereLight: 0.18, DirectionalLight: 0.55, PointLight: 0.4 };   // share of the old intensity kept once the HDRI lights the scene
+  const EXPOSURE = 1.2;
+  const FILL = { HemisphereLight: 0, DirectionalLight: 0.55, PointLight: 0.06 };   // the old artistic fill lights are replaced by fixture lights + captured interior light
   function dimLegacyLights() {
     scene.traverse(o => {
       if (!o.isLight || o.userData.visualDimmed) return;
@@ -44,13 +44,137 @@ window.addEventListener('load', function () {
       o.intensity *= k;
     });
   }
+  // ------------------------------------------------------------------ 1b. shadows
+  /**
+   * Indoor shadows. The original sun sat outside and above the building while the roof and walls
+   * cast shadows, so the whole interior was inside the roof's shadow and nothing showed.
+   * Now: one shadow light just under the roof structure, aimed down at a slight angle (like the
+   * high-bay lamps), its shadow box fitted to the building footprint. Roof, cladding and ceiling
+   * fixtures do not cast. Units are mm, so biases are in mm too.
+   */
+  const SHADOW = { height: 5600, lean: [3600, -2500], mapSize: 4096, strength: 2.6, radius: 4 };
+  function setupShadows() {
+    if (typeof factoryMeshGroup === 'undefined' || !factoryMeshGroup) return false;
+    const box = new THREE.Box3().setFromObject(factoryMeshGroup);
+    if (box.isEmpty()) return false;
+    const c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+    let sun = null;
+    scene.traverse(o => {
+      if (o.isDirectionalLight && o.castShadow && !sun) sun = o;
+      else if (o.isPointLight && o.castShadow) o.castShadow = false;       // one clear shadow source; point-light cube shadows cost 6 passes
+    });
+    if (!sun) return false;
+    sun.position.set(c.x + SHADOW.lean[0], c.y + SHADOW.lean[1], SHADOW.height);
+    sun.target.position.set(c.x, c.y, 0);
+    if (!sun.target.parent) scene.add(sun.target);
+    const cam = sun.shadow.camera, pad = 1500;
+    cam.left = -size.x / 2 - pad; cam.right = size.x / 2 + pad; cam.top = size.y / 2 + pad; cam.bottom = -size.y / 2 - pad;
+    cam.near = 50; cam.far = SHADOW.height + 2500;
+    cam.updateProjectionMatrix();
+    sun.shadow.mapSize.set(SHADOW.mapSize, SHADOW.mapSize);
+    sun.shadow.bias = -0.0002; sun.shadow.normalBias = 18; sun.shadow.radius = SHADOW.radius;
+    if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }      // rebuild at the new size
+    sun.intensity = SHADOW.strength; sun.userData.visualDimmed = true;            // direct light strong enough for shadows to read against the HDRI fill
+    // what must not cast: outer skin, roof structure, ceiling fixtures, floor markings
+    const NO_CAST = /^(Wall_|Roof_|LinerPanel_|Girt_|HighBay_|Ceiling_|Shutter_Fan|WallVent_|SafetyLine_|Joint_|Floor_Slab|Entry_Floor_Mat|Window_|Main_Glass)/;
+    let casters = 0;
+    factoryMeshGroup.traverse(o => {
+      if (!o.isMesh) return;
+      o.receiveShadow = true;
+      if (NO_CAST.test(o.name) || (o.material && o.material.transparent && o.material.opacity < 0.9)) o.castShadow = false;
+      else if (o.name) { o.castShadow = true; casters++; }
+    });
+    renderer.shadowMap.needsUpdate = true;
+    status.shadows = { casters, mapSize: SHADOW.mapSize, lightZ: SHADOW.height };
+    return true;
+  }
+
+  // ------------------------------------------------------------------ 1c. fixtures + interior light capture
+  /**
+   * What Unreal / Twinmotion / Blender interiors have in common (docs/LIGHTING_NOTES.md):
+   *   • light comes from the real fixtures — an area light at every ceiling lamp, and the lamp itself glows
+   *   • bounced light fills the room, and reflections show the ROOM, not an outdoor sky
+   *   • exposure is fixed by hand, with a filmic tone curve
+   * Here: one RectAreaLight per HighBay_LED fixture (sized from the fixture mesh), then the lit
+   * interior is rendered into a cube map from the middle of the hall and used as the environment
+   * (ambient light + reflections). Two passes, so the second capture already contains light
+   * bounced once off floor and walls — a cheap stand-in for global illumination, like Unreal's
+   * sky-light / reflection captures. Static: call twinVisual.recapture() after big layout changes.
+   */
+  const FIXTURE = { color: 0xfff1df, irradiance: 0.6, emissive: 5 };   // ≈4500 K LED; irradiance = light arriving on the floor right under one lamp
+  let hdrTex = null;
+  function setupFixtures() {
+    const box = new THREE.Box3(), size = new THREE.Vector3(), c = new THREE.Vector3();
+    let n = 0;
+    factoryMeshGroup.traverse(o => {
+      if (!o.isMesh || !/^HighBay_LED_/.test(o.name) || o.userData.fixtureLit) return;
+      o.userData.fixtureLit = true;
+      o.material = new THREE.MeshStandardMaterial({ color: 0x0c0c0c, emissive: FIXTURE.color, emissiveIntensity: FIXTURE.emissive, roughness: 0.5 });
+      o.castShadow = false;
+      box.setFromObject(o); box.getSize(size); box.getCenter(c);
+      const w = Math.max(size.x, 150), h = Math.max(size.y, 150), d = box.min.z;
+      // RectAreaLight intensity is luminance; irradiance straight below = L · area / distance² (unit-free ratio, so mm are fine)
+      const light = new THREE.RectAreaLight(FIXTURE.color, FIXTURE.irradiance * d * d / (w * h), w, h);
+      light.position.set(c.x, c.y, box.min.z - 15);
+      light.lookAt(c.x, c.y, 0);
+      light.userData.keepIntensity = true; light.name = 'FixtureLight_' + o.name;
+      scene.add(light); n++;
+    });
+    status.fixtures = n;
+    return n;
+  }
+
+  function captureInterior(passes) {
+    if (typeof factoryMeshGroup === 'undefined' || !factoryMeshGroup) return false;
+    const box = new THREE.Box3().setFromObject(factoryMeshGroup);
+    if (box.isEmpty()) return false;
+    const c = box.getCenter(new THREE.Vector3());
+    const rt = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
+    const cubeCam = new THREE.CubeCamera(150, 90000, rt);
+    cubeCam.position.set(c.x, c.y, Math.min(2400, box.max.z * 0.35));          // standing height in the middle of the hall
+    scene.add(cubeCam);
+    const prev = { bg: scene.background, rot: scene.backgroundRotation.clone(), fog: scene.fog };
+    const hidden = [];
+    scene.traverse(o => {                                                     // editor helpers must not end up in the lighting
+      if (o.visible && (o.isTransformControlsRoot || o.isLine || o.isPoints || o.isSprite || o.userData.isCadEdge || o.isBoxHelper || o.isGridHelper)) { o.visible = false; hidden.push(o); }
+    });
+    if (hdrTex) { scene.background = hdrTex; scene.backgroundRotation.set(Math.PI / 2, 0, 0); }   // the outside, seen through doors and translucent cladding
+    scene.fog = null;
+    const pm = new THREE.PMREMGenerator(renderer);
+    try {
+      for (let i = 0; i < (passes || 1); i++) {
+        cubeCam.update(renderer, scene);
+        const env = pm.fromCubemap(rt.texture).texture;
+        env.userData.interior = true;
+        const old = scene.environment;
+        scene.environment = env;
+        scene.environmentRotation.set(0, 0, 0);
+        scene.environmentIntensity = 0.5;      // captured light is fill; direct light must dominate or shadows wash out
+        if (old && old.userData.interior) old.dispose();
+      }
+      status.interiorCapture = { passes: passes || 1, at: [Math.round(cubeCam.position.x), Math.round(cubeCam.position.y), Math.round(cubeCam.position.z)] };
+    } finally {
+      for (const o of hidden) o.visible = true;
+      scene.background = prev.bg; scene.backgroundRotation.copy(prev.rot); scene.fog = prev.fog;
+      scene.remove(cubeCam); rt.dispose(); pm.dispose();
+    }
+    if (typeof log === 'function') log('💡 [비주얼] 등기구 조명 ' + (status.fixtures || 0) + '개 + 실내 반사·간접광 캡처 완료');
+    return true;
+  }
+
   function loadHdri(file) {
     new THREE.HDRLoader().load('/assets/' + file, hdr => {
       const pmrem = new THREE.PMREMGenerator(renderer);
       const env = pmrem.fromEquirectangular(hdr).texture;
-      hdr.dispose(); pmrem.dispose();
-      scene.environment = env;
-      scene.environmentIntensity = 1.0;
+      pmrem.dispose();
+      hdr.mapping = THREE.EquirectangularReflectionMapping;
+      hdrTex = hdr;
+      if (!scene.environment || !scene.environment.userData.interior) {
+        scene.environment = env;
+        scene.environmentRotation.set(Math.PI / 2, 0, 0);   // HDRIs are Y-up, this scene is Z-up
+        scene.environmentIntensity = 0.8;
+      }
+      if (status.uvMeshes) setTimeout(() => captureInterior(2), 200);
       dimLegacyLights();
       applyLook();
       status.hdri = file;
@@ -121,6 +245,9 @@ window.addEventListener('load', function () {
     });
     status.uvMeshes = n;
     applyLook();
+    setupShadows();
+    setupFixtures();
+    setTimeout(() => captureInterior(2), 400);      // after the first frames, so shadow maps and textures are on the GPU
     if (typeof log === 'function') log(`🧱 [비주얼] 건물 부재 ${n}개에 UV 생성 + 표면 텍스처 적용 (${Object.keys(sets).filter(k => sets[k]).join(', ')})`);
   }
 
@@ -148,6 +275,8 @@ window.addEventListener('load', function () {
     };
     gtao.restoreVisibility = function () { for (const o of hidden) o.visible = true; hidden.length = 0; };
     c.addPass(gtao);
+    // only light sources (the glowing fixtures) exceed the threshold in this HDR buffer
+    c.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.2, 0.55, 1.4));
     c.addPass(new THREE.OutputPass());
     c.addPass(new THREE.SMAAPass(size.x * renderer.getPixelRatio(), size.y * renderer.getPixelRatio()));
     return c;
@@ -174,7 +303,7 @@ window.addEventListener('load', function () {
     window.switchViewportPreset = function (p) { const r = orig.apply(this, arguments); if (scene.environment && status.hdri !== 'missing' && status.hdri !== 'pending') applyLook(); return r; };
   }
 
-  window.twinVisual = { render, setQuality, get quality() { return quality; }, status };
+  window.twinVisual = { render, setQuality, recapture: () => captureInterior(2), get quality() { return quality; }, status };
   document.addEventListener('change', e => { if (e.target && e.target.id === 'chk-visual-hq') setQuality(e.target.checked ? 'high' : 'basic'); });
   setQuality(quality);
 
