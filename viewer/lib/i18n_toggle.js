@@ -19,6 +19,17 @@
   const KEY = 'twin.lang';
 
   const EXACT = {
+    // 2026-11-09 UI 정리 이후의 문구
+    '↖ 선택': '↖ Select', '📷 전체 조감도': '📷 Overview', '🏭 CNC 제조셀': '🏭 CNC cell', '🚪 화물 게이트': '🚪 Cargo gate',
+    '🚻 화장실 · 계단': '🚻 Restroom · stairs', '💼 1층 사무실': '💼 1F office', '🪜 메자닌': '🪜 Mezzanine', '☕ 라운지': '☕ Lounge',
+    '👁 보기 ▾': '👁 View ▾', '셰이딩': 'Shading', '사실적 (PBR)': 'Realistic (PBR)', 'CAD 외곽선': 'CAD edges', '실내 투시 (X-Ray)': 'X-Ray',
+    '와이어프레임': 'Wireframe', '3DGS 스플랫': '3DGS splat', '외벽 투명도': 'Wall opacity', '카메라 속도': 'Camera speed',
+    '⋯ 더보기 ▾': '⋯ More ▾', '🖥️ Zen 모드 (Tab)': '🖥️ Zen mode (Tab)', '⚡ Cycles 렌더': '⚡ Cycles render', '작업 패널': 'Work panel',
+    '📐 배치 · 생산': '📐 Layout · Production', '✏️ 만들기': '✏️ Make', '⚙ 설비 · 신호': '⚙ Plant · Signals',
+    '📋 복제 (Shift+D)': '📋 Duplicate (Shift+D)', '부품 만들기': 'Make a part',
+    '① 스케치로 부품을 만들고 → ② 네스팅으로 원판에 배치해 G-code를 만든 뒤 → ③ 라우터로 보냅니다.': '① Sketch a part → ② nest it on a sheet and generate G-code → ③ send it to the router.',
+    '✏️ 빠른 스케치 · 견적 열기': '✏️ Open quick sketch & quote', '📐 네스팅 · G-code 열기': '📐 Open nesting · G-code',
+    '📦 설비 · 비품 라이브러리': '📦 Equipment library',
     // top toolbar
     '↖ 선택 (Q)': '↖ Select (Q)', '✥ 이동 (G)': '✥ Move (G)', '↻ 회전 (R)': '↻ Rotate (R)', '⤢ 크기 (T)': '⤢ Scale (T)',
     '스냅: 10mm': 'Snap: 10mm', '스냅: 50mm': 'Snap: 50mm', '스냅: 100mm': 'Snap: 100mm', '스냅: 500mm': 'Snap: 500mm', '스냅: OFF': 'Snap: OFF',

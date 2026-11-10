@@ -89,6 +89,20 @@
       color: var(--text-primary);
       letter-spacing: -0.2px;
     }
+    /* Toolbar dropdown menus (보기 / 더보기) */
+    .tb-menu { position: relative; }
+    .tb-pop {
+      display: none; position: absolute; top: calc(100% + 6px); left: 0; z-index: 500; min-width: 290px;
+      flex-direction: column; gap: 8px; padding: 10px 12px;
+      background: var(--bg-surface-elevated, #111827); border: 1px solid var(--border-color); border-radius: 8px;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
+    }
+    .tb-pop.tb-pop-right { left: auto; right: 0; min-width: 190px; }
+    .tb-menu.open .tb-pop { display: flex; }
+    .tb-pop-row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-secondary); }
+    .tb-pop-row > span:first-child { width: 74px; flex: none; font-weight: 600; }
+    .tb-pop-row .tb-select { flex: 1; min-width: 0; }
+    .tb-pop > .btn-tb { justify-content: flex-start; }
     /* KO | EN language toggle next to the brand */
     .lang-toggle {
       display: inline-flex; align-items: stretch; padding: 2px; gap: 2px; cursor: pointer;
@@ -710,7 +724,7 @@
       <div class="brand-pill">
         <span class="brand-dot"></span>
         <span>SolidCraft Twin Studio</span>
-        <span style="font-size:10px; color:var(--text-muted); font-weight:400;">v2.5</span>
+        <span style="font-size:10px; color:var(--text-muted); font-weight:400;">v2.6</span>
       </div>
 
       <!-- KO/EN 화면 언어 전환 토글 (lib/i18n_toggle.js) -->
@@ -720,9 +734,9 @@
 
       <div class="tb-divider"></div>
 
-      <!-- Transform Gizmo Modes -->
-      <button class="btn-tb" id="btn-mode-select" onclick="setTransformMode('select')" title="선택 모드 (Q)">
-        <span>↖ 선택 (Q)</span>
+      <!-- Transform tools -->
+      <button class="btn-tb" id="btn-mode-select" onclick="setTransformMode('select')" title="선택만 (기즈모 숨김)">
+        <span>↖ 선택</span>
       </button>
       <button class="btn-tb active" id="btn-mode-translate" onclick="setTransformMode('translate')" title="이동 기즈모 (G)">
         <span>✥ 이동 (G)</span>
@@ -734,9 +748,6 @@
         <span>⤢ 크기 (T)</span>
       </button>
 
-      <div class="tb-divider"></div>
-
-      <!-- Grid Snap -->
       <select class="tb-select" id="select-grid-snap" onchange="setGridSnap(this.value)" title="이동 그리드 스냅 (mm)">
         <option value="10">스냅: 10mm</option>
         <option value="50" selected>스냅: 50mm</option>
@@ -744,78 +755,81 @@
         <option value="500">스냅: 500mm</option>
         <option value="0">스냅: OFF</option>
       </select>
-
-      <!-- Camera Speed -->
-      <div class="btn-tb" style="padding:2px 8px; cursor:default;" title="카메라 이동 속도 (단축키: [ 감속, ] 가속)">
-        <span style="color:var(--text-muted); font-size:10px;">속도</span>
-        <input type="range" id="slider-cam-speed" min="0.2" max="5.0" step="0.1" value="1.0" oninput="setCameraSpeedMultiplier(this.value)" style="width:65px; accent-color:#38bdf8; cursor:pointer;">
-        <span id="label-cam-speed" style="font-family:var(--font-mono); font-size:10.5px; color:#38bdf8; font-weight:700;">1.0x</span>
-      </div>
     </div>
 
-    <!-- Center Quick Trigger Group -->
     <div class="tb-center">
-      <!-- Viewport Shading Dropdown -->
-      <select class="tb-select" id="select-viewport-mode" onchange="switchViewportPreset(this.value)" title="렌더링 셰이딩 및 시각화 모드">
-        <option value="pbr" selected>⚡ UE5 실사 PBR (AgX IBL + SSR)</option>
-        <option value="cad_edges">📐 정밀 CAD 와이어 외곽선</option>
-        <option value="xray">🩻 실내 투시 (X-Ray Cutaway)</option>
-        <option value="wireframe">🕸️ 메쉬 와이어프레임</option>
-        <option value="splat">☁️ 3DGS 가우시안 스플랫</option>
+      <!-- Camera view shortcuts -->
+      <select class="tb-select" id="select-camera-view" onchange="setView(this.value)" title="시점 바로가기">
+        <option value="iso" selected>📷 전체 조감도</option>
+        <option value="cnc_cell">🏭 CNC 제조셀</option>
+        <option value="cargo_gate">🚪 화물 게이트</option>
+        <option value="restroom_stairs">🚻 화장실 · 계단</option>
+        <option value="office">💼 1층 사무실</option>
+        <option value="mezzanine">🪜 메자닌</option>
+        <option value="lounge">☕ 라운지</option>
       </select>
 
-      <!-- Camera Views Dropdown -->
-      <select class="tb-select" id="select-camera-view" onchange="setView(this.value)" title="공장 주요 설비 시점 바로가기">
-        <option value="iso" selected>📷 전체 조감도 (Isometric)</option>
-        <option value="cargo_gate">🚪 화물 게이트 듀얼 존</option>
-        <option value="cnc_cell">🏭 CNC & 3D 프린터 제조셀</option>
-        <option value="restroom_stairs">🚻 듀얼 도어 화장실 & 계단</option>
-        <option value="office">💼 1층 엔지니어링 오피스</option>
-        <option value="mezzanine">🪜 메자닌 복층 & 계단</option>
-        <option value="lounge">☕ 라운지 & 케이지 존</option>
-      </select>
-
-      <!-- Master Gate Toggle Action Button -->
-      <!-- Exterior Wall Transparency Control (View inside from afar) -->
-      <div style="display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.35); padding:3px 10px; border-radius:4px; border:1px solid var(--border-color);" title="건물 외관 투명도 조절: 슬라이더를 줄이면 멀리서도 내부 설비와 화물문이 투명하게 보입니다">
-        <span style="font-size:11px; color:#cbd5e1; font-weight:600; white-space:nowrap;">🏛️ 외벽 투명도</span>
-        <input type="range" id="slider-wall-opacity" min="0" max="100" value="35" step="5" oninput="setExteriorWallOpacity(this.value / 100, true)" style="width:75px; accent-color:var(--accent-blue); cursor:pointer;">
-        <span id="label-wall-opacity" style="font-size:11px; color:var(--accent-blue); font-family:var(--font-mono); font-weight:600; min-width:32px;">35%</span>
-        <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setExteriorWallOpacity(0.15, true)" title="투명 X-Ray (15%)">투명</button>
-        <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setExteriorWallOpacity(0.40, true)" title="반투명 고스트 (40%)">반투명</button>
-        <button class="btn-tb" style="padding:2px 6px; font-size:10px;" onclick="setExteriorWallOpacity(1.0, true)" title="완전 불투명 (100%)">불투명</button>
+      <!-- View menu: shading, wall opacity, camera speed -->
+      <div class="tb-menu">
+        <button class="btn-tb" onclick="toggleTbMenu(this)" title="셰이딩 · 외벽 투명도 · 카메라 속도">
+          <span>👁 보기 ▾</span>
+        </button>
+        <div class="tb-pop">
+          <label class="tb-pop-row">
+            <span>셰이딩</span>
+            <select class="tb-select" id="select-viewport-mode" onchange="switchViewportPreset(this.value)">
+              <option value="pbr" selected>사실적 (PBR)</option>
+              <option value="cad_edges">CAD 외곽선</option>
+              <option value="xray">실내 투시 (X-Ray)</option>
+              <option value="wireframe">와이어프레임</option>
+              <option value="splat">3DGS 스플랫</option>
+            </select>
+          </label>
+          <div class="tb-pop-row" title="외벽을 투명하게 해서 밖에서도 내부가 보이게 합니다">
+            <span>외벽 투명도</span>
+            <input type="range" id="slider-wall-opacity" min="0" max="100" value="35" step="5" oninput="setExteriorWallOpacity(this.value / 100, true)" style="flex:1; accent-color:var(--accent-blue); cursor:pointer;">
+            <span id="label-wall-opacity" style="font-family:var(--font-mono); min-width:34px; text-align:right;">35%</span>
+          </div>
+          <div class="tb-pop-row">
+            <span></span>
+            <button class="btn-tb" onclick="setExteriorWallOpacity(0.15, true)" title="15%">투명</button>
+            <button class="btn-tb" onclick="setExteriorWallOpacity(0.40, true)" title="40%">반투명</button>
+            <button class="btn-tb" onclick="setExteriorWallOpacity(1.0, true)" title="100%">불투명</button>
+          </div>
+          <div class="tb-pop-row" title="WASD 이동 속도 ( [ / ] 키로도 조절 )">
+            <span>카메라 속도</span>
+            <input type="range" id="slider-cam-speed" min="0.2" max="5.0" step="0.1" value="1.0" oninput="setCameraSpeedMultiplier(this.value)" style="flex:1; accent-color:#38bdf8; cursor:pointer;">
+            <span id="label-cam-speed" style="font-family:var(--font-mono); min-width:34px; text-align:right;">1.0x</span>
+          </div>
+        </div>
       </div>
-
-      <!-- Master Gate Toggle Action Button -->
-      <button class="btn-tb active-amber" id="btn-tb-gate-toggle" onclick="triggerGateAction('TOGGLE')" title="화물 게이트 원터치 개폐 (클릭 시 즉시 열기/닫기)">
-        <span>🚪 게이트: 열기</span>
-      </button>
     </div>
 
-    <!-- Right Controls Group -->
     <div class="tb-right">
       <button class="btn-tb" onclick="undoLastAction()" title="실행 취소 (Ctrl+Z)">
         <span>↩ 취소</span>
       </button>
-      <button class="btn-tb active-green" onclick="saveSceneLayoutToServer()" title="레이아웃 저장 (scene_layout.json 동기화)">
+      <button class="btn-tb active-green" onclick="saveSceneLayoutToServer()" title="레이아웃 저장 (scene_layout.json)">
         <span>💾 저장</span>
       </button>
-      <button class="btn-tb" onclick="openBlenderRenderModal()" style="border-color:#7c3aed; color:#c084fc;" title="Blender Cycles GPU 렌더링">
-        <span>⚡ Cycles</span>
-      </button>
-      <button class="btn-tb" onclick="openSolidCraftStudioModal()" style="border-color:#38bdf8; color:#38bdf8; background:rgba(56,189,248,0.08);" title="언리얼 블루프린트 스타일 독립 3D CAD 모델링 스튜디오 창 열기">
-        <span>🛠️ CAD 모델링 창</span>
-      </button>
 
-      <div class="tb-divider"></div>
-
-      <!-- Zen Mode & Right Sidebar Toggle -->
-      <button class="btn-tb" id="btn-toggle-zen" onclick="toggleZenMode()" title="순수 3D 뷰포트 몰입 모드 (단축키: Tab)">
-        <span>🖥️ Zen (Tab)</span>
-      </button>
-      <button class="btn-tb active" id="btn-toggle-sidebar" onclick="toggleRightSidebar()" title="우측 통합 인스펙터 패널 토글 (단축키: F4)">
-        <span>📐 패널 (F4)</span>
-      </button>
+      <!-- More menu: rarely used actions -->
+      <div class="tb-menu">
+        <button class="btn-tb" onclick="toggleTbMenu(this)" title="더보기">
+          <span>⋯ 더보기 ▾</span>
+        </button>
+        <div class="tb-pop tb-pop-right">
+          <button class="btn-tb" id="btn-toggle-zen" onclick="toggleZenMode()" title="3D 화면만 보기 (Tab)">
+            <span>🖥️ Zen 모드 (Tab)</span>
+          </button>
+          <button class="btn-tb active" id="btn-toggle-sidebar" onclick="toggleRightSidebar()" title="오른쪽 패널 보이기/숨기기 (F4)">
+            <span>📐 패널 (F4)</span>
+          </button>
+          <button class="btn-tb" onclick="openBlenderRenderModal()" title="Blender Cycles 렌더 (서버에 Blender가 설정된 경우)">
+            <span>⚡ Cycles 렌더</span>
+          </button>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -843,37 +857,22 @@
   <aside id="right-sidebar">
     <!-- Sidebar Top Header & Menu Switcher -->
     <div class="sidebar-top-header">
-      <div style="display:flex; align-items:center; gap:6px; flex:1; min-width:0;">
-        <span style="font-weight:700; color:#38bdf8; font-size:11px; white-space:nowrap;">🛠️ 작업 메뉴:</span>
-        <select id="sidebar-menu-dropdown" class="sidebar-dropdown-select" onchange="switchRightSidebarTab(this.value)" style="flex:1; min-width:0;" title="작업 패널 바로가기 선택">
-          <option value="inspector">📐 1. 속성 & 트랜스폼</option>
-          <option value="modeling">🛠️ 2. SolidCraft CAD 모델링</option>
-          <option value="gates">🚪 3. 화물 게이트 제어</option>
-          <option value="plc">⚡ 4. 가상 PLC 신호 버스</option>
-          <option value="layout">🏭 5. 팩토리 씬 레이아웃</option>
-        </select>
-      </div>
+      <span style="font-weight:700; color:#38bdf8; font-size:11px; white-space:nowrap; flex:1;">작업 패널</span>
       <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="사이드바 접기 (3D 화면 극대화)">
         <span id="sidebar-collapse-icon">▶ 접기</span>
       </button>
     </div>
 
-    <!-- Tab Navigation Header (5 Dedicated Engineering Workspaces) -->
+    <!-- Tabs follow the workflow: lay out & run → make parts → plant signals -->
     <div class="sidebar-tabs">
-      <button class="sidebar-tab-btn active" id="tab-btn-inspector" onclick="switchRightSidebarTab('inspector')" title="오브젝트 트랜스폼 및 재질 속성">
-        <span>📐 속성</span>
+      <button class="sidebar-tab-btn active" id="tab-btn-inspector" onclick="switchRightSidebarTab('inspector')" title="오브젝트 속성 · 생산 패널 · 배치 목록">
+        <span>📐 배치 · 생산</span>
       </button>
-      <button class="sidebar-tab-btn" id="tab-btn-modeling" onclick="switchRightSidebarTab('modeling'); openSolidCraftStudioModal();" style="color:#60a5fa;" title="빠른 스케치·견적 모드 창 열기">
-        <span>🛠️ CAD 모델링</span>
+      <button class="sidebar-tab-btn" id="tab-btn-modeling" onclick="switchRightSidebarTab('modeling'); openSolidCraftStudioModal();" style="color:#60a5fa;" title="빠른 스케치·견적 창 열기 · 네스팅">
+        <span>✏️ 만들기</span>
       </button>
-      <button class="sidebar-tab-btn" id="tab-btn-gates" onclick="switchRightSidebarTab('gates')" title="화물 게이트 개폐 제어">
-        <span>🚪 화물 도어</span>
-      </button>
-      <button class="sidebar-tab-btn" id="tab-btn-plc" onclick="switchRightSidebarTab('plc')" title="가상 PLC 래더 신호">
-        <span>⚡ 가상 PLC</span>
-      </button>
-      <button class="sidebar-tab-btn" id="tab-btn-layout" onclick="switchRightSidebarTab('layout')" title="팩토리 씬 에셋 배치 및 저장">
-        <span>🏭 레이아웃</span>
+      <button class="sidebar-tab-btn" id="tab-btn-plant" onclick="switchRightSidebarTab('plant')" title="화물 도어 · 가상 PLC 신호">
+        <span>⚙ 설비 · 신호</span>
       </button>
     </div>
 
@@ -922,7 +921,7 @@
           </div>
 
           <div style="display:flex; justify-content:space-between; margin-top:4px;">
-            <button class="btn-tb" onclick="duplicateSelectedAsset()" style="flex:1; margin-right:4px;">📋 복제 (Ctrl+D)</button>
+            <button class="btn-tb" onclick="duplicateSelectedAsset()" style="flex:1; margin-right:4px;">📋 복제 (Shift+D)</button>
             <button class="btn-tb" onclick="deleteSelectedAsset()" style="color:#ef4444; border-color:rgba(239,68,68,0.3);">🗑️ 삭제 (Del)</button>
           </div>
         </div>
@@ -930,13 +929,19 @@
         <!-- 생산 · 실시간 트윈 패널이 여기에 붙습니다 (twin_live.js가 #tl-dock을 찾아 넣음) -->
         <div id="tl-dock"></div>
 
-        <!-- Quick Gate Control (한 줄로 축소 — 상세 제어는 🚪 화물 도어 탭) -->
-        <div class="sb-card" style="flex-direction:row; align-items:center; gap:8px; padding:6px 10px;">
-          <span style="color:#38bdf8; font-weight:600; font-size:11px; white-space:nowrap;">🚪 게이트</span>
-          <span id="quick-gate-status" style="font-size:11px; color:#10b981; font-weight:600;">CLOSED</span>
-          <button class="btn-tb active-amber" id="btn-quick-gate-toggle" onclick="triggerGateAction('TOGGLE')" style="flex:1; justify-content:center; padding:4px 8px; font-weight:700; font-size:11px;" title="클릭 시 화물 게이트 즉시 열기/닫기">
-            <span>🚪 화물 게이트 열기 (OPEN)</span>
-          </button>
+        <!-- 배치 목록 · 저장/내보내기 (기본 접힘) -->
+        <div class="sb-card collapsed">
+          <div class="sb-card-title"><span>배치 에셋 목록 & 통계</span></div>
+          <div id="scene-instances-list" style="display:flex; flex-direction:column; gap:4px; max-height:220px; overflow-y:auto;"></div>
+        </div>
+
+        <div class="sb-card collapsed">
+          <div class="sb-card-title"><span>데이터 동기화 & 내보내기</span></div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <button class="btn-tb active-green" onclick="saveSceneLayoutToServer()">💾 서버에 씬 레이아웃 동기화</button>
+            <button class="btn-tb" onclick="exportSceneJSON()">📥 JSON 파일 내보내기</button>
+            <button class="btn-tb" onclick="clearAllPlacedAssets()" style="color:#ef4444; border-color:rgba(239,68,68,0.3);">⚠️ 전체 배치 에셋 초기화</button>
+          </div>
         </div>
 
         <!-- Material Studio (기본 접힘) -->
@@ -956,24 +961,20 @@
            Tab: SolidCraft CAD Modeling Studio Panel (Dedicated Modeling Workspace)
            ------------------------------------------------------------------- -->
       <div class="tab-pane" id="pane-modeling">
-        <!-- Hero: Unreal Blueprint Style Studio Launcher Card -->
-        <div class="sb-card" style="background: linear-gradient(135deg, rgba(14, 165, 233, 0.16) 0%, rgba(99, 102, 241, 0.16) 100%); border: 1px solid rgba(56, 189, 248, 0.4); padding: 12px; margin-bottom: 12px; box-shadow: 0 4px 14px rgba(14, 165, 233, 0.15);">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <span style="font-weight:700; color:#38bdf8; font-size:13px; display:flex; align-items:center; gap:6px;">
-              <span>🚀 독립 창 CAD 스튜디오</span>
-            </span>
-            <span style="font-size:10px; color:#38bdf8; background:rgba(56,189,248,0.2); border:1px solid rgba(56,189,248,0.3); padding:1px 6px; border-radius:4px; font-weight:600;">UNREAL BLUEPRINT</span>
-          </div>
-          <p style="font-size:11px; color:#94a3b8; line-height:1.4; margin-bottom:10px;">
-            공장 메인 씬과 분리된 <b>독립 3D 뷰포트 창</b>에서 실시간 360° 턴테이블 회전 및 치수 가공 후 공장 씬에 즉시 인스턴스로 배치합니다.
-          </p>
-          <button class="btn-tb active-green" onclick="openSolidCraftStudioModal()" style="width:100%; justify-content:center; padding:9px 12px; font-weight:700; font-size:12px; background:linear-gradient(135deg, #0284c7, #2563eb); color:#fff; border:none; box-shadow:0 4px 12px rgba(37,99,235,0.4);">
-            <span>⬡ 언리얼 스타일 전용 CAD 창 띄우기</span>
+        <!-- Entry points -->
+        <div class="sb-card" style="border-color: rgba(56, 189, 248, 0.4);">
+          <div class="sb-card-title"><span style="color:#38bdf8;">부품 만들기</span></div>
+          <p style="font-size:11px; color:#94a3b8; line-height:1.4;">① 스케치로 부품을 만들고 → ② 네스팅으로 원판에 배치해 G-code를 만든 뒤 → ③ 라우터로 보냅니다.</p>
+          <button class="btn-tb active-green" onclick="openSolidCraftStudioModal()" style="width:100%; justify-content:center; padding:9px 12px; font-weight:700; font-size:12px; background:linear-gradient(135deg, #0284c7, #2563eb); color:#fff; border:none;">
+            <span>✏️ 빠른 스케치 · 견적 열기</span>
+          </button>
+          <button class="btn-tb" onclick="window.TwinNest && TwinNest.open()" style="width:100%; justify-content:center; padding:8px 12px; font-weight:700; font-size:12px;">
+            <span>📐 네스팅 · G-code 열기</span>
           </button>
         </div>
 
         <!-- Header Info -->
-        <div class="sb-card" style="background: linear-gradient(180deg, rgba(30, 58, 138, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%); border-color: rgba(59, 130, 246, 0.3);">
+        <div class="sb-card collapsed" style="background: linear-gradient(180deg, rgba(30, 58, 138, 0.4) 0%, rgba(15, 23, 42, 0.6) 100%); border-color: rgba(59, 130, 246, 0.3);">
           <div class="sb-card-title">
             <span style="color:#60a5fa; font-weight:700;">🛠️ 형상 편집 (메쉬)</span>
             <span style="font-size:10px; color:#f59e0b; background:rgba(245,158,11,0.15); padding:2px 6px; border-radius:3px;">Three.js 메쉬 · B-Rep 아님</span>
@@ -984,7 +985,7 @@
         </div>
 
         <!-- 1. Parametric Primitives Generator -->
-        <div class="sb-card">
+        <div class="sb-card collapsed">
           <div class="sb-card-title">
             <span>1. 파라메트릭 솔리드 생성기 (Primitives)</span>
           </div>
@@ -1083,7 +1084,7 @@
         </div>
 
         <!-- 2. Machining & Feature Tree Operations -->
-        <div class="sb-card">
+        <div class="sb-card collapsed">
           <div class="sb-card-title">
             <span>2. 형상 근사 미리보기 (실제 가공 형상 아님)</span>
             <span style="font-size:10px; color:#f59e0b;" title="챔퍼·필렛은 부재를 더 작은 직육면체로 바꾸고, 볼트 타공은 위치 마커만 붙입니다. 메쉬에서 실제로 깎거나 빼지 않습니다.">⚠ 근사</span>
@@ -1154,7 +1155,7 @@
         </div>
 
         <!-- 3. Interactive 3D Measurement & Inspection -->
-        <div class="sb-card">
+        <div class="sb-card collapsed">
           <div class="sb-card-title">
             <span>3. 3D 거리 측정 (화면상 메쉬 기준)</span>
           </div>
@@ -1181,7 +1182,7 @@
         </div>
 
         <!-- 4. SolidCraft Script & CAD Export -->
-        <div class="sb-card">
+        <div class="sb-card collapsed">
           <div class="sb-card-title">
             <span>4. SolidCraft 스크립트 & 내보내기</span>
           </div>
@@ -1196,7 +1197,7 @@
         </div>
       </div>
 
-      <div class="tab-pane" id="pane-gates">
+      <div class="tab-pane" id="pane-plant">
         <!-- Gate Progress -->
         <div class="sb-card">
           <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -1234,12 +1235,8 @@
             <span>💾 북측(Y=16m)을 기본값으로 영구 저장</span>
           </button>
         </div>
-      </div>
 
-      <!-- -------------------------------------------------------------------
-           Tab 3: Virtual PLC S7-1500 Ladder Logic & I/O
-           ------------------------------------------------------------------- -->
-      <div class="tab-pane" id="pane-plc">
+        <!-- 가상 PLC (같은 탭) -->
         <div class="sb-card">
           <div class="sb-card-title">
             <span>가상 PLC 신호 버스 (S7-1500)</span>
@@ -1270,25 +1267,6 @@
         <div class="sb-card">
           <div class="sb-card-title"><span>실시간 래더 로직 (Ladder Rungs)</span></div>
           <div id="plc-ladder-rungs" style="font-family:var(--font-mono); font-size:9.5px; line-height:1.6;"></div>
-        </div>
-      </div>
-
-      <!-- -------------------------------------------------------------------
-           Tab 4: Scene Layout & Architecture
-           ------------------------------------------------------------------- -->
-      <div class="tab-pane" id="pane-layout">
-        <div class="sb-card">
-          <div class="sb-card-title"><span>배치 에셋 목록 & 통계</span></div>
-          <div id="scene-instances-list" style="display:flex; flex-direction:column; gap:4px; max-height:220px; overflow-y:auto;"></div>
-        </div>
-
-        <div class="sb-card">
-          <div class="sb-card-title"><span>데이터 동기화 & 내보내기</span></div>
-          <div style="display:flex; flex-direction:column; gap:6px;">
-            <button class="btn-tb active-green" onclick="saveSceneLayoutToServer()">💾 서버에 씬 레이아웃 동기화</button>
-            <button class="btn-tb" onclick="exportSceneJSON()">📥 JSON 파일 내보내기</button>
-            <button class="btn-tb" onclick="clearAllPlacedAssets()" style="color:#ef4444; border-color:rgba(239,68,68,0.3);">⚠️ 전체 배치 에셋 초기화</button>
-          </div>
         </div>
       </div>
     </div>
@@ -1359,7 +1337,7 @@
   <div id="modal-nvidia-catalog" class="modal-overlay">
     <div class="modal-card" style="width:880px; max-width:92vw; height:640px;">
       <div style="padding:12px 16px; background:var(--bg-surface-elevated); border-bottom:1px solid var(--border-hairline); display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-weight:700; color:#a3e635; font-size:13px;">📦 NVIDIA Isaac SimReady™ 디지털 트윈 에셋 뱅크</span>
+        <span style="font-weight:700; color:#a3e635; font-size:13px;">📦 설비 · 비품 라이브러리</span>
         <button class="btn-tb" onclick="closeSimReadyCatalogModal()">✕ 닫기</button>
       </div>
       <div id="simready-catalog-body" style="flex:1; overflow-y:auto; padding:16px;"></div>
@@ -1671,6 +1649,20 @@
     </div>
   </div>
 
+  <script>
+    // Toolbar dropdown menus: one open at a time, click outside or Esc closes.
+    function toggleTbMenu(btn) {
+      const menu = btn.closest('.tb-menu'), open = !menu.classList.contains('open');
+      document.querySelectorAll('.tb-menu.open').forEach(m => m.classList.remove('open'));
+      if (open) menu.classList.add('open');
+    }
+    document.addEventListener('pointerdown', e => {
+      if (!e.target.closest('.tb-menu')) document.querySelectorAll('.tb-menu.open').forEach(m => m.classList.remove('open'));
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') document.querySelectorAll('.tb-menu.open').forEach(m => m.classList.remove('open'));
+    });
+  </script>
   <script src="lib/sketch_core.js"></script>
   <script src="lib/twin_runtime.js"></script>
   <script src="lib/machine_kinematics.js"></script>

@@ -2936,8 +2936,10 @@ function toggleSidebarCollapse(forceOpen = null) {
 window.toggleSidebarCollapse = toggleSidebarCollapse;
 
 function switchRightSidebarTab(tabName) {
+  // 2026-11-09 UI 정리: 탭 5개 → 3개. 예전 이름으로 부르는 코드는 새 탭으로 연결합니다.
+  tabName = ({ gates: 'plant', plc: 'plant', layout: 'inspector' })[tabName] || tabName;
   activeSidebarTab = tabName;
-  const tabs = ['inspector', 'modeling', 'gates', 'plc', 'layout'];
+  const tabs = ['inspector', 'modeling', 'plant'];
   tabs.forEach(t => {
     const btn = document.getElementById('tab-btn-' + t);
     const pane = document.getElementById('pane-' + t);
@@ -2954,11 +2956,9 @@ function switchRightSidebarTab(tabName) {
   }
 
   const tabLabels = {
-    inspector: '📐 속성 및 변환',
-    modeling: '🛠️ SolidCraft CAD 모델링 스튜디오',
-    gates: '🚪 화물 게이트 제어 (섹셔널 도어)',
-    plc: '⚡ 가상 PLC 신호 버스 (S7-1500)',
-    layout: '🏭 팩토리 씬 레이아웃'
+    inspector: '📐 배치 · 생산',
+    modeling: '✏️ 만들기',
+    plant: '⚙ 설비 · 신호'
   };
   log(`📋 [작업 패널 전환] [${tabLabels[tabName] || tabName}] 패널이 활성화되었습니다.`);
 }
