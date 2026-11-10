@@ -21,7 +21,7 @@
   const EXACT = {
     // 2026-11-09 UI 정리 이후의 문구
     '↖ 선택': '↖ Select', '📷 전체 조감도': '📷 Overview', '🏭 CNC 제조셀': '🏭 CNC cell', '🚪 화물 게이트': '🚪 Cargo gate',
-    '🚻 화장실 · 계단': '🚻 Restroom · stairs', '💼 1층 사무실': '💼 1F office', '🪜 메자닌': '🪜 Mezzanine', '☕ 라운지': '☕ Lounge',
+    '🚻 화장실 · 계단': '🚻 Restroom · stairs', '💼 1층 사무실': '💼 1F office', '🪜 메자닌': '🪜 Mezzanine', '☕ 라운지': '☕ Lounge', '🏗 홀 전체 (길이 방향)': '🏗 Whole hall (lengthwise)',
     '👁 보기 ▾': '👁 View ▾', '셰이딩': 'Shading', '사실적 (PBR)': 'Realistic (PBR)', 'CAD 외곽선': 'CAD edges', '실내 투시 (X-Ray)': 'X-Ray',
     '와이어프레임': 'Wireframe', '3DGS 스플랫': '3DGS splat', '외벽 투명도': 'Wall opacity', '카메라 속도': 'Camera speed',
     '⋯ 더보기 ▾': '⋯ More ▾', '🖥️ Zen 모드 (Tab)': '🖥️ Zen mode (Tab)', '⚡ Cycles 렌더': '⚡ Cycles render', '작업 패널': 'Work panel',

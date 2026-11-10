@@ -1823,7 +1823,7 @@ function init3D() {
 
   camera = new THREE.PerspectiveCamera(42, container.clientWidth / container.clientHeight, 60, 300000);
   camera.up.set(0, 0, 1);
-  camera.position.set(22000, -16000, 14500);
+  camera.position.set(22000, -16000, 14500);   // provisional; setView() places it from the building size once the layout loads
 
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.setSize(container.clientWidth, container.clientHeight);
@@ -3146,7 +3146,36 @@ function updateWASDCameraMovement(dt) {
 // ============================================================================
 // 11. 클린 건축 쉘(factory_precision.obj) 로드 — 실사 PBR 재질 & 바닥 SSR 적용
 // ============================================================================
+// Building dimensions. Defaults describe the original 24 x 16 m model; tools/build_factory_shell.mjs writes
+// building_meta.json next to the OBJ it generates, and everything size-dependent (camera views, floor grid,
+// gate position) is derived from this object instead of fixed coordinates.
+let BUILDING = { lengthX: 24000, widthY: 16000, eave: 7200, ridge: 8400, door: { wall: 'NORTH', centerX: 14500, legacyCenterX: 14500, legacyWallY: 16000 } };
+window.getBuilding = () => BUILDING;
+
+function applyBuildingDims() {
+  const cx = BUILDING.lengthX / 2, cy = BUILDING.widthY / 2, span = Math.max(BUILDING.lengthX, BUILDING.widthY);
+  if (gridHelper) {
+    scene.remove(gridHelper);
+    const size = Math.ceil(span * 1.3 / 1000) * 1000;
+    gridHelper = new THREE.GridHelper(size, size / 1000, 0x38bdf8, 0x1e293b);
+    gridHelper.rotation.x = Math.PI / 2; gridHelper.position.set(cx, cy, 3);
+    gridHelper.material.transparent = true; gridHelper.material.opacity = 0.18;
+    scene.add(gridHelper);
+  }
+  if (floorHitPlane) floorHitPlane.position.set(cx, cy, 0);
+  if (floorReflector) floorReflector.position.set(cx, cy, -4);
+  if (scene.fog && scene.fog.isFogExp2) scene.fog.density = Math.min(scene.fog.density, 0.19 / span);   // keep the far end of a big hall visible
+}
+
 function loadPrecisionModel() {
+  fetch('/building_meta.json').then(r => (r.ok ? r.json() : null)).catch(() => null).then(meta => {
+    if (meta && meta.lengthX > 0 && meta.widthY > 0) BUILDING = Object.assign({}, BUILDING, meta, { door: Object.assign({}, BUILDING.door, meta.door || {}) });
+    applyBuildingDims();
+    loadPrecisionModelNow();
+  });
+}
+
+function loadPrecisionModelNow() {
   const loader = new THREE.OBJLoader();
   // GitHub Pages(정적, 서브경로)에서는 상대경로로, 로컬 서버에서는 /model.obj 라우트로
   const onShellLoaded = (obj) => {
@@ -3473,30 +3502,20 @@ function toggleGaussianSplats() {
 }
 
 function setView(mode) {
+  const B = BUILDING, L = B.lengthX, W = B.widthY, span = Math.max(L, W), doorX = (B.door && B.door.centerX) || L / 2;
   if (mode === 'iso') {
     setExteriorWallOpacity(Math.min(exteriorWallOpacity, 0.40), false);
-    camera.position.set(25000, -18000, 16500);
-    controls.target.set(11000, 7500, 2500);
-  } else { // 실내 뷰에서는 불투명 실사 벽체
-    if (mode === 'cnc_cell') {
-      camera.position.set(2400, 14600, 3200);
-      controls.target.set(8200, 10200, 950);
-    } else if (mode === 'office') {
-      camera.position.set(15700, 6500, 2500);
-      controls.target.set(16200, 3150, 820);
-    } else if (mode === 'mezzanine') {
-      camera.position.set(22500, 12800, 4600);
-      controls.target.set(11500, 3200, 2600);
-    } else if (mode === 'lounge') {
-      camera.position.set(11500, 10800, 2600);
-      controls.target.set(3500, 3600, 1200);
-    } else if (mode === 'doors' || mode === 'cargo_gate') {
-      camera.position.set(17500, 6500, 2600);
-      controls.target.set(17500, 15900, 2100);
-    } else if (mode === 'restroom_stairs') {
-      camera.position.set(14000, 9500, 2500);
-      controls.target.set(12000, 3500, 1500);
-    }
+    camera.position.set(L * 1.04, -W * 1.12, span * 0.69);
+    controls.target.set(L * 0.46, W * 0.47, 2500);
+  } else if (mode === 'doors' || mode === 'cargo_gate') {
+    camera.position.set(doorX, W - 11000, 2600);
+    controls.target.set(doorX, W - 100, 2100);
+  } else if (mode === 'hall') {                         // standing at the west end, looking down the length
+    camera.position.set(3000, W * 0.5, 1700);
+    controls.target.set(L, W * 0.5, 2600);
+  } else {                                              // 'cnc_cell' and the old interior views: the machine area
+    camera.position.set(2400, 14600, 3200);
+    controls.target.set(8200, 10200, 950);
   }
   controls.update();
   log(`[CAMERA] '${mode.toUpperCase()}' 시점으로 이동`);
@@ -3956,45 +3975,47 @@ function setupCargoGateAssembly(parentObj) {
   });
 
   // 롤업 도어가 삭제된 북측 개구부(X: 18,400 ~ 22,400mm) 외벽 및 라이너 폐쇄 패널 생성
-  const wallFillGeo = new THREE.BoxGeometry(4000, 150, 4100);
-  const wallFillMat = new THREE.MeshPhysicalMaterial({
-    color: 0x94a3b8,
-    roughness: 0.38,
-    metalness: 0.52,
-    envMapIntensity: 0.45,
-    normalMap: pbrTextures.corrugatedNormal || null,
-    normalScale: new THREE.Vector2(0.32, 0.32),
-    transparent: exteriorWallOpacity < 0.98,
-    opacity: exteriorWallOpacity,
-    depthWrite: exteriorWallOpacity > 0.55
-  });
-  const wallFillMesh = new THREE.Mesh(wallFillGeo, wallFillMat);
-  wallFillMesh.name = 'Wall_North_Closed_RollupInfill';
-  wallFillMesh.position.set(20400, 16075, 2050);
-  parentObj.add(wallFillMesh);
-  exteriorCladdingMeshes.push(wallFillMesh);
+  if (gate2Meshes.length) {   // only the original 24 x 16 m model has the second (roll-up) opening to close
+    const wallFillGeo = new THREE.BoxGeometry(4000, 150, 4100);
+    const wallFillMat = new THREE.MeshPhysicalMaterial({
+      color: 0x94a3b8,
+      roughness: 0.38,
+      metalness: 0.52,
+      envMapIntensity: 0.45,
+      normalMap: pbrTextures.corrugatedNormal || null,
+      normalScale: new THREE.Vector2(0.32, 0.32),
+      transparent: exteriorWallOpacity < 0.98,
+      opacity: exteriorWallOpacity,
+      depthWrite: exteriorWallOpacity > 0.55
+    });
+    const wallFillMesh = new THREE.Mesh(wallFillGeo, wallFillMat);
+    wallFillMesh.name = 'Wall_North_Closed_RollupInfill';
+    wallFillMesh.position.set(20400, 16075, 2050);
+    parentObj.add(wallFillMesh);
+    exteriorCladdingMeshes.push(wallFillMesh);
 
-  const wallFillEdges = new THREE.LineSegments(
-    new THREE.EdgesGeometry(wallFillGeo, 24),
-    new THREE.LineBasicMaterial({ color: 0x090d14, transparent: true, opacity: isCadEdgesVisible ? 0.7 : 0.16 })
-  );
-  wallFillEdges.userData.isCadEdge = true;
-  wallFillMesh.add(wallFillEdges);
+    const wallFillEdges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(wallFillGeo, 24),
+      new THREE.LineBasicMaterial({ color: 0x090d14, transparent: true, opacity: isCadEdgesVisible ? 0.7 : 0.16 })
+    );
+    wallFillEdges.userData.isCadEdge = true;
+    wallFillMesh.add(wallFillEdges);
 
-  const linerFillGeo = new THREE.BoxGeometry(4000, 80, 2400);
-  const linerFillMat = new THREE.MeshPhysicalMaterial({
-    color: 0xdbe2ea,
-    roughness: 0.38,
-    metalness: 0.06,
-    clearcoat: 0.15,
-    envMapIntensity: 0.25,
-    normalMap: pbrTextures.corrugatedNormal || null,
-    normalScale: new THREE.Vector2(0.22, 0.22)
-  });
-  const linerFillMesh = new THREE.Mesh(linerFillGeo, linerFillMat);
-  linerFillMesh.name = 'LinerPanel_North_Closed_RollupInfill';
-  linerFillMesh.position.set(20400, 15950, 1200);
-  parentObj.add(linerFillMesh);
+    const linerFillGeo = new THREE.BoxGeometry(4000, 80, 2400);
+    const linerFillMat = new THREE.MeshPhysicalMaterial({
+      color: 0xdbe2ea,
+      roughness: 0.38,
+      metalness: 0.06,
+      clearcoat: 0.15,
+      envMapIntensity: 0.25,
+      normalMap: pbrTextures.corrugatedNormal || null,
+      normalScale: new THREE.Vector2(0.22, 0.22)
+    });
+    const linerFillMesh = new THREE.Mesh(linerFillGeo, linerFillMat);
+    linerFillMesh.name = 'LinerPanel_North_Closed_RollupInfill';
+    linerFillMesh.position.set(20400, 15950, 1200);
+    parentObj.add(linerFillMesh);
+  }
 
   // Gate 1 (섹셔널 도어) 메쉬 엄격 분리 편성:
   // - 고정 프레임 요소: 트랙, 모터, 상부 토션 샤프트 바(TorsionShaft), 수직 프레임 포스트(Stile)
@@ -4139,28 +4160,22 @@ function relocateCargoGate(wall, showLog = true) {
 
   const label = document.getElementById('label-gate-wall');
 
-  if (wall === 'SOUTH') {
-    // 남측 벽면 (Y=0, 반대편)
-    cargoGateMasterAssembly.position.set(0, -15900, 0);
-    cargoGateMasterAssembly.rotation.z = 0;
-    if (label) label.innerText = '남측 벽면 [반대편]';
-    if (showLog) log('🚪 [위치 변경] 화물 게이트(섹셔널)를 [남측 벽면(반대편 - Y=0)]으로 정합 배치했습니다.');
-  } else if (wall === 'NORTH') {
-    // 북측 벽면 (Y=16m, 원본 좌표 - 디폴트 기본값)
-    cargoGateMasterAssembly.position.set(0, 0, 0);
-    cargoGateMasterAssembly.rotation.z = 0;
-    if (label) label.innerText = '북측 벽 (Y=16m, 기본값 고정 ✓)';
-    if (showLog) log('🚪 [위치 정합] 화물 게이트(섹셔널)가 [북측 벽면(Y=16m, 메인 하역장 - 기본값)]으로 배치되었습니다.');
-  } else if (wall === 'WEST') {
-    cargoGateMasterAssembly.position.set(-14500, -7900, 0);
-    cargoGateMasterAssembly.rotation.z = -Math.PI / 2;
-    if (label) label.innerText = '서측 벽면 (X=0)';
-    if (showLog) log('🚪 [위치 변경] 화물 게이트(섹셔널)를 [서측 벽면(X=0)]으로 배치했습니다.');
-  } else if (wall === 'EAST') {
-    cargoGateMasterAssembly.position.set(9400, -7900, 0);
-    cargoGateMasterAssembly.rotation.z = Math.PI / 2;
-    if (label) label.innerText = '동측 벽면 (X=24m)';
-    if (showLog) log('🚪 [위치 변경] 화물 게이트(섹셔널)를 [동측 벽면(X=24m)]으로 배치했습니다.');
+  // The gate parts are modelled on the original north wall (door centre X = legacyCenterX, wall at Y = legacyWallY).
+  // Put that door centre where it belongs on the chosen wall: world = R(rotation) * local + position.
+  const B = BUILDING, d = B.door || {}, lc = { x: d.legacyCenterX || 14500, y: d.legacyWallY || 16000 };
+  const along = wall === 'NORTH' || wall === 'SOUTH' ? (d.centerX !== undefined ? d.centerX : B.lengthX / 2) : B.widthY / 2;
+  const spec = {
+    NORTH: { rot: 0, x: along, y: B.widthY, label: `북측 벽 (Y=${(B.widthY / 1000).toFixed(1)}m, 기본값)` },
+    SOUTH: { rot: 0, x: along, y: 100, label: '남측 벽면 [반대편]' },
+    WEST: { rot: -Math.PI / 2, x: 100, y: along, label: '서측 벽면 (X=0)' },
+    EAST: { rot: Math.PI / 2, x: B.lengthX - 100, y: along, label: `동측 벽면 (X=${(B.lengthX / 1000).toFixed(1)}m)` }
+  }[wall] || null;
+  if (spec) {
+    const c = Math.cos(spec.rot), sn = Math.sin(spec.rot);
+    cargoGateMasterAssembly.rotation.z = spec.rot;
+    cargoGateMasterAssembly.position.set(spec.x - (c * lc.x - sn * lc.y), spec.y - (sn * lc.x + c * lc.y), 0);
+    if (label) label.innerText = spec.label;
+    if (showLog) log(`🚪 [위치 변경] 화물 게이트(섹셔널)를 [${spec.label}]에 배치했습니다.`);
   }
 
   if (typeof syncInspectorFromSelected === 'function') syncInspectorFromSelected();

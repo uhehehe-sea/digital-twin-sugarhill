@@ -21,7 +21,7 @@ npm run dev
 Node.js 20 이상 필요. three.js(0.187)는 `npm install`로 받아 `/vendor/three/`에서 직접 제공하므로 **/v2 화면은 인터넷 없이 동작**합니다. (구버전 /v1, /monitor 일부는 아직 CDN 사용)
 
 ```bash
-npm test             # 단위·통합 테스트 (Node 내장 러너) — 2026-11-09 기준 92개 통과
+npm test             # 단위·통합 테스트 (Node 내장 러너) — 2026-11-10 기준 94개 통과
 npm start            # 포트 8088
 node tools/build_standalone.mjs   # 서버 없이 도는 단일 HTML 데모 → dist/
 ```

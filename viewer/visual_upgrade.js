@@ -12,16 +12,27 @@
  *   diff.jpg / nor.jpg / arm.jpg into assets/surfaces/ and point a slot at it in manifest.json.
  *   Missing files leave the previous material untouched — the viewer never fails on assets.
  *
- *   window.twinVisual = { render(), setQuality('high'|'basic'), quality, status }
+ *   window.twinVisual = { render(), setQuality('auto'|'high'|'balanced'|'basic'), quality, tier, status }
  */
 // editor_v2.js builds the scene in window.onload (init3D); this handler is registered later, so it runs after it.
 window.addEventListener('load', function () {
   'use strict';
   if (typeof THREE === 'undefined' || typeof scene === 'undefined' || !scene || !renderer) return;
-  const KEY = 'twin.visual.v1';
+  const KEY = 'twin.visual.v2';   // v2: auto | high | balanced | basic
   const status = { hdri: 'pending', surfaces: {}, uvMeshes: 0, ao: false, revision: window.THREE_REVISION };
-  let quality = 'high';
-  try { quality = localStorage.getItem(KEY) === 'basic' ? 'basic' : 'high'; } catch (e) { /* storage blocked */ }
+  // Quality: what the user chose ('auto' unless they picked one) and the tier actually running.
+  //   high      ambient occlusion (full res) + bloom + SMAA            — discrete GPUs
+  //   balanced  ambient occlusion at half resolution, fewer samples    — integrated graphics (Intel UHD / Iris)
+  //   basic     direct render (lights, shadows and textures only)
+  // 'auto' starts from the GPU name and steps down if frames take longer than SLOW_MS.
+  const TIERS = ['high', 'balanced', 'basic'], SLOW_MS = 50;
+  let quality = 'auto', tier = 'high';
+  try { const q = localStorage.getItem(KEY); if (q === 'auto' || TIERS.includes(q)) quality = q; } catch (e) { /* storage blocked */ }
+  function gpuName() {
+    try { const gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info'); return ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : ''; } catch (e) { return ''; }
+  }
+  const GPU = gpuName(), INTEGRATED = /Intel|UHD|Iris|HD Graphics|SwiftShader|llvmpipe|Basic Render/i.test(GPU) && !/Arc/i.test(GPU);
+  status.gpu = GPU;
 
   const texLoader = new THREE.TextureLoader();
   const maxAniso = renderer.capabilities.getMaxAnisotropy();
@@ -52,7 +63,7 @@ window.addEventListener('load', function () {
    * high-bay lamps), its shadow box fitted to the building footprint. Roof, cladding and ceiling
    * fixtures do not cast. Units are mm, so biases are in mm too.
    */
-  const SHADOW = { height: 5600, lean: [3600, -2500], mapSize: 4096, strength: 2.6, radius: 4 };
+  const SHADOW = { height: 5600, lean: [3600, -2500], mapSize: INTEGRATED ? 2048 : 4096, strength: 2.6, radius: 4, everyMs: 200 };
   function setupShadows() {
     if (typeof factoryMeshGroup === 'undefined' || !factoryMeshGroup) return false;
     const box = new THREE.Box3().setFromObject(factoryMeshGroup);
@@ -84,6 +95,9 @@ window.addEventListener('load', function () {
       if (NO_CAST.test(o.name) || (o.material && o.material.transparent && o.material.opacity < 0.9)) o.castShadow = false;
       else if (o.name) { o.castShadow = true; casters++; }
     });
+    // The shadow pass is a second full render of the scene: refresh it a few times a second instead of every frame
+    // (machines move slowly; render() requests the refresh).
+    renderer.shadowMap.autoUpdate = false;
     renderer.shadowMap.needsUpdate = true;
     status.shadows = { casters, mapSize: SHADOW.mapSize, lightZ: SHADOW.height };
     return true;
@@ -103,24 +117,32 @@ window.addEventListener('load', function () {
    */
   const FIXTURE = { color: 0xfff1df, irradiance: 0.6, emissive: 5 };   // irradiance = light arriving on the floor right under one lamp; colour is overridden by manifest.lighting.fixtureColor
   let hdrTex = null;
+  const MAX_AREA_LIGHTS = INTEGRATED ? 6 : 12;
   function setupFixtures() {
     const box = new THREE.Box3(), size = new THREE.Vector3(), c = new THREE.Vector3();
-    let n = 0;
-    factoryMeshGroup.traverse(o => {
-      if (!o.isMesh || !/^HighBay_LED_/.test(o.name) || o.userData.fixtureLit) return;
+    let n = 0, lights = 0;
+    // Every fixture glows, but area lights are costly per pixel: at most MAX_AREA_LIGHTS of them, spread evenly,
+    // each one brighter by the same factor so the total light in the hall stays the same.
+    const all = [];
+    factoryMeshGroup.traverse(o => { if (o.isMesh && /^HighBay_LED_/.test(o.name) && !o.userData.fixtureLit) all.push(o); });
+    const every = Math.max(1, Math.ceil(all.length / MAX_AREA_LIGHTS));
+    all.forEach((o, idx) => {
       o.userData.fixtureLit = true;
       o.material = new THREE.MeshStandardMaterial({ color: 0x0c0c0c, emissive: FIXTURE.color, emissiveIntensity: FIXTURE.emissive, roughness: 0.5 });
       o.castShadow = false;
       box.setFromObject(o); box.getSize(size); box.getCenter(c);
       const w = Math.max(size.x, 150), h = Math.max(size.y, 150), d = box.min.z;
+      n++;
+      if ((idx + Math.floor(idx / 7)) % every !== 0) return;       // staggered pick so lit fixtures do not line up in one row
+      lights++;
       // RectAreaLight intensity is luminance; irradiance straight below = L · area / distance² (unit-free ratio, so mm are fine)
-      const light = new THREE.RectAreaLight(FIXTURE.color, FIXTURE.irradiance * d * d / (w * h), w, h);
+      const light = new THREE.RectAreaLight(FIXTURE.color, FIXTURE.irradiance * every * d * d / (w * h), w, h);
       light.position.set(c.x, c.y, box.min.z - 15);
       light.lookAt(c.x, c.y, 0);
       light.userData.keepIntensity = true; light.name = 'FixtureLight_' + o.name;
-      scene.add(light); n++;
+      scene.add(light);
     });
-    status.fixtures = n;
+    status.fixtures = n; status.areaLights = lights;
     return n;
   }
 
@@ -272,15 +294,21 @@ window.addEventListener('load', function () {
 
   // ------------------------------------------------------------------ 3. ambient occlusion + AA
   let composerHQ = null, gtao = null;
-  function buildComposer() {
+  function buildComposer(t) {
+    const lite = t !== 'high';
     const size = renderer.getSize(new THREE.Vector2());
     const c = new THREE.EffectComposer(renderer);
     c.setPixelRatio(renderer.getPixelRatio());
     c.setSize(size.x, size.y);
     c.addPass(new THREE.RenderPass(scene, camera));
     gtao = new THREE.GTAOPass(scene, camera, size.x, size.y);
-    gtao.updateGtaoMaterial({ radius: 450, distanceExponent: 1.2, thickness: 1.2, scale: 1.15, samples: 12, screenSpaceRadius: false });   // scene units are mm
-    gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 4, rings: 2, samples: 12 });
+    if (lite) {                                    // occlusion is soft: half resolution is hard to tell apart and costs a quarter
+      const full = gtao.setSize.bind(gtao);
+      gtao.setSize = (w, h) => full(Math.max(2, Math.ceil(w / 2)), Math.max(2, Math.ceil(h / 2)));
+      gtao.setSize(size.x * renderer.getPixelRatio(), size.y * renderer.getPixelRatio());
+    }
+    gtao.updateGtaoMaterial({ radius: 450, distanceExponent: 1.2, thickness: 1.2, scale: 1.15, samples: lite ? 8 : 12, screenSpaceRadius: false });   // scene units are mm
+    gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 4, rings: 2, samples: lite ? 8 : 12 });
     // See-through cladding / glass, helpers and gizmos must not cast occlusion onto what is behind them.
     const hidden = [];
     gtao.overrideVisibility = function () {
@@ -295,9 +323,9 @@ window.addEventListener('load', function () {
     gtao.restoreVisibility = function () { for (const o of hidden) o.visible = true; hidden.length = 0; };
     c.addPass(gtao);
     // only light sources (the glowing fixtures) exceed the threshold in this HDR buffer
-    c.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.2, 0.55, 1.4));
+    if (!lite) c.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.2, 0.55, 1.4));
     c.addPass(new THREE.OutputPass());
-    c.addPass(new THREE.SMAAPass(size.x * renderer.getPixelRatio(), size.y * renderer.getPixelRatio()));
+    if (!lite) c.addPass(new THREE.SMAAPass(size.x * renderer.getPixelRatio(), size.y * renderer.getPixelRatio()));
     return c;
   }
 
@@ -325,19 +353,42 @@ window.addEventListener('load', function () {
   }
 
   const _size = new THREE.Vector2();
+  const TIER_KO = { high: '높음', balanced: '균형', basic: '기본' };
+  let composerTier = null, lastShadow = 0, lastFrame = 0, emaMs = 0, framesInTier = 0;
+  function useTier(t, why) {
+    tier = t; framesInTier = 0; emaMs = 0; status.tier = t; status.tierReason = why;
+    if (composerHQ) { if (composerHQ.dispose) composerHQ.dispose(); composerHQ = null; composerTier = null; }
+    const sel = document.getElementById('sel-visual-quality');
+    if (sel) { sel.value = quality; const o = sel.querySelector('option[value="auto"]'); if (o) o.textContent = '자동 (' + TIER_KO[t] + ')'; }
+  }
   function render() {
     updateShell();
-    if (quality !== 'high') return renderer.render(scene, camera);
-    if (!composerHQ) { try { composerHQ = buildComposer(); status.ao = true; } catch (e) { console.warn('[visual] AO unavailable, basic rendering:', e); quality = 'basic'; return renderer.render(scene, camera); } }
+    const now = performance.now();
+    if (now - lastShadow > SHADOW.everyMs) { renderer.shadowMap.needsUpdate = true; lastShadow = now; }
+    // auto: step down one tier when frames stay slow (never back up on its own: avoids flip-flopping)
+    if (lastFrame) {
+      const dt = Math.min(250, now - lastFrame); emaMs = emaMs ? emaMs * 0.95 + dt * 0.05 : dt; framesInTier++;
+      if (quality === 'auto' && framesInTier > 90 && emaMs > SLOW_MS && tier !== 'basic' && !document.hidden) {
+        const next = TIERS[TIERS.indexOf(tier) + 1];
+        if (typeof log === 'function') log('🎚️ [비주얼] 화면이 느려(' + Math.round(emaMs) + ' ms/프레임) 화질을 ' + TIER_KO[next] + ' 단계로 낮췄습니다. 보기 ▾ → 화질에서 바꿀 수 있습니다.');
+        useTier(next, 'auto: ' + Math.round(emaMs) + ' ms/frame');
+      }
+    }
+    lastFrame = now; status.frameMs = Math.round(emaMs);
+    if (tier === 'basic') return renderer.render(scene, camera);
+    if (!composerHQ || composerTier !== tier) {
+      try { composerHQ = buildComposer(tier); composerTier = tier; status.ao = true; }
+      catch (e) { console.warn('[visual] AO unavailable, basic rendering:', e); useTier('basic', 'post-processing failed'); return renderer.render(scene, camera); }
+    }
     renderer.getSize(_size);
     if (composerHQ._w !== _size.x || composerHQ._h !== _size.y) { composerHQ.setSize(_size.x, _size.y); composerHQ._w = _size.x; composerHQ._h = _size.y; }
     composerHQ.render();
   }
 
   function setQuality(q) {
-    quality = q === 'basic' ? 'basic' : 'high';
+    quality = q === 'auto' || TIERS.includes(q) ? q : 'auto';
     try { localStorage.setItem(KEY, quality); } catch (e) { /* session only */ }
-    const cb = document.getElementById('chk-visual-hq'); if (cb) cb.checked = quality === 'high';
+    useTier(quality === 'auto' ? (INTEGRATED ? 'balanced' : 'high') : quality, quality === 'auto' ? 'auto: ' + (INTEGRATED ? 'integrated graphics' : 'discrete GPU') : 'chosen');
   }
 
   // the shading presets set their own exposure; keep the new look after a preset change
@@ -346,8 +397,8 @@ window.addEventListener('load', function () {
     window.switchViewportPreset = function (p) { const r = orig.apply(this, arguments); if (scene.environment && status.hdri !== 'missing' && status.hdri !== 'pending') applyLook(); return r; };
   }
 
-  window.twinVisual = { render, setQuality, recapture: () => captureInterior(2), get quality() { return quality; }, status };
-  document.addEventListener('change', e => { if (e.target && e.target.id === 'chk-visual-hq') setQuality(e.target.checked ? 'high' : 'basic'); });
+  window.twinVisual = { render, setQuality, recapture: () => captureInterior(2), get quality() { return quality; }, get tier() { return tier; }, status };
+  document.addEventListener('change', e => { if (e.target && e.target.id === 'sel-visual-quality') setQuality(e.target.value); });
   setQuality(quality);
 
   fetch('/assets/surfaces/manifest.json', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(manifest => {

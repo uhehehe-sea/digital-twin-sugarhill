@@ -1,0 +1,24 @@
+{
+  "_about": "Building dimensions for tools/build_factory_shell.mjs. Change a number, run `node tools/build_factory_shell.mjs`, reload /v2. Values come from the site video of 2026-11-09 (docs/SITE_REFERENCE_2026-11-09.md); 'confidence' says how sure each one is. X = length, Y = width, Z = up. Metres.",
+  "lengthM": 60.96,
+  "widthM": 45.72,
+  "eaveM": 6.1,
+  "roofSlope": 0.0833,
+  "bayM": 7.62,
+  "postLinesM": [15.24, 30.48],
+  "wainscotM": 2.4,
+  "girtsM": [2.4, 4.0],
+  "columnMm": 250,
+  "postMm": 150,
+  "door": { "centerXM": 36.0, "_note": "the animated sectional gate from the original model (3.8 m wide, 4.2 m high) on the north side wall, in the 5th bay from the far (X = 0) end like the real 12 x 12 ft door" },
+  "lights": { "rows": 3, "sizeMm": 500, "dropMm": 700 },
+  "floorLines": { "insetM": 2.5, "aisleOffsetM": 1.5 },
+  "confidence": {
+    "bayM": "high — 354 px between wall columns in a frontal frame, scaled by the 12 ft door, the man door and the 2.4 m wainscot (all three agree): 7.62 m = 25 ft",
+    "eaveM": "high — same frame: wall top 5.9 to 6.1 m = 20 ft",
+    "postLinesM": "medium — interior post row measured 14.5 to 16.7 m from the door wall in two frames: 15.24 m = 50 ft module",
+    "widthM": "medium — end wall visible for about 40 m in the lengthwise frame and the camera stood 28 m from the door wall with building behind it: three 50 ft spans = 150 ft. Could be 100 ft (30.48) if that reading is wrong",
+    "lengthM": "medium — 5 bays from the far end to the sectional door column plus the door/roll-up bay plus about 2 more: 8 bays = 200 ft. Could be 7 bays (53.34)",
+    "roofSlope": "low — looks like a low-slope 1:12 metal building roof"
+  }
+}

@@ -756,10 +756,7 @@
         <option value="iso" selected>📷 전체 조감도</option>
         <option value="cnc_cell">🏭 CNC 제조셀</option>
         <option value="cargo_gate">🚪 화물 게이트</option>
-        <option value="restroom_stairs">🚻 화장실 · 계단</option>
-        <option value="office">💼 1층 사무실</option>
-        <option value="mezzanine">🪜 메자닌</option>
-        <option value="lounge">☕ 라운지</option>
+        <option value="hall">🏗 홀 전체 (길이 방향)</option>
       </select>
 
       <!-- View menu: shading, wall opacity, camera speed -->
@@ -789,10 +786,14 @@
             <button class="btn-tb" onclick="setExteriorWallOpacity(0.40, true)" title="40%">반투명</button>
             <button class="btn-tb" onclick="setExteriorWallOpacity(1.0, true)" title="100%">불투명</button>
           </div>
-          <label class="tb-pop-row" title="앰비언트 오클루전 + 안티에일리어싱. 그래픽 카드가 약하면 끄세요">
-            <span>고화질</span>
-            <input type="checkbox" id="chk-visual-hq" checked style="accent-color:var(--accent-blue);">
-            <span>음영(AO) · 계단 현상 제거</span>
+          <label class="tb-pop-row" title="자동: PC 그래픽 성능에 맞춰 고르고, 느리면 한 단계 낮춥니다">
+            <span>화질</span>
+            <select class="tb-select" id="sel-visual-quality">
+              <option value="auto">자동</option>
+              <option value="high">높음 (음영 · 빛 번짐 · 계단 현상 제거)</option>
+              <option value="balanced">균형 (음영만, 내장 그래픽용)</option>
+              <option value="basic">기본 (가장 빠름)</option>
+            </select>
           </label>
           <div class="tb-pop-row" title="WASD 이동 속도 ( [ / ] 키로도 조절 )">
             <span>카메라 속도</span>

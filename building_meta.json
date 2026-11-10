@@ -1,0 +1,24 @@
+{
+  "generatedFrom": "building.config.json",
+  "units": "mm",
+  "lengthX": 60960,
+  "widthY": 45720,
+  "eave": 6100,
+  "ridge": 8004,
+  "bays": 8,
+  "bay": 7620,
+  "postLinesY": [
+    15240,
+    30480
+  ],
+  "wainscot": 2400,
+  "door": {
+    "wall": "NORTH",
+    "centerX": 36000,
+    "x0": 34100,
+    "x1": 37900,
+    "top": 4200,
+    "legacyCenterX": 14500,
+    "legacyWallY": 16000
+  }
+}

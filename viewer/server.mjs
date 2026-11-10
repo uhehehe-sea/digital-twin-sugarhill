@@ -98,6 +98,7 @@ route(['/v1', '/index.html'], { file: V('index.html') }); // original v1 viewer,
 route(['/splat.html'], { file: V('splat.html') });
 for (const js of ['editor_v2.js', 'editor.js', 'twin_live.js', 'twin_nest.js', 'three_global.js', 'visual_upgrade.js']) route(['/' + js], { file: V(js) });
 route(['/demo'], { file: B('dist/sugarhill_twin_demo.html'), notFound: 'Run: node tools/build_standalone.mjs' });
+route(['/building_meta.json'], { file: B('building_meta.json'), notFoundJson: { error: 'no building_meta.json (original 24 x 16 m model)' } });
 route(['/model.obj'], { file: () => (fs.existsSync(precisionObj) ? precisionObj : unifiedObj), notFound: 'Model not found' });
 route(['/model_unified.obj'], { file: unifiedObj, notFound: 'Model not found' });
 route(['/cnc_3dprinter.obj'], { file: B('industrial_cnc_and_3dprinter.obj'), notFound: 'CNC/3DP OBJ not found' });
