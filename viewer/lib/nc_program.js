@@ -196,24 +196,89 @@
     return segs;
   }
 
-  /** Cumulative time (s) of parsed segments. */
-  function timing(segs) {
-    const cum = new Float64Array(segs.length + 1);
-    for (let i = 0; i < segs.length; i++) {
-      const s = segs[i];
-      const len = Math.hypot(s.x1 - s.x0, s.y1 - s.y0, s.z1 - s.z0);
-      const v = (s.rapid ? RAPID_MM_MIN : Math.max(1, s.feed)) / 60;
-      cum[i + 1] = cum[i] + len / v;
+  /**
+   * Cumulative time (s) of parsed segments.
+   *
+   * Without `kin`: ideal time, every segment at its programmed feed (rapids at RAPID_MM_MIN).
+   * This is what a controller with infinite acceleration would do — always too short.
+   *
+   * With `kin` = { accelMmS2, rapidMmMin, junctionDevMm, feedScale, timeFactor }: a look-ahead
+   * planner like the one in CNC controllers. Each segment follows a trapezoid speed profile
+   * limited by acceleration; the speed carried through a corner depends on the corner angle
+   * (junction deviation model: v² = a·δ·sin(θ/2) / (1 − sin(θ/2)), so a straight continuation
+   * keeps full speed and a reversal stops). Backward + forward passes make sure the tool can
+   * always brake in time. timeFactor is the measured calibration multiplier (1 = uncalibrated).
+   */
+  function timing(segs, kin) {
+    const n = segs.length;
+    const cum = new Float64Array(n + 1);
+    if (!kin) {
+      for (let i = 0; i < n; i++) {
+        const s = segs[i];
+        const len = Math.hypot(s.x1 - s.x0, s.y1 - s.y0, s.z1 - s.z0);
+        const v = (s.rapid ? RAPID_MM_MIN : Math.max(1, s.feed)) / 60;
+        cum[i + 1] = cum[i] + len / v;
+      }
+      return { cum, totalS: cum[n] };
     }
-    return { cum, totalS: cum[segs.length] };
+    const a = Math.max(1, kin.accelMmS2 || 600), dev = Math.max(1e-4, kin.junctionDevMm || 0.05);
+    const rapid = Math.max(1, kin.rapidMmMin || RAPID_MM_MIN) / 60, fs = kin.feedScale > 0 ? kin.feedScale : 1;
+    const k = kin.timeFactor > 0 ? kin.timeFactor : 1;
+    const L = new Float64Array(n), vmax = new Float64Array(n), dx = new Float64Array(n), dy = new Float64Array(n), dz = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      const s = segs[i], x = s.x1 - s.x0, y = s.y1 - s.y0, z = s.z1 - s.z0, len = Math.hypot(x, y, z);
+      L[i] = len; vmax[i] = s.rapid ? rapid : Math.max(1, s.feed) * fs / 60;
+      if (len > 0) { dx[i] = x / len; dy[i] = y / len; dz[i] = z / len; }
+    }
+    // ve[i] = speed at the start of segment i (ve[n] = end of program); start and end at rest
+    const ve = new Float64Array(n + 1);
+    let prev = -1;                                           // last non-zero-length segment
+    for (let i = 0; i < n; i++) {
+      if (L[i] === 0) { ve[i] = prev < 0 ? 0 : ve[i]; continue; }
+      if (prev < 0) ve[i] = 0;
+      else {
+        const cos = -(dx[prev] * dx[i] + dy[prev] * dy[i] + dz[prev] * dz[i]);   // cos of the junction angle
+        let vj;
+        if (cos < -0.999999) vj = Math.min(vmax[prev], vmax[i]);                // straight on
+        else if (cos > 0.999999) vj = 0;                                        // full reversal
+        else {
+          const sh = Math.sqrt(0.5 * (1 - cos));
+          // arcs arrive as many short chords: the chord length and turn angle give the local radius,
+          // and centripetal acceleration limits the speed there (v² ≤ a·r)
+          const r = Math.min(L[prev], L[i]) / (2 * Math.sqrt(Math.max(1e-12, 0.5 * (1 + cos))));
+          vj = Math.min(Math.sqrt(a * dev * sh / (1 - sh)), Math.sqrt(a * r), vmax[prev], vmax[i]);
+        }
+        for (let j = prev + 1; j <= i; j++) ve[j] = vj;       // zero-length segments in between carry the speed
+      }
+      prev = i;
+    }
+    ve[n] = 0;
+    for (let i = n - 1; i >= 0; i--) ve[i] = Math.min(ve[i], Math.sqrt(ve[i + 1] * ve[i + 1] + 2 * a * L[i]));   // can brake
+    ve[0] = 0;
+    for (let i = 0; i < n; i++) ve[i + 1] = Math.min(ve[i + 1], Math.sqrt(ve[i] * ve[i] + 2 * a * L[i]));        // can reach
+    for (let i = 0; i < n; i++) {
+      let t = 0;
+      if (L[i] > 0) {
+        const v0 = ve[i], v1 = ve[i + 1];
+        const vp = Math.max(v0, v1, Math.min(vmax[i], Math.sqrt((2 * a * L[i] + v0 * v0 + v1 * v1) / 2)));
+        const cruise = Math.max(0, L[i] - (vp * vp - v0 * v0) / (2 * a) - (vp * vp - v1 * v1) / (2 * a));
+        t = (vp - v0) / a + (vp - v1) / a + cruise / vp;
+      }
+      cum[i + 1] = cum[i] + t * k;
+    }
+    return { cum, totalS: cum[n] };
   }
 
-  /** Load a program text for replay. */
-  function load(text) {
+  /**
+   * Load a program text for replay. `kin` (optional) = machine kinematics, see timing().
+   * idealS is always the feed-only time, so the two can be compared.
+   */
+  function load(text, kin) {
     const segs = parse(text);
-    const { cum, totalS } = timing(segs);
+    const ideal = timing(segs);
+    const { cum, totalS } = kin ? timing(segs, kin) : ideal;
     const cutLen = segs.reduce((a, s) => a + (!s.rapid && Math.min(s.z0, s.z1) < 0 ? Math.hypot(s.x1 - s.x0, s.y1 - s.y0) : 0), 0);
-    return { text, segs, cum, totalS, cutLenMm: cutLen, lines: text.split('\n').length };
+    return { text, segs, cum, totalS, idealS: ideal.totalS, kin: kin || null, cutLenMm: cutLen, lines: text.split('\n').length };
   }
 
   /** Tool position at program time t (s). Returns axis signals + current line / segment index. */
