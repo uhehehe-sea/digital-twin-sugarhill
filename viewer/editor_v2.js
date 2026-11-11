@@ -2465,8 +2465,9 @@ function initCursorOrbit() {
   const end = e => { if (e.button === 2 || e.type === 'pointercancel') { cursorOrbit.active = false; } };
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
 }
-const _coAxisZ = new THREE.Vector3(0, 0, 1), _coRight = new THREE.Vector3(), _coOff = new THREE.Vector3(), _coQ = new THREE.Quaternion();
+let _coAxisZ, _coRight, _coOff, _coQ;   // lazily created on first use: THREE may not exist yet when this file is evaluated (module three_global.js loads async)
 function updateCursorOrbit(dt) {
+  if (!_coAxisZ) { _coAxisZ = new THREE.Vector3(0, 0, 1); _coRight = new THREE.Vector3(); _coOff = new THREE.Vector3(); _coQ = new THREE.Quaternion(); }
   const co = cursorOrbit;
   if (!co.pivot) return;
   const rest = Math.abs(co.yaw) + Math.abs(co.pitch);
@@ -3715,7 +3716,24 @@ function animate() {
   }
 }
 
-window.onload = init3D;
+// Boot: init3D needs window.THREE (set by the three_global.js module). The module
+// loads async, and on Pages its fetch is slower than locally, so init3D must wait
+// for THREE instead of assuming it exists at load time. Poll briefly; if THREE
+// never appears, report it plainly instead of throwing "THREE is not defined".
+function bootWhenThreeReady() {
+  if (window.THREE) { init3D(); return; }
+  let tries = 0;
+  const timer = setInterval(() => {
+    if (window.THREE) { clearInterval(timer); init3D(); return; }
+    if (++tries >= 200) {   // ~20s
+      clearInterval(timer);
+      console.error('[viewer] three.js failed to load: window.THREE never appeared (check vendor/three and the importmap).');
+      const banner = document.getElementById('runtime-error-banner');
+      if (banner) { banner.style.display = 'block'; banner.innerHTML = '⚠️ <b>[뷰포트 런타임 오류]</b> three.js 로딩 실패: vendor/three 파일을 확인해주세요.'; }
+    }
+  }, 100);
+}
+window.onload = bootWhenThreeReady;
 
 
 

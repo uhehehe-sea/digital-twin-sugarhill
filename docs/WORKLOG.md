@@ -366,3 +366,7 @@
 ### 2026-11-11 — 바닥 데칼 (Fable)
 - `manifest.json`에 `decals` 추가, `visual_upgrade.js`의 `applyDecals`: 바닥 바로 위의 얇은 투명 평면이 아래를 어둡게만 함(조명 영향 없음 → 구운 조명을 따름). Megascans `Tire Tracks On Concrete`로 만든 마스크(`ms_decal_tire_tracks/mask.jpg`, git 제외)를 12곳에 배치: 화물문 2곳 출입, 주 통로, 문 앞 회전 자국.
 - 위치는 영상의 통행 방향을 참고한 예시이고 실측이 아님. 벽 물 자국·기름 얼룩 데칼은 재질이 없어 미적용.
+
+### 2026-11-11 — Luna의 GitHub 수정과 병합 (Fable)
+- GitHub `digital-twin-sugarhill` main(4b4226a)을 병합: `vendor/three/`(Pages용 three.js 사본, `three.core.js` 포함), importmap 상대경로, 커서 회전 임시값 지연 생성, `bootWhenThreeReady`.
+- 충돌 2곳(editor_v2.js 지연 생성 → Luna 쪽 채택, WORKLOG → 양쪽 유지). 이 저장소가 이제 GitHub main + 데칼 + 검사 도구 + 기술 정리 문서를 모두 포함.
