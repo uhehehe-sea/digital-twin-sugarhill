@@ -59,6 +59,8 @@
       // Y-up GLB -> Z-up twin: rotate +90 deg about X (maps +Y to +Z).
       var wrap = new THREE.Group();
       model.rotation.x = Math.PI / 2;
+      model.scale.setScalar(1000);   // glTF is in metres, the twin scene is in millimetres
+
       wrap.add(model);
       // Centre the footprint on the group origin, base at Z = 0.
       wrap.updateMatrixWorld(true);

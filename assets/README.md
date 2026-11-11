@@ -49,6 +49,26 @@ Fab 로그인이 필요해서 Claude가 대신 받을 수 없었습니다. **Epi
    - 노멀이 DirectX 방식이면 초록 채널을 뒤집어야 합니다(같이 요청).
 3. `surfaces/manifest.json`에서 해당 슬롯의 `"set"`을 새 폴더 이름으로 바꾸고 새로고침.
 
+### 적용된 Megascans (2026-11-11)
+
+사용자가 Fab에서 받은 원본 zip을 `assets/surfaces/ms_*/`로 변환해 연결했습니다. **이 폴더들은 git에 넣지 않습니다**(`.gitignore`, Fab 표준 라이선스의 재배포 조항 미확인). 로컬과 Drive zip에만 있습니다.
+폴더가 없는 PC에서는 `manifest.json`의 `fallback`(Poly Haven CC0) 또는 `paint`(단색)로 자동 대체됩니다.
+
+| 폴더 | 슬롯 | 원본 | 메모 |
+|---|---|---|---|
+| `ms_industrial_concrete_floor` (2K) | `floor` | Industrial Concrete Floor (sl2qedtp) | 평균색이 어두워(97,88,82) 밝기 ×1.55. 더 밝은 회색 바닥으로 바꾸면 더 좋음 |
+| `ms_corrugated_metal_white` | `wainscot` | Corrugated Metal Sheet (vlxldfs) | 리브가 세로가 되게 90° 회전(`rotate`), 밝기 ×1.8 + 민트색 |
+| `ms_painted_plaster` | `interior_walls` | Painted Plaster (pjBoU0) | 크림색으로 덧입힘 |
+| `ms_plywood` | `wood` | Plywood (vf1oairg) | |
+| `ms_metal_tread_plate` | `tread_plate` | Metal Tread Plate (ukukfgmew) | |
+| `ms_painted_metal_a` | `steel_frame` | Scratched Painted Metal (tduwehmc) | 받은 파일에 거칠기 맵만 있음 → 색은 적갈색 단색 + 실제 거칠기 |
+| `ms_painted_metal_b` | `stair_black` | Scratched Painted Metal (tduwejdc) | 위와 같음, 검은색 |
+| `ms_scratched_metal` | `rollup`, `vents` | Scratched Metal (uh4obh1c) | 위와 같음, 은회색 |
+
+노멀 맵은 높이 맵과 비교해 모두 OpenGL 방식임을 확인했습니다. 변환 크기는 바닥 2048, 나머지 1024(내장 그래픽 메모리 절약).
+아직 안 쓴 것: `Tire Tracks On Concrete` 데칼(데칼 표시 기능이 없음), `Corrugated Metal Sheet (teimcgup)`(어두워서 예비).
+아직 없는 것: 벽 상부·지붕 단열 마감(Stained Tarp 등), 철망, 벽 물 자국 데칼, 기름 얼룩 데칼.
+
 ### 받을 목록 (2026-11-10 수정 — 건물 내부 마감만, 소품 없음)
 
 목표는 **공장 내부 인테리어(바닥·벽·천장·철골·계단)의 재현**입니다. 팔레트·드럼통·상자 같은 소품은 받지 않습니다.

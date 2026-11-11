@@ -1040,7 +1040,7 @@ function buildAssetMeshGroup(assetDef) {
       // Moving groups (gantry X / carriage Y / spindle Z) are exposed in g.userData.rig for twin_live.js.
       const tableZ = 820;
       addBoxPart(g, cx, cy, 0, W, D, 760, '#1e293b', 0.38, 0.75, 1.0, 'frame');                    // welded base
-      addBoxPart(g, cx + 140, cy + 140, 760, W - 280, D - 280, 60, '#475569', 0.6, 0.4, 1.0, 'frame'); // table frame
+      addBoxPart(g, cx + 140, cy + 140, 760, W - 280, D - 280, 56, '#475569', 0.6, 0.4, 1.0, 'frame'); // table frame — top at 816, 4mm below spoilboard top (820) so the two faces are not coplanar (z-fighting fix from the Muse version, 2026-11-09)
       addBoxPart(g, cx + 160, cy + 160, tableZ - 40, W - 320, D - 320, 40, '#3f3f46', 0.85, 0.05, 1.0, 'primary'); // vacuum spoilboard
       addBoxPart(g, cx, cy + 30, 760, W, 80, 90, '#cbd5e1', 0.22, 0.92, 1.0, 'primary');           // X rail (front)
       addBoxPart(g, cx, cy + D - 110, 760, W, 80, 90, '#cbd5e1', 0.22, 0.92, 1.0, 'primary');      // X rail (rear)
@@ -2419,6 +2419,79 @@ function initOrbitPivot() {
   // User input always wins: once a drag / wheel / pan starts, stop gliding so the
   // camera motion is purely what the user is doing.
   controls.addEventListener('start', () => { orbitPivot.glide = null; });
+  initCursorOrbit();
+}
+
+// ---------------------------------------------------------------------------
+// Mouse navigation in the style of Unreal Editor / Twinmotion, with one addition asked for by the user:
+//   right-drag   orbit around the exact point under the cursor (the pivot stays put on screen — nothing jumps
+//                or re-centres; a small marker shows the pivot). Empty space: orbit around the current centre.
+//   left-drag    orbit around the view centre (Alt + left-drag is the same, as in Unreal)
+//   middle-drag  pan (Unreal / Twinmotion)          Shift + right-drag  pan
+//   wheel        dolly toward the cursor            F  frame the selection      WASD/QE  fly
+// The right-drag orbit is eased: mouse deltas are queued and drained with a short time constant, so the motion
+// starts and stops softly and is the same at any frame rate.
+const cursorOrbit = { active: false, pivot: null, lastX: 0, lastY: 0, yaw: 0, pitch: 0, marker: null, tau: 0.07 };
+function initCursorOrbit() {
+  controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.PAN, RIGHT: -1 };
+  controls.zoomToCursor = true;
+  controls.zoomSpeed = 0.9;
+  const el = renderer.domElement;
+  el.addEventListener('contextmenu', e => e.preventDefault());
+  const marker = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffb020, depthTest: false, transparent: true, opacity: 0.9 }));
+  marker.visible = false; marker.renderOrder = 999; marker.raycast = function () {}; marker.name = 'Orbit_Pivot_Marker';
+  scene.add(marker); cursorOrbit.marker = marker;
+  el.addEventListener('pointerdown', e => {
+    if (e.button !== 2) return;
+    if (e.shiftKey) { controls.mouseButtons.RIGHT = THREE.MOUSE.PAN; return; }       // Shift + right-drag pans (OrbitControls handles it)
+    controls.mouseButtons.RIGHT = -1;
+    const r = el.getBoundingClientRect();
+    mouse.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+    mouse.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    cursorOrbit.pivot = pickPivotPoint() || controls.target.clone();
+    cursorOrbit.active = true; cursorOrbit.lastX = e.clientX; cursorOrbit.lastY = e.clientY;
+    orbitPivot.glide = null;
+    marker.position.copy(cursorOrbit.pivot); marker.visible = true;
+    try { el.setPointerCapture(e.pointerId); } catch (err) { /* synthetic events */ }
+  });
+  el.addEventListener('pointermove', e => {
+    if (!cursorOrbit.active) return;
+    const k = 2 * Math.PI / el.clientHeight * 0.55;                                    // same feel as the left-drag orbit
+    cursorOrbit.yaw -= (e.clientX - cursorOrbit.lastX) * k;
+    cursorOrbit.pitch -= (e.clientY - cursorOrbit.lastY) * k;
+    cursorOrbit.lastX = e.clientX; cursorOrbit.lastY = e.clientY;
+  });
+  const end = e => { if (e.button === 2 || e.type === 'pointercancel') { cursorOrbit.active = false; } };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+}
+const _coAxisZ = new THREE.Vector3(0, 0, 1), _coRight = new THREE.Vector3(), _coOff = new THREE.Vector3(), _coQ = new THREE.Quaternion();
+function updateCursorOrbit(dt) {
+  const co = cursorOrbit;
+  if (!co.pivot) return;
+  const rest = Math.abs(co.yaw) + Math.abs(co.pitch);
+  if (rest < 1e-5) { co.yaw = co.pitch = 0; if (!co.active) { co.marker.visible = false; co.pivot = null; } return; }
+  const a = 1 - Math.exp(-dt / co.tau), yaw = co.yaw * a;
+  let pitch = co.pitch * a;
+  co.yaw -= yaw; co.pitch -= pitch;
+  const rotate = (axis, angle) => {
+    _coQ.setFromAxisAngle(axis, angle);
+    camera.position.sub(co.pivot).applyQuaternion(_coQ).add(co.pivot);
+    controls.target.sub(co.pivot).applyQuaternion(_coQ).add(co.pivot);
+  };
+  rotate(_coAxisZ, yaw);                                                               // turn about the vertical through the pivot
+  // tilt about the camera's right axis, kept inside the orbit limits so the next controls.update() changes nothing
+  _coOff.copy(camera.position).sub(controls.target);
+  const polar = Math.acos(Math.min(1, Math.max(-1, _coOff.z / _coOff.length())));
+  const want = Math.min(controls.maxPolarAngle - 0.005, Math.max(controls.minPolarAngle + 0.03, polar + pitch));
+  pitch = want - polar;
+  if (Math.abs(pitch) > 1e-6) {
+    _coRight.crossVectors(_coAxisZ, _coOff).normalize();                               // rotating the offset about this axis by +x raises the polar angle by x
+    rotate(_coRight, pitch);
+    if (camera.position.z < 150) rotate(_coRight, -pitch);                             // never dip through the floor
+  } else co.pitch = 0;
+  const d = camera.position.distanceTo(co.pivot);
+  co.marker.scale.setScalar(Math.max(12, d * 0.006));
 }
 function updateOrbitPivot(dt) {
   const g = orbitPivot.glide;
@@ -3622,6 +3695,7 @@ function animate() {
   try {
     updateWASDCameraMovement(dt);
     updateOrbitPivot(dt);
+    updateCursorOrbit(dt);
   } catch (camErr) {
     console.warn('updateWASDCameraMovement warning:', camErr);
   }
