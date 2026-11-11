@@ -1040,7 +1040,7 @@ function buildAssetMeshGroup(assetDef) {
       // Moving groups (gantry X / carriage Y / spindle Z) are exposed in g.userData.rig for twin_live.js.
       const tableZ = 820;
       addBoxPart(g, cx, cy, 0, W, D, 760, '#1e293b', 0.38, 0.75, 1.0, 'frame');                    // welded base
-      addBoxPart(g, cx + 140, cy + 140, 760, W - 280, D - 280, 60, '#475569', 0.6, 0.4, 1.0, 'frame'); // table frame
+      addBoxPart(g, cx + 140, cy + 140, 760, W - 280, D - 280, 56, '#475569', 0.6, 0.4, 1.0, 'frame'); // table frame — top at 816, 4mm below spoilboard top (820) so the two faces are not coplanar (z-fighting fix from the Muse version, 2026-11-09)
       addBoxPart(g, cx + 160, cy + 160, tableZ - 40, W - 320, D - 320, 40, '#3f3f46', 0.85, 0.05, 1.0, 'primary'); // vacuum spoilboard
       addBoxPart(g, cx, cy + 30, 760, W, 80, 90, '#cbd5e1', 0.22, 0.92, 1.0, 'primary');           // X rail (front)
       addBoxPart(g, cx, cy + D - 110, 760, W, 80, 90, '#cbd5e1', 0.22, 0.92, 1.0, 'primary');      // X rail (rear)
