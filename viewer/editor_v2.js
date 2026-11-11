@@ -3716,7 +3716,24 @@ function animate() {
   }
 }
 
-window.onload = init3D;
+// Boot: init3D needs window.THREE (set by the three_global.js module). The module
+// loads async, and on Pages its fetch is slower than locally, so init3D must wait
+// for THREE instead of assuming it exists at load time. Poll briefly; if THREE
+// never appears, report it plainly instead of throwing "THREE is not defined".
+function bootWhenThreeReady() {
+  if (window.THREE) { init3D(); return; }
+  let tries = 0;
+  const timer = setInterval(() => {
+    if (window.THREE) { clearInterval(timer); init3D(); return; }
+    if (++tries >= 200) {   // ~20s
+      clearInterval(timer);
+      console.error('[viewer] three.js failed to load: window.THREE never appeared (check vendor/three and the importmap).');
+      const banner = document.getElementById('runtime-error-banner');
+      if (banner) { banner.style.display = 'block'; banner.innerHTML = '⚠️ <b>[뷰포트 런타임 오류]</b> three.js 로딩 실패: vendor/three 파일을 확인해주세요.'; }
+    }
+  }, 100);
+}
+window.onload = bootWhenThreeReady;
 
 
 
