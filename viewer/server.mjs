@@ -129,6 +129,7 @@ const PREFIX = [
 // ---------------------------------------------------------------------------
 const API = new Map();
 API.set('/api/parts', handleParts);
+API.set('/api/sand3d/search', handleSand3DSearch);
 API.set('/api/telemetry', (req, res) => {
   // Latest snapshot published by the twin (poll-friendly for external tools)
   res.writeHead(latestTelemetry ? 200 : 204, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -308,6 +309,7 @@ const EXEC_API = new Map();
 EXEC_API.set('/api/rebuild', handleRebuild);
 EXEC_API.set('/api/render-blender', handleRenderBlender);
 EXEC_API.set('/api/camotics', handleCamotics);
+EXEC_API.set('/api/sand3d/import', handleSand3DImport);
 
 /** Parse a JSON body. Sends 413/400 itself and returns undefined on failure. Empty body → {}. */
 async function readJson(req, res, limit) {
@@ -397,6 +399,81 @@ function findBlender() {
     '/usr/bin/blender', '/usr/local/bin/blender', '/snap/bin/blender'
   ].filter(Boolean);
   return candidates.find(p => { try { return fs.statSync(p).isFile(); } catch { return false; } }) || null;
+}
+
+// ---------------------------------------------------------------------------
+// Sand3D (Hugging Face) — search + import. The CLI (tools/sand3d_import.mjs)
+// does the HTTP (curl, which works through the VM egress proxy) and the
+// Blender conversion; the server just spawns it and returns the JSON.
+// Search is a plain read-only API; import runs Blender, so it is EXEC-only
+// (loopback) with a busy flag like the Cycles render. Blender is found via
+// BLENDER_EXE / BLENDER_PATH in the server's environment.
+// ---------------------------------------------------------------------------
+const SAND3D_DATASETS = ['objaverse', 'cad', 'articraft', 'simready', 'automate', 'all'];
+const sand3dScript = path.join(baseDir, 'tools', 'sand3d_import.mjs');
+const sand3dCatalogFile = path.join(baseDir, 'assets', 'sand3d', 'catalog.json');
+
+function handleSand3DSearch(req, res) {
+  const q = new URL(req.url, 'http://x').searchParams;
+  const query = (q.get('q') || '').trim();
+  if (!query) return sendJson(res, 400, { success: false, error: 'q required' });
+  const dataset = SAND3D_DATASETS.includes(q.get('dataset')) ? q.get('dataset') : 'all';
+  const limit = Math.max(1, Math.min(20, parseInt(q.get('limit') || '10', 10) || 10));
+  if (!fs.existsSync(sand3dScript)) return sendJson(res, 503, { success: false, error: 'sand3d_import.mjs missing' });
+  execFile(process.execPath, [sand3dScript, 'search', query, '--dataset', dataset, '--limit', String(limit), '--json'],
+    { timeout: 180000, windowsHide: true, maxBuffer: 16 * 1024 * 1024, env: { ...process.env } },
+    (err, stdout, stderr) => {
+      if (err) return sendJson(res, 502, { success: false, error: String(stderr || err.message).slice(-1000) });
+      try {
+        const data = JSON.parse(stdout);
+        sendJson(res, 200, { success: true, query, count: data.count, rows: data.rows });
+      } catch {
+        sendJson(res, 502, { success: false, error: 'could not parse sand3d search output' });
+      }
+    });
+}
+
+let sand3dImportBusy = false;
+async function handleSand3DImport(req, res) {
+  const parsed = await readJson(req, res, BODY_LIMIT);
+  if (parsed === undefined) return;
+  const dataset = SAND3D_DATASETS.includes(parsed.dataset) ? parsed.dataset : 'objaverse';
+  if (!fs.existsSync(sand3dScript)) return sendJson(res, 503, { success: false, error: 'sand3d_import.mjs missing' });
+  if (sand3dImportBusy) return sendJson(res, 409, { success: false, reason: 'import_in_progress' });
+  // Prefer the full row (the viewer sends the row it got from search): it carries
+  // usda_path/sha/render/attribution, so no lookup is needed. This is also the
+  // only path that works while the datasets-server /search endpoint is down.
+  // Fall back to id-only lookup otherwise.
+  const row = parsed.row && typeof parsed.row === 'object' ? parsed.row : null;
+  let args, id, rowFile = null;
+  if (row && typeof row.id === 'string' && typeof row.usda_path === 'string') {
+    id = row.id;
+    // Pass the row via a temp file, not stdin: piping a row through stdin is
+    // fragile in Node (sync read blocks, async read can miss EOF / keep the
+    // process alive — both verified). A plain file read always works.
+    rowFile = path.join(os.tmpdir(), `sand3d-row-${id}-${Date.now()}.json`);
+    try { fs.writeFileSync(rowFile, JSON.stringify({ ...row, dataset }), 'utf8'); }
+    catch (e) { return sendJson(res, 500, { success: false, error: 'cannot write row temp file: ' + e.message }); }
+    args = [sand3dScript, 'import', '--row-file', rowFile, '--dataset', dataset];
+  } else {
+    id = String(parsed.id || '').trim();
+    if (!id || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(id)) return sendJson(res, 400, { success: false, error: 'id required (asset id) or row with usda_path' });
+    args = [sand3dScript, 'import', id, '--dataset', dataset];
+  }
+  sand3dImportBusy = true;
+  execFile(process.execPath, args,
+    { timeout: 600000, windowsHide: true, maxBuffer: 16 * 1024 * 1024, env: { ...process.env } },
+    (err, stdout, stderr) => {
+      sand3dImportBusy = false;
+      if (rowFile) { try { fs.unlinkSync(rowFile); } catch { /* temp file cleanup, best effort */ } }
+      if (err) return sendJson(res, 500, { success: false, error: String(stderr || err.message).slice(-2000) });
+      let entry = null;
+      try {
+        const cat = JSON.parse(fs.readFileSync(sand3dCatalogFile, 'utf8'));
+        entry = (cat.items || []).find(i => i.id === id) || null;
+      } catch { /* catalog unreadable — entry stays null, stdout still shows what happened */ }
+      sendJson(res, 200, { success: true, entry, stdout: String(stdout).slice(-1000) });
+    });
 }
 
 let renderBusy = false;

@@ -1,0 +1,40 @@
+{
+  "items": [
+    {
+      "id": "objaverse-000bef5af9d442bc9e3eaf61e03dfc38",
+      "dataset": "objaverse",
+      "name": "wardrobe",
+      "family": "furniture",
+      "glb": "assets/sand3d/objaverse-000bef5af9d442bc9e3eaf61e03dfc38.glb",
+      "thumb": "assets/sand3d/objaverse-000bef5af9d442bc9e3eaf61e03dfc38.jpg",
+      "dims_mm": [
+        2396,
+        901,
+        2319
+      ],
+      "meshes": 34,
+      "license": "CC-BY-4.0",
+      "attribution": "\"Closet\" by felipeEBr, https://sketchfab.com/3d-models/000bef5af9d442bc9e3eaf61e03dfc38, CC-BY-4.0; modified: rewritten as a sand3d program",
+      "source_url": "https://huggingface.co/datasets/Sandflow/sand3d-objaverse",
+      "imported_at": "2026-11-11T01:45:34.049Z"
+    },
+    {
+      "id": "objaverse-00080e826e7942b69d501fe24b115ece",
+      "dataset": "objaverse",
+      "name": "scalloped_slab",
+      "family": "furniture",
+      "glb": "assets/sand3d/objaverse-00080e826e7942b69d501fe24b115ece.glb",
+      "thumb": "assets/sand3d/objaverse-00080e826e7942b69d501fe24b115ece.jpg",
+      "dims_mm": [
+        1400,
+        765,
+        146.5
+      ],
+      "meshes": 1,
+      "license": "CC-BY-4.0",
+      "attribution": "\"Headboard Chambray Raspberry\" by arcblocks, https://sketchfab.com/3d-models/00080e826e7942b69d501fe24b115ece, CC-BY-4.0; modified: rewritten as a sand3d program",
+      "source_url": "https://huggingface.co/datasets/Sandflow/sand3d-objaverse",
+      "imported_at": "2026-11-11T02:10:25.192Z"
+    }
+  ]
+}
