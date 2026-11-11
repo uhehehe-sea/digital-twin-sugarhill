@@ -38,3 +38,6 @@ dist/
 *.log
 Thumbs.db
 .DS_Store
+
+# --- Megascans surfaces (Fab Standard License: kept on disk and Drive, not redistributed in git) ---
+assets/surfaces/ms_*/

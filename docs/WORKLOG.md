@@ -341,3 +341,9 @@
 - 브라우저 확인: 43.8초 장면과 같은 시점에서 섹셔널·출구문·롤업·팬·계단 옆판 배치가 영상과 같은 순서로 보임. 동쪽 끝벽 유리문과 동쪽 계단 표시. 유리문은 여전히 불투명한 파란 판으로 보임(미해결).
 - Blender: 공식 서버 다운로드 403 → Microsoft Store 경로로 설치 명령은 성공 종료. 실행 확인은 3단계에서.
 
+### 2026-11-11 — Megascans 표면 적용 (Fable)
+- 사용자가 Fab에서 받은 Megascans zip 9개(Downloads) → `assets/surfaces/ms_*/` 8세트로 변환(diff/nor/arm). git 제외(`.gitignore`), Drive zip에는 포함.
+- `manifest.json`: 슬롯에 `fallback`(없으면 CC0 세트)과 `rotate`(텍스처 90° 회전) 추가. `visual_upgrade.js`: set → fallback → paint 순으로 적용.
+- 브라우저 확인: 12개 세트 모두 loaded, 바닥·하단 골판(리브 세로)·철골·롤업 도어에 적용된 것 확인. `npm test` 97/97.
+- 안 한 것: 재질이 바뀐 뒤 조명 다시 굽기(반사율이 조금 달라짐), 타이어 자국 데칼, 벽 상부·지붕 단열 마감 재질.
+

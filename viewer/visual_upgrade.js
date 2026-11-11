@@ -261,6 +261,7 @@ window.addEventListener('load', function () {
 
   function applySlot(mesh, slot, set) {
     if (!generateBoxUVs(mesh, slot.tileM || 2)) return false;
+    if (slot.rotate && !set.rotated) { set.rotated = true; for (const t of [set.diff, set.nor, set.arm]) if (t) { t.rotation = Math.PI / 2; t.needsUpdate = true; } }   // e.g. wall ribs that must run vertically
     const old = mesh.material;
     const mat = new THREE.MeshStandardMaterial({
       color: slot.tint ? new THREE.Color(slot.tint) : (old && old.color ? old.color.clone().lerp(new THREE.Color(0xffffff), slot.lighten === undefined ? 0.5 : slot.lighten) : 0xffffff),
@@ -283,13 +284,14 @@ window.addEventListener('load', function () {
   async function applySurfaces(manifest) {
     const slots = Object.entries(manifest.slots || {}).map(([id, s]) => Object.assign({ id, re: new RegExp(s.match) }, s));
     const sets = {};
-    await Promise.all([...new Set(slots.filter(s => s.set).map(s => s.set))].map(async n => { sets[n] = await loadSet(n); status.surfaces[n] = sets[n] ? 'loaded' : 'missing'; }));
+    await Promise.all([...new Set(slots.flatMap(s => [s.set, s.fallback]).filter(Boolean))].map(async n => { sets[n] = await loadSet(n); status.surfaces[n] = sets[n] ? 'loaded' : 'missing'; }));
     let n = 0;
     factoryMeshGroup.traverse(o => {
       if (!o.isMesh || !o.name || o.userData.surfaceSlot) return;
       const slot = slots.find(s => s.re.test(o.name));
       if (!slot) return;
-      if (slot.paint ? applyPaint(o, slot) : (sets[slot.set] && applySlot(o, slot, sets[slot.set]))) n++;
+      const set = sets[slot.set] || sets[slot.fallback];          // preferred set (e.g. Megascans, not in git) → fallback set → plain paint
+      if (set ? applySlot(o, slot, set) : (slot.paint && applyPaint(o, slot))) n++;
     });
     status.uvMeshes = n;
     applyLook();
