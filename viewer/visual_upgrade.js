@@ -194,7 +194,7 @@ window.addEventListener('load', function () {
   }
 
   function loadHdri(file) {
-    new THREE.HDRLoader().load('/assets/' + file, hdr => {
+    new THREE.HDRLoader().load('../assets/' + file, hdr => {
       const pmrem = new THREE.PMREMGenerator(renderer);
       const env = pmrem.fromEquirectangular(hdr).texture;
       pmrem.dispose();
@@ -235,7 +235,7 @@ window.addEventListener('load', function () {
 
   function loadSet(name) {
     const tex = (file, srgb) => new Promise(resolve => {
-      texLoader.load(`/assets/surfaces/${name}/${file}`, t => {
+      texLoader.load(`../assets/surfaces/${name}/${file}`, t => {
         t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = maxAniso;
         t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
         resolve(t);
@@ -291,7 +291,7 @@ window.addEventListener('load', function () {
     const list = manifest.decals || [], masks = {};
     let n = 0;
     list.forEach((d, i) => {
-      if (!masks[d.set]) masks[d.set] = new Promise(res => texLoader.load('/assets/surfaces/' + d.set + '/mask.jpg', t => { t.anisotropy = maxAniso; res(t); }, undefined, () => res(null)));
+      if (!masks[d.set]) masks[d.set] = new Promise(res => texLoader.load('../assets/surfaces/' + d.set + '/mask.jpg', t => { t.anisotropy = maxAniso; res(t); }, undefined, () => res(null)));
       masks[d.set].then(mask => {
         if (!mask) return;
         const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(d.color || '#1b1a18'), alphaMap: mask, transparent: true, opacity: d.strength === undefined ? 0.55 : d.strength, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
@@ -355,11 +355,11 @@ window.addEventListener('load', function () {
   }
   async function applyLightmap() {
     try {
-      const meta = await fetch('/assets/lightmap/lightmap.json', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null));
+      const meta = await fetch('../assets/lightmap/lightmap.json', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null));
       if (!meta || !meta.parts) return false;
       const v = '?v=' + encodeURIComponent(meta.generatedAt || '');
-      const uv = new Float32Array(await fetch('/assets/lightmap/lightmap_uv.bin' + v).then(r => r.arrayBuffer()));
-      const tex = await new Promise((res, rej) => texLoader.load('/assets/lightmap/lightmap.png' + v, res, undefined, rej));
+      const uv = new Float32Array(await fetch('../assets/lightmap/lightmap_uv.bin' + v).then(r => r.arrayBuffer()));
+      const tex = await new Promise((res, rej) => texLoader.load('../assets/lightmap/lightmap.png' + v, res, undefined, rej));
       tex.colorSpace = THREE.SRGBColorSpace; tex.channel = 1;
       tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;   // mipmaps would bleed between charts
       let n = 0, skipped = 0;
@@ -490,7 +490,7 @@ window.addEventListener('load', function () {
   document.addEventListener('change', e => { if (e.target && e.target.id === 'sel-visual-quality') setQuality(e.target.value); });
   setQuality(quality);
 
-  fetch('/assets/surfaces/manifest.json', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(manifest => {
+  fetch('../assets/surfaces/manifest.json', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(manifest => {
     if (!manifest) { status.hdri = 'no manifest'; return; }
     if (manifest.lighting) {
       if (manifest.lighting.fixtureColor) FIXTURE.color = new THREE.Color(manifest.lighting.fixtureColor).getHex();

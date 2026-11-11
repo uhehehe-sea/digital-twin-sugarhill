@@ -3258,7 +3258,7 @@ function applyBuildingDims() {
 }
 
 function loadPrecisionModel() {
-  fetch('/building_meta.json').then(r => (r.ok ? r.json() : null)).catch(() => null).then(meta => {
+  fetch('../building_meta.json').then(r => (r.ok ? r.json() : null)).catch(() => null).then(meta => {
     if (meta && meta.lengthX > 0 && meta.widthY > 0) BUILDING = Object.assign({}, BUILDING, meta, { door: Object.assign({}, BUILDING.door, meta.door || {}) });
     applyBuildingDims();
     loadPrecisionModelNow();
