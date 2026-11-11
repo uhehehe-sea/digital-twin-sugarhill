@@ -370,3 +370,8 @@
 ### 2026-11-11 — Luna의 GitHub 수정과 병합 (Fable)
 - GitHub `digital-twin-sugarhill` main(4b4226a)을 병합: `vendor/three/`(Pages용 three.js 사본, `three.core.js` 포함), importmap 상대경로, 커서 회전 임시값 지연 생성, `bootWhenThreeReady`.
 - 충돌 2곳(editor_v2.js 지연 생성 → Luna 쪽 채택, WORKLOG → 양쪽 유지). 이 저장소가 이제 GitHub main + 데칼 + 검사 도구 + 기술 정리 문서를 모두 포함.
+
+### 2026-11-11 — Pages가 옛 건물을 읽던 문제 (Opus)
+- 사용자 보고: "화장실이 삭제된 것 같다". 로컬은 정상(화장실 11개 부재, 영상 42.5초 장면과 같은 배치: 홀 쪽 문 2개, 지붕 위 목재 난간).
+- 원인: 뷰어가 `factory_precision.obj`를 페이지 기준 상대경로로 먼저 읽음. 로컬은 404 → `/model.obj`(새 건물)로 넘어가서 정상이었지만, Pages는 `viewer/factory_precision.obj`(11/9 받은 옛 24×16 m 기준본, 226부재)를 읽어 **옛 건물이 보였음**.
+- 수정: `../factory_precision.obj`(저장소 루트, 생성된 건물)를 먼저 읽음. 로컬 서버에도 `/factory_precision.obj` 경로 추가. Pages에서는 push 후 확인 필요.

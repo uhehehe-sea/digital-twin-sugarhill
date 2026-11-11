@@ -3437,7 +3437,9 @@ function loadPrecisionModelNow() {
     if (urlView) setView(urlView);
     log('[PBR] 건축 쉘 메쉬(원본 SolidCraft STEP 226개 솔리드를 OBJ로 변환)에 골강판 노멀맵, 에폭시 바닥 반사, H-빔 스틸 셰이더 적용.');
   };
-  loader.load('factory_precision.obj', onShellLoaded, undefined, () => loader.load('/model.obj', onShellLoaded));
+  // The generated building is ../factory_precision.obj (repo root). viewer/factory_precision.obj is the old 24 x 16 m baseline
+  // and must not be picked up first: on GitHub Pages it was, so Pages showed the old building (no new restrooms, stairs, doors).
+  loader.load('../factory_precision.obj', onShellLoaded, undefined, () => loader.load('/model.obj', onShellLoaded));
 }
 
 // ============================================================================
