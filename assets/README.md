@@ -51,7 +51,9 @@ Fab 로그인이 필요해서 Claude가 대신 받을 수 없었습니다. **Epi
 
 ### 적용된 Megascans (2026-11-11)
 
-사용자가 Fab에서 받은 원본 zip을 `assets/surfaces/ms_*/`로 변환해 연결했습니다. **이 폴더들은 git에 넣지 않습니다**(`.gitignore`, Fab 표준 라이선스의 재배포 조항 미확인). 로컬과 Drive zip에만 있습니다.
+사용자가 Fab에서 받은 원본 zip을 `assets/surfaces/ms_*/`로 변환해 연결했습니다(1K~2K JPG로 축소·재패킹).
+
+**라이선스 기록:** Quixel Megascans, Fab 표준 라이선스, 2026-11-10 다운로드(계정 소유자: 저장소 주인). 2026-11-11 저장소 주인의 결정으로 이 폴더들을 저장소에 포함했습니다. Fab 라이선스 요약은 에셋의 단독 재배포를 금지하는 것으로 읽히므로(https://www.fab.com/cla), 이 파일들을 이 프로젝트 밖에서 따로 가져다 쓰지 마세요. 문제가 제기되면 `assets/surfaces/ms_*/`를 지우면 되고, 뷰어는 `fallback`(Poly Haven CC0)으로 자동 대체됩니다.
 폴더가 없는 PC에서는 `manifest.json`의 `fallback`(Poly Haven CC0) 또는 `paint`(단색)로 자동 대체됩니다.
 
 | 폴더 | 슬롯 | 원본 | 메모 |
