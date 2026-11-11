@@ -27,7 +27,7 @@ node tools/build_building_gltf.mjs   # → assets/models/factory_building.glb (B
 |---|---|---|---|
 | 1 | 영상 재분석, 치수·구조 조사 | Fable | **완료** — `docs/STRUCTURE_SURVEY_2026-11-10.md` |
 | 2 | 건물 생성기에 구조 반영 | Opus/Fable | **완료** — 커밋 `d6de815` |
-| 3 | Blender Cycles로 빛 굽기 + 바닥 반사 | Fable | **시작 전** (아래 4절) |
+| 3 | Blender Cycles로 빛 굽기 + 바닥 반사 | Fable | **경로 완성, 노이즈 미해결, 바닥 반사 미착수** (4절) |
 | 4 | 재질(Megascans) 적용 | Opus | 사용자가 Fab에서 다운로드 중 (5절) |
 | 5 | 카메라 마무리(노출·색·빛 번짐), 영상과 최종 비교 | Fable | 시작 전 |
 
@@ -37,17 +37,18 @@ node tools/build_building_gltf.mjs   # → assets/models/factory_building.glb (B
 - 조명: `tools/bake_lightmap.mjs`(직접광 + 간접광 2회 + 문으로 들어오는 바깥 빛 + 바닥 얼룩·벽 물때) → `assets/lightmap/{lightmap.png, lightmap_uv.bin, lightmap.json}`.
 - 뷰어 `viewer/visual_upgrade.js`: 라이트맵 자동 적용(`applyLightmap`), 구운 부재는 확산광을 라이트맵에서만 받음(`bakedOnly` 셰이더 패치), 반사는 실내 큐브 캡처, 기계 그림자는 바닥 위 `Baked_Shadow_Catcher`, 화질 단계(자동/높음/균형/기본).
 
-## 4. 3단계 할 일 — Blender 굽기
+## 4. 3단계 — Blender 굽기 (경로는 완성, 품질은 미해결)
 
-**막힌 곳: Blender 실행.** Microsoft Store로 5.3.0이 설치됐지만(`C:\Program Files\WindowsApps\BlenderFoundation.Blender_5.3.0.0_x64__ppwjx1n5r4v9t\Blender\blender.exe`) 직접 실행은 "Access is denied". 별칭은 `%LOCALAPPDATA%\Microsoft\WindowsApps\blender-launcher.exe`뿐. 공식 서버 직접 다운로드(winget)는 403.
-시도 순서: (1) `blender-launcher.exe -b --version`이 인수를 넘기는지 확인 → (2) 안 되면 사용자에게 blender.org에서 **Windows 포터블 zip**을 받아 `C:\Tools\blender\`에 풀어 달라고 요청 → 경로는 환경변수 `BLENDER_EXE`로만 받기(저장소에 개인 경로 금지).
+**된 것 (2026-11-10 저녁):**
+- Blender 5.3 포터블이 `C:\Toolslenderlender.exe`에 있음(사용자가 설치). 경로는 환경변수 `BLENDER_EXE`로만 전달.
+- `node tools/bake_lightmap.mjs --blender` 동작: Node가 아틀라스 배치 + 라이트맵 UV가 든 임시 OBJ를 쓰고 → `tools/bake_blender.py`(Cycles, 확산 직접 + 간접)가 float 이미지로 돌려주고 → Node가 정규화·얼룩·PNG 저장. 출력 형식이 같아 뷰어 수정 없음. 등기구는 아래쪽으로만 발광.
+- 유리 출입문: 검은 프레임 + 투명 유리로 수정(`viewer/editor_v2.js`).
 
-Blender가 되면:
-1. `tools/bake_blender.py`(신규, `blender -b --python`): `assets/models/factory_building.glb` 가져오기 → 등기구(`HighBay_LED_*`)를 발광체로, 유리(`Main_Glass_Entry_Panel*`)는 투명 → 부재별 두 번째 UV(라이트맵용) 펼치기 → Cycles Diffuse(Direct+Indirect, Color 제외) 굽기 + 노이즈 제거 → 한 장의 아틀라스.
-2. **출력 형식은 지금 뷰어가 읽는 것과 같게** 맞추면 뷰어 수정이 필요 없음: `lightmap.png`(sRGB로 인코딩한 조도 ÷ maxE), `lightmap_uv.bin`(부재별 Float32 UV, **OBJLoader 정점 순서** = 면을 부채꼴로 삼각분할한 순서), `lightmap.json`(`size`, `maxE`, `parts: {이름: [float 오프셋, 정점 수]}`). 정점 순서가 어긋나면 뷰어가 그 부재를 건너뜀(`pos.count !== e[1]`) → glb가 아니라 OBJ를 Blender로 가져오는 편이 순서 맞추기 쉬울 수 있음. 어려우면 뷰어가 glb(UV2 포함)를 직접 읽도록 바꾸는 쪽이 정석.
-3. 바닥 반사: 지금은 홀 가운데 한 점의 큐브 캡처. 홀/메자닌 아래 등 구역별 캡처 + 박스 투영으로 **천장등이 바닥에 제 위치로 비치게**(`captureInterior` 확장, 바닥 재질 roughness 맵 필요).
-4. 유리문이 불투명한 파란 판으로 보이는 문제 수정(editor_v2.js의 `Main_Glass_Entry` 재질 또는 manifest 슬롯에 투명 유리 추가).
-5. Node 베이커는 Blender 없는 PC용 예비로 유지.
+**안 된 것:**
+- **Cycles 결과가 얼룩덜룩함**(125 mm/텍셀, 32샘플, 8.4분). 벽·천장에 노이즈 얼룩이 보여 내장 계산기 결과보다 지저분했음. 그래서 **저장소의 `assets/lightmap/`은 내장 계산기(Node) 결과를 그대로 둠**.
+  다음에 할 것: (1) `scene.cycles.use_denoising`이 굽기에 적용되는지 확인(적용 안 되는 것으로 보임) → 굽은 뒤 OIDN 합성 노드나 `bpy.ops` 디노이즈로 후처리, (2) 샘플 128~256(시간 4~8배, 30~60분), (3) 간접광만 Cycles에서 받고 직접광은 내장 계산기 것을 쓰는 혼합.
+- 바닥 반사(구역별 캡처 + 박스 투영으로 천장등이 바닥에 제 위치로 비치게): 시작 안 함. `captureInterior` 확장 + 바닥 roughness 맵 필요.
+- 유리문 밖 풍경 없음(어둡게 보임). 문 밖에 밝은 판을 두거나 HDRI 배경을 보이게 해야 함.
 
 ## 5. 4단계 — 재질 (사용자가 Fab에서 받는 중)
 - 받을 목록: `assets/README.md`의 "받을 목록" (내부 마감 10종 + 표면 데칼 2종, **소품 없음**). Drive 사본: `..._v5_에셋목록_내부마감만.md`.

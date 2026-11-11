@@ -3281,6 +3281,11 @@ function loadPrecisionModelNow() {
           });
         } else if (name.includes('Cage_Mesh_') || name.includes('Cage_Gate_Door')) {
           child.material = new THREE.MeshPhysicalMaterial({ color: 0x94a3b8, roughness: 0.22, metalness: 0.85, transparent: true, opacity: 0.32, envMapIntensity: 0.6 });
+        } else if (name.includes('Main_Glass_Entry_Frame')) {
+          // site video: black aluminium storefront frame around clear glass
+          child.material = new THREE.MeshStandardMaterial({ color: 0x1b1c1e, roughness: 0.45, metalness: 0.6 });
+        } else if (name.includes('Main_Glass_Entry_Panel')) {
+          child.material = new THREE.MeshPhysicalMaterial({ color: 0xeaf4f6, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.16, envMapIntensity: 1.2, depthWrite: false });
         } else if (name.includes('Window_Frame_') || name.includes('Main_Glass_Entry_')) {
           child.material = new THREE.MeshPhysicalMaterial({ color: 0x7dd3fc, roughness: 0.06, metalness: 0.2, clearcoat: 1.0, transparent: true, opacity: 0.42, envMapIntensity: 0.9 });
         } else if (name.includes('Door_Rollup_') || name.includes('Door_Sectional_')) {

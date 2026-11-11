@@ -73,3 +73,17 @@ node tools/bake_lightmap.mjs         # 약 2분. --texel 60 --size 4096 으로 �
 - 결과 `assets/lightmap/`이 있으면 뷰어가 자동으로 씁니다. 지우면 예전 실시간 조명으로 돌아갑니다.
 - 밝기는 `viewer/visual_upgrade.js`의 `BAKED.gain`, 기계 그림자 진하기는 `BAKED.shadowOpacity`.
 - 바닥 얼룩·벽 물때를 빼려면 `--no-grunge`.
+
+### Blender Cycles로 굽기 (2026-11-10 추가)
+
+빛 계산만 Blender Cycles(경로 추적)에 맡기는 방식입니다. 아틀라스 배치와 출력 파일은 그대로 `bake_lightmap.mjs`가 맡으므로 뷰어는 바뀌지 않습니다.
+
+```
+BLENDER_EXE=<blender.exe 경로>  node tools/bake_lightmap.mjs --blender --texel 125 --cycles-samples 32
+```
+
+- `BLENDER_EXE` 환경변수로만 경로를 받습니다(저장소에 개인 경로를 적지 않음). PowerShell: `$env:BLENDER_EXE = '...'`.
+- 흐름: Node가 라이트맵 UV가 들어간 임시 OBJ를 씀 → `tools/bake_blender.py`가 Cycles로 확산광(직접 + 간접 4회)을 구워 float 파일로 돌려줌 → Node가 밝기 정규화, 얼룩, 여백 채우기, PNG 저장.
+- 등기구는 아래쪽으로만 빛을 냅니다. 유리·철망은 빛을 막지 않도록 빼고 계산합니다.
+- `--blender` 없이 돌리면 예전의 내장 계산기(Blender 없는 PC용)입니다.
+

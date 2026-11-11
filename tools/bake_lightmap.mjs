@@ -19,6 +19,10 @@
  *   node tools/bake_lightmap.mjs [--texel 90] [--size 2048] [--samples 4] [--gather 32] [--bounces 2]
  *                                [--no-grunge] [--obj file] [--out dir] [--threads N]
  *
+ *   --blender : the light itself is computed by Blender Cycles (path tracing + denoise) instead of the built-in tracer.
+ *               Needs the environment variable BLENDER_EXE (path to blender.exe). This script still decides the atlas
+ *               layout and writes the same three output files, so the viewer does not change. [--cycles-samples 96]
+ *
  *   Static only: the bake describes the building as generated. After moving or deleting building parts
  *   in the editor the baked shadows no longer match — regenerate and bake again.
  */
@@ -28,6 +32,7 @@ import path from 'path';
 import zlib from 'zlib';
 import { fileURLToPath } from 'url';
 import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
+import { execFileSync } from 'child_process';
 
 const SELF = fileURLToPath(import.meta.url);
 const root = path.resolve(path.dirname(SELF), '..');
@@ -237,6 +242,9 @@ async function main() {
     ch.x = x + 1; ch.y = y + 1; x += w; if (h > shelf) shelf = h;
   }
   const usedRows = y + shelf;
+  const H = Math.min(SIZE, Math.max(64, 2 ** Math.ceil(Math.log2(usedRows + 8))));   // crop unused rows (power of two for mipmaps)
+
+  const uvOf = (ch, p) => { const rel = sub(p, ch.o), a = (dot(rel, ch.u) - ch.minU) / Math.max(ch.spanU, 1e-6), b = (dot(rel, ch.v) - ch.minV) / Math.max(ch.spanV, 1e-6); return [(ch.x + 0.5 + a * (ch.w - 1)) / SIZE, 1 - (ch.y + 0.5 + b * (ch.h - 1)) / H]; };
 
   // ---- one sample point per texel (texels whose centre lies outside their polygon are filled in afterwards)
   let count = 0;
@@ -297,24 +305,58 @@ async function main() {
     return outv;
   }
 
-  // ---- 1. direct
-  emitters.forEach(e => { e.col = e.col.map(c => c * e.gain); });
-  let direct = blur(await run('direct', {}), 1);
-  // normalise: mean direct light on the open main floor = TARGET_FLOOR_E (the fixtures' real output is unknown)
-  let sum = 0, nf = 0, base = 0;
-  for (const ch of charts) { if (ch.part === 'Floor_Slab' && ch.n[2] > 0.9) for (let i = 0; i < ch.w * ch.h; i++) { sum += direct[(base + i) * 3 + 1]; nf++; } base += ch.w * ch.h; }
-  const scale = nf && sum > 0 ? TARGET_FLOOR_E / (sum / nf) : 1;
-  for (let i = 0; i < direct.length; i++) direct[i] *= scale;
-  console.log(`[bake] direct light done in ${((Date.now() - t0) / 1000).toFixed(1)} s (fixture radiance x${scale.toExponential(2)})`);
+  let total, base = 0, engine = 'built-in';
+  const floorMean = vals => { let sum = 0, nf = 0, b0 = 0; for (const ch of charts) { if (ch.part === 'Floor_Slab' && ch.n[2] > 0.9) for (let i = 0; i < ch.w * ch.h; i++) { if (valid[b0 + i]) { sum += vals[(b0 + i) * 3 + 1]; nf++; } } b0 += ch.w * ch.h; } return nf ? sum / nf : 0; };
+  if (flag('blender')) {
+    // ---- 1-2 (Blender): same atlas layout, light from Cycles
+    const exe = process.env.BLENDER_EXE;
+    if (!exe || !fs.existsSync(exe)) throw new Error('--blender needs the environment variable BLENDER_EXE (path to blender.exe)');
+    fs.mkdirSync(outDir, { recursive: true });
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'twin-bake-')), layoutObj = path.join(tmp, 'layout.obj'), sideJson = path.join(tmp, 'layout.json'), raw = path.join(tmp, 'light.f32');
+    const lines = [], side = {}; let vi = 0;
+    for (const part of parts) {
+      if (!part.faces.length) continue;
+      const bakedPart = part.charts.length === part.faces.length && part.charts.every(c => c >= 0);
+      side[part.name] = { albedo: albedoOf(part.name), bake: bakedPart, emit: EMITTER.test(part.name) ? (/Mezz/.test(part.name) ? [0.35, 0.33, 0.29] : [0.96, 0.98, 1]) : null, drop: !EMITTER.test(part.name) && NO_OCCLUDE.test(part.name) && !bakedPart };
+      lines.push('o ' + part.name);
+      part.faces.forEach((f, fi) => {
+        const ch = bakedPart ? charts[part.charts[fi]] : null;
+        for (const q of f) { lines.push(`v ${q[0]} ${q[1]} ${q[2]}`); const uv = ch ? uvOf(ch, q) : [0, 0]; lines.push(`vt ${uv[0].toFixed(6)} ${uv[1].toFixed(6)}`); }
+        lines.push('f ' + f.map((_, k) => `${vi + k + 1}/${vi + k + 1}`).join(' ')); vi += f.length;
+      });
+    }
+    fs.writeFileSync(layoutObj, lines.join('\n') + '\n');
+    fs.writeFileSync(sideJson, JSON.stringify({ size: [SIZE, H], samples: +arg('cycles-samples', 96), sky: SKY.map(c => c / SKY[2]), parts: side }));
+    console.log(`[bake] Blender Cycles: ${SIZE}x${H} px, ${arg('cycles-samples', 96)} samples ...`);
+    execFileSync(exe, ['-b', '--factory-startup', '--python', path.join(path.dirname(SELF), 'bake_blender.py'), '--', layoutObj, sideJson, raw], { stdio: ['ignore', 'inherit', 'inherit'], maxBuffer: 1 << 28 });
+    const img = new Float32Array(new Uint8Array(fs.readFileSync(raw)).buffer);
+    if (img.length !== SIZE * H * 3) throw new Error('Blender wrote ' + img.length + ' values, expected ' + SIZE * H * 3);
+    total = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) { const q = texel[i], src = ((H - 1 - Math.floor(q / SIZE)) * SIZE + (q % SIZE)) * 3; total[i * 3] = img[src]; total[i * 3 + 1] = img[src + 1]; total[i * 3 + 2] = img[src + 2]; }
+    total = blur(total, 2);
+    const mean = floorMean(total), scale = mean > 0 ? TARGET_FLOOR_E * 1.3 / mean : 1;       // same overall level as the built-in bake (direct 2.8 + bounces)
+    for (let i = 0; i < total.length; i++) total[i] *= scale;
+    fs.rmSync(tmp, { recursive: true, force: true });
+    engine = 'Blender Cycles';
+    console.log(`[bake] Cycles light read back at ${((Date.now() - t0) / 1000).toFixed(1)} s (x${scale.toExponential(2)})`);
+  } else {
+    // ---- 1. direct
+    emitters.forEach(e => { e.col = e.col.map(c => c * e.gain); });
+    let direct = blur(await run('direct', {}), 1);
+    // normalise: mean direct light on the open main floor = TARGET_FLOOR_E (the fixtures' real output is unknown)
+    const mean = floorMean(direct), scale = mean > 0 ? TARGET_FLOOR_E / mean : 1;
+    for (let i = 0; i < direct.length; i++) direct[i] *= scale;
+    console.log(`[bake] direct light done in ${((Date.now() - t0) / 1000).toFixed(1)} s (fixture radiance x${scale.toExponential(2)})`);
 
-  // ---- 2. indirect bounces (each gathers the light of the previous pass)
-  const total = Float32Array.from(direct);
-  let prev = direct;
-  for (let pass = 0; pass < BOUNCES; pass++) {
-    const ind = blur(await run('gather', { src: toAtlas(prev), pass }), 2);
-    for (let i = 0; i < total.length; i++) total[i] += ind[i];
-    prev = ind;
-    console.log(`[bake] bounce ${pass + 1} done at ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+    // ---- 2. indirect bounces (each gathers the light of the previous pass)
+    total = Float32Array.from(direct);
+    let prev = direct;
+    for (let pass = 0; pass < BOUNCES; pass++) {
+      const ind = blur(await run('gather', { src: toAtlas(prev), pass }), 2);
+      for (let i = 0; i < total.length; i++) total[i] += ind[i];
+      prev = ind;
+      console.log(`[bake] bounce ${pass + 1} done at ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+    }
   }
 
   // ---- 3. use marks: floor stains, wall streaks (multiplies the stored light; purely cosmetic)
@@ -361,7 +403,6 @@ async function main() {
   let maxE = 0;
   for (let i = 0; i < img.length; i++) if (img[i] > maxE) maxE = img[i];
   maxE = Math.min(maxE, TARGET_FLOOR_E * 6);                         // clip rare hot texels right at a fixture; keeps precision for the rest
-  const H = Math.min(SIZE, Math.max(64, 2 ** Math.ceil(Math.log2(usedRows + 8))));   // crop unused rows (power of two for mipmaps)
   const oetf = c => (c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055);
   const raw = Buffer.alloc((SIZE * 3 + 1) * H);
   for (let yy = 0; yy < H; yy++) {
@@ -382,13 +423,13 @@ async function main() {
       const c = part.charts[fi];
       if (c < 0) { ok = false; return; }
       const ch = charts[c];
-      const uv = f.map(p => { const rel = sub(p, ch.o), a = (dot(rel, ch.u) - ch.minU) / Math.max(ch.spanU, 1e-6), b = (dot(rel, ch.v) - ch.minV) / Math.max(ch.spanV, 1e-6); return [(ch.x + 0.5 + a * (ch.w - 1)) / SIZE, 1 - (ch.y + 0.5 + b * (ch.h - 1)) / H]; });
+      const uv = f.map(p => uvOf(ch, p));
       for (let i = 1; i + 1 < f.length; i++) uvs.push(...uv[0], ...uv[i], ...uv[i + 1]);
     });
     if (ok) uvIndex[part.name] = [start, (uvs.length - start) / 2]; else uvs.length = start;
   }
   fs.writeFileSync(path.join(outDir, 'lightmap_uv.bin'), Buffer.from(new Float32Array(uvs).buffer));
-  const meta = { generatedAt: new Date().toISOString(), source: path.basename(objPath), sourceBytes: fs.statSync(objPath).size, size: [SIZE, H], texelMm: DENS, maxE, encoding: 'sRGB(irradiance / maxE)', bounces: BOUNCES, grunge: GRUNGE, fixtures: emitters.length, floorDirectE: TARGET_FLOOR_E, texels: count, seconds: +((Date.now() - t0) / 1000).toFixed(1), parts: uvIndex };
+  const meta = { generatedAt: new Date().toISOString(), source: path.basename(objPath), sourceBytes: fs.statSync(objPath).size, size: [SIZE, H], texelMm: DENS, maxE, encoding: 'sRGB(irradiance / maxE)', engine, bounces: BOUNCES, grunge: GRUNGE, fixtures: emitters.length, floorDirectE: TARGET_FLOOR_E, texels: count, seconds: +((Date.now() - t0) / 1000).toFixed(1), parts: uvIndex };
   fs.writeFileSync(path.join(outDir, 'lightmap.json'), JSON.stringify(meta));
   console.log(`[bake] wrote ${path.relative(root, outDir)}: ${SIZE}x${H} px, ${Object.keys(uvIndex).length} parts, maxE ${maxE.toFixed(2)}, ${meta.seconds} s`);
 }
