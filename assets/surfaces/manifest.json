@@ -116,5 +116,164 @@
       "metal": true,
       "fallback": "metal_plate"
     }
-  }
+  },
+  "_decals_about": "Wear marks on the floor (docs/PHOTOREAL_TECH_2026-11-11.md section 4). at = centre in metres (X along the building, Y across), sizeM = [length, width], rotDeg = turn about vertical, strength = how dark (0..1). Placement follows the traffic seen in the site video: in and out of the two cargo doors, along the main aisle, turning marks near the doors. Positions are illustrative, not measured.",
+  "decals": [
+    {
+      "set": "ms_decal_tire_tracks",
+      "at": [
+        36,
+        25.5
+      ],
+      "sizeM": [
+        9,
+        1.1
+      ],
+      "rotDeg": 90,
+      "strength": 0.6
+    },
+    {
+      "set": "ms_decal_tire_tracks",
+      "at": [
+        35.2,
+        24
+      ],
+      "sizeM": [
+        7,
+        1
+      ],
+      "rotDeg": 84,
+      "strength": 0.45
+    },
+    {
+      "set": "ms_decal_tire_tracks",
+      "at": [
+        43.3,
+        25.8
+      ],
+      "sizeM": [
+        8,
+        1.1
+      ],
+      "rotDeg": 90,
+      "strength": 0.55
+    },
+    {
+      "set": "ms_decal_tire_tracks",
+      "at": [
+        42.6,
+        23.5
+      ],
+      "sizeM": [
+        6,
+        1
+      ],
+      "rotDeg": 101,
+      "strength": 0.4
+    },
+    {
+      "set": "ms_decal_tire_tracks",
+      "at": [
+        30,
+        20.5
+      ],
+      "sizeM": [
+        14,
+        1.2
+      ],
+      "rotDeg": 2,
+      "strength": 0.5
+    },
+    {
+      "set": "ms_decal_tire_tracks",
+      "at": [
+        18,
+        20.9
+      ],
+      "sizeM": [
+        12,
+        1.1
+      ],
+      "rotDeg": -3,
+      "strength": 0.4
+    },
+    {
+      "set": "ms_decal_tire_tracks",
+      "at": [
+        39,
+        21.5
+      ],
+      "sizeM": [
+        7,
+        1
+      ],
+      "rotDeg": 38,
+      "strength": 0.5
+    },
+    {
+      "set": "ms_decal_tire_tracks",
+      "at": [
+        33.5,
+        21.8
+      ],
+      "sizeM": [
+        6,
+        1
+      ],
+      "rotDeg": -42,
+      "strength": 0.45
+    },
+    {
+      "set": "ms_decal_tire_tracks",
+      "at": [
+        24,
+        10.5
+      ],
+      "sizeM": [
+        13,
+        1.1
+      ],
+      "rotDeg": 4,
+      "strength": 0.35
+    },
+    {
+      "set": "ms_decal_tire_tracks",
+      "at": [
+        10,
+        14
+      ],
+      "sizeM": [
+        9,
+        1
+      ],
+      "rotDeg": 71,
+      "strength": 0.35
+    },
+    {
+      "set": "ms_decal_tire_tracks",
+      "at": [
+        48.5,
+        20
+      ],
+      "sizeM": [
+        8,
+        1
+      ],
+      "rotDeg": -12,
+      "strength": 0.4
+    },
+    {
+      "set": "ms_decal_tire_tracks",
+      "at": [
+        27,
+        24.5
+      ],
+      "sizeM": [
+        6,
+        0.9
+      ],
+      "rotDeg": 58,
+      "strength": 0.35
+    }
+  ]
 }

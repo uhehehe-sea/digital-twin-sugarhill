@@ -281,6 +281,28 @@ window.addEventListener('load', function () {
     return true;
   }
 
+  // ------------------------------------------------------------------ 2a. decals: wear marks lying on the floor
+  /**
+   * manifest.decals: [{ set, at: [xM, yM], sizeM: [length, width], rotDeg, strength }]. Each is a thin see-through
+   * plane just above the floor that only darkens what is under it (unlit, so it follows the baked light).
+   * 'set' is a folder with mask.jpg (white = mark). Missing files: the decal is skipped.
+   */
+  function applyDecals(manifest) {
+    const list = manifest.decals || [], masks = {};
+    let n = 0;
+    list.forEach((d, i) => {
+      if (!masks[d.set]) masks[d.set] = new Promise(res => texLoader.load('/assets/surfaces/' + d.set + '/mask.jpg', t => { t.anisotropy = maxAniso; res(t); }, undefined, () => res(null)));
+      masks[d.set].then(mask => {
+        if (!mask) return;
+        const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(d.color || '#1b1a18'), alphaMap: mask, transparent: true, opacity: d.strength === undefined ? 0.55 : d.strength, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(d.sizeM[0] * 1000, d.sizeM[1] * 1000), mat);
+        mesh.position.set(d.at[0] * 1000, d.at[1] * 1000, 2.5); mesh.rotation.z = (d.rotDeg || 0) * Math.PI / 180;
+        mesh.name = 'Decal_' + d.set + '_' + (i + 1); mesh.renderOrder = 1; mesh.raycast = function () {};
+        scene.add(mesh); status.decals = ++n;
+      });
+    });
+  }
+
   async function applySurfaces(manifest) {
     const slots = Object.entries(manifest.slots || {}).map(([id, s]) => Object.assign({ id, re: new RegExp(s.match) }, s));
     const sets = {};
@@ -294,6 +316,7 @@ window.addEventListener('load', function () {
       if (set ? applySlot(o, slot, set) : (slot.paint && applyPaint(o, slot))) n++;
     });
     status.uvMeshes = n;
+    applyDecals(manifest);
     applyLook();
     if (await applyLightmap()) { SHADOW.strength = BAKED.sun; SHADOW.lean = BAKED.lean; FILL.DirectionalLight = 0; FILL.PointLight = 0; scene.traverse(o => { if (o.isLight && o.userData.visualDimmed && !o.castShadow && o.userData.legacyIntensity !== undefined && FILL[o.type] !== undefined) o.intensity = 0; }); }
     setupShadows();
