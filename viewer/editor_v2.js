@@ -2465,8 +2465,9 @@ function initCursorOrbit() {
   const end = e => { if (e.button === 2 || e.type === 'pointercancel') { cursorOrbit.active = false; } };
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
 }
-const _coAxisZ = new THREE.Vector3(0, 0, 1), _coRight = new THREE.Vector3(), _coOff = new THREE.Vector3(), _coQ = new THREE.Quaternion();
+let _coAxisZ, _coRight, _coOff, _coQ;   // lazily created on first use: THREE may not exist yet when this file is evaluated (module three_global.js loads async)
 function updateCursorOrbit(dt) {
+  if (!_coAxisZ) { _coAxisZ = new THREE.Vector3(0, 0, 1); _coRight = new THREE.Vector3(); _coOff = new THREE.Vector3(); _coQ = new THREE.Quaternion(); }
   const co = cursorOrbit;
   if (!co.pivot) return;
   const rest = Math.abs(co.yaw) + Math.abs(co.pitch);
