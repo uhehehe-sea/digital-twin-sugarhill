@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "twin",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["viewer/server.mjs", "--port=8089"],
+      "port": 8089
+    }
+  ]
+}

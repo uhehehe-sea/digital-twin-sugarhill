@@ -1063,6 +1063,68 @@ function buildAssetMeshGroup(assetDef) {
       Object.defineProperty(g.userData, 'rig', { value: { gantry, carriage, spindle, tableZ, toolOffsetX: 310, toolTipZ: 900 }, enumerable: false, writable: true, configurable: true });
       break;
     }
+    case 'multicam_3000': {
+      // MultiCam 3000 (3-204R) — ported from viewer/cnc/multicam3000_twin.html (Y-up metres there, Z-up mm here).
+      // Viewer point (x, y, z) m → local (x*1000 - 210, -z*1000, y*1000) mm; 210 centres the base. Shapes are photo estimates.
+      // Moving groups go in g.userData.rig for multicam_live.js: gantry.x = 1800 - X, carriage.y = 720 - Y, zslide.z = Z.
+      const OX = -210;
+      const B = (p, w, h, d, x, y, z, col, r = 0.6, m = 0.15, op = 1, tag = 'body') =>
+        addBoxPart(p, x * 1000 - w * 500 + (p === g ? OX : 0), -z * 1000 - d * 500, y * 1000 - h * 500, w * 1000, d * 1000, h * 1000, col, r, m, op, tag);
+      const CY = (p, rad, h, x, y, z, col, r = 0.4, m = 0.5, tag = 'body') =>
+        addCylPartZ(p, x * 1000 + (p === g ? OX : 0), -z * 1000, y * 1000 - h * 500, rad * 1000, h * 1000, col, r, m, tag);
+      const BODY = '#d6d0c2', DARK = '#25282c', STEEL = '#9aa1a8', RAIL = '#70777e', BLACK = '#17191b';
+      [-1.6, 0.21, 2.02].forEach(x => [-0.75, 0.75].forEach(z => CY(g, 0.05, 0.12, x, 0.06, z, DARK)));
+      B(g, 3.92, 0.62, 1.75, 0.21, 0.43, 0, BODY, 0.62, 0.12, 1, 'accent');               // base
+      B(g, 3.10, 0.04, 1.53, 0, 0.76, 0, BLACK, 0.9, 0.05);                                // phenolic table
+      B(g, 2.44, 0.018, 1.22, 1.50 - 1.22, 0.789, -0.715 + 0.61, '#c8a878', 0.85, 0, 1, 'wood_top'); // sheet on the locator pins
+      [0.905, -0.905].forEach(z => { B(g, 3.85, 0.05, 0.06, 0.21, 0.70, z, RAIL, 0.3, 0.8, 1, 'primary'); B(g, 3.85, 0.025, 0.03, 0.21, 0.655, z, DARK); });
+      B(g, 3.5, 0.07, 0.09, 0.21, 0.42, 1.02, BLACK);                                      // cable carrier
+      // vacuum zones (4) — tinted by VAC_ON
+      const zones = [[0.775, 0.3825], [-0.775, 0.3825], [0.775, -0.3825], [-0.775, -0.3825]].map(([x, z]) => B(g, 1.53, 0.002, 0.745, x, 0.7815, z, '#6688aa', 0.9, 0, 0.14, 'vac_zone'));
+      // locator pins (Y pin + X1..X3)
+      const pins = new THREE.Group(); g.add(pins);
+      [[1.2, -0.728], [0.2, -0.728], [-0.7, -0.728], [1.513, -0.3]].forEach(([x, z]) => CY(pins, 0.012, 0.051, x + OX / 1000, 0.75, z, '#bfc5ca', 0.3, 0.7));
+      // 8-position linear tool rack + calibration block at the end of the process area
+      B(g, 0.06, 0.03, 1.36, 1.76, 0.895, 0, STEEL, 0.4, 0.6, 1, 'primary');
+      [0.62, -0.62].forEach(z => B(g, 0.04, 0.14, 0.04, 1.76, 0.81, z, STEEL, 0.4, 0.6, 1, 'primary'));
+      const rackTools = [];
+      for (let i = 0; i < 8; i++) {
+        B(g, 0.09, 0.01, 0.075, 1.70, 0.893, -0.56 + 0.16 * i, DARK);
+        rackTools.push(CY(g, 0.028, 0.06, 1.68, 0.92, -0.56 + 0.16 * i, '#cfd4d8', 0.3, 0.7, 'tool'));
+      }
+      B(g, 0.06, 0.08, 0.06, 1.68, 0.78, 0.70, '#bfc5ca', 0.35, 0.6);
+      // pendant
+      B(g, 0.07, 0.20, 0.26, -1.98, 0.95, -0.45, BLACK);
+      // gantry (X) — viewer G at x = 1.80 - X/1000; children keep viewer-local x
+      const gantry = new THREE.Group(); g.add(gantry);
+      [0.99, -0.99].forEach(z => B(gantry, 0.30, 0.58, 0.09, 0, 0.93, z, BODY, 0.62, 0.12, 1, 'accent'));
+      B(gantry, 0.22, 0.24, 2.1, 0, 1.08, 0, BODY, 0.62, 0.12, 1, 'accent');               // beam
+      [1.16, 1.00].forEach(y => B(gantry, 0.02, 0.03, 1.9, -0.12, y, 0, RAIL, 0.3, 0.8, 1, 'primary'));
+      [1.07, -1.07].forEach(z => { B(gantry, 0.10, 0.10, 0.07, 0, 0.74, z, STEEL); CY(gantry, 0.04, 0.18, 0, 0.88, z > 0 ? 1.09 : -1.09, BLACK); });
+      // carriage (Y)
+      const carriage = new THREE.Group(); gantry.add(carriage);
+      B(carriage, 0.04, 0.40, 0.32, -0.16, 1.10, 0, STEEL, 0.4, 0.6);
+      B(carriage, 0.12, 0.02, 0.32, -0.13, 1.31, 0, STEEL, 0.4, 0.6);
+      CY(carriage, 0.04, 0.16, -0.09, 1.40, 0.10, BLACK);
+      CY(carriage, 0.035, 0.14, -0.20, 1.52, 0, BLACK);                                   // Z servo
+      B(carriage, 0.04, 0.70, 0.04, -0.04, 1.62, -0.12, '#f2b705', 0.5, 0.2);              // hose support arm
+      B(carriage, 0.30, 0.04, 0.04, -0.17, 1.955, -0.12, '#f2b705', 0.5, 0.2);
+      // Z slide + spindle (ATC 5.5 HP)
+      const zslide = new THREE.Group(); carriage.add(zslide);
+      B(zslide, 0.03, 0.46, 0.20, -0.215, 1.20, 0, DARK);
+      B(zslide, 0.07, 0.12, 0.16, -0.255, 1.20, 0, DARK);
+      CY(zslide, 0.06, 0.32, -0.30, 1.20, 0, '#b9bec3', 0.4, 0.45);
+      CY(zslide, 0.042, 0.05, -0.30, 1.015, 0, DARK);
+      const tool = new THREE.Group(); tool.position.set(-300, 0, 960); zslide.add(tool); // holder centre (viewer anchor)
+      CY(tool, 0.028, 0.06, 0, 0, 0, '#cfd4d8', 0.3, 0.7, 'tool');
+      CY(tool, 0.00635, 0.065, 0, -0.0625, 0, '#e2e6e9', 0.25, 0.8, 'tool');
+      B(tool, 0.012, 0.02, 0.012, 0.028, 0.005, 0, '#f2b705', 0.5, 0.2);                   // flat marker so rotation shows
+      const hood = new THREE.Group(); zslide.add(hood);
+      CY(hood, 0.11, 0.045, -0.30, 0.9325, 0, '#2b2e31', 0.6, 0.2);
+      CY(hood, 0.112, 0.035, -0.30, 0.9025, 0, '#111214', 0.6, 0.2);
+      Object.defineProperty(g.userData, 'rig', { value: { gantry, carriage, zslide, tool, hood, pins, zones, rackTools, offsetX: OX }, enumerable: false, writable: true, configurable: true });
+      break;
+    }
     case 'slm_eos_m290':
     case 'slm_trumpf_truprint3000': {
       // Stainless Steel Metal 3D Printer (LPBF / SLM) — Brushed Stainless Body, Laser Chamber, Build Plate, Gloves, HMI
@@ -1465,6 +1527,8 @@ function buildAssetMeshGroup(assetDef) {
 const DEFAULT_SCENE_PLACEMENTS = [
   // 판재 가공용 3축 CNC 라우터 (빠른 스케치 부품의 가공 설비) — 위치는 가정값
   { assetId: 'cnc_router_3axis', name: 'CNC_Router_3Axis_01', pos: [11800, 13300, 0], rot: [0, 0, 0], scale: [1, 1, 1], materialId: 'SUS_304_306_Brushed_2B' },
+  // MultiCam 3000 CNC 라우터 (multicam_live.js가 PLC 신호 / 뷰어 시연으로 움직임) — 위치는 가정값
+  { assetId: 'multicam_3000', name: 'MultiCam_3000_01', pos: [7400, 13300, 0], rot: [0, 0, 0], scale: [1, 1, 1], materialId: 'SUS_304_306_Brushed_2B' },
   // CNC 선반 (전면 도어·척이 작업자 통로 +Y 방향을 향하도록 180° 배치)
   { assetId: 'cnc_sealjet_630pro', name: 'CNC_SealJet_630PRO_01', pos: [4500, 9200, 0], rot: [0, 0, 180], scale: [1, 1, 1], materialId: 'SUS_304_306_Brushed_2B' }
   // 2026-11-09 사용자 요청: 기본 화면은 CNC 장비만. 금속 3D 프린터 2대·아르곤 필터·작업대(바이스·씰·빌렛)·
@@ -1792,6 +1856,11 @@ ASSET_CATALOG.unshift({
   name: '3축 CNC 라우터 (판재 가공)', desc: '갠트리형 판재 가공기 — 빠른 스케치 부품을 실제 공구 경로로 가공 (치수·속도 가정값)',
   dims: [3600, 2100, 2000], defaultMaterial: 'PP_GF30_Structural_Grey', color: '#0284c7'
 });
+ASSET_CATALOG.unshift({
+  assetId: 'multicam_3000', category: 'CNC_3DP', icon: '🪚', badge: 'CNC Router (MultiCam)',
+  name: 'MultiCam 3000 CNC 라우터 (3-204R)', desc: '작업 영역 1524 × 3099 mm, ATC 5.5 HP — PLC X/Y/Z·RPM·진공 신호로 움직임 (형상은 사진 추정)',
+  dims: [3920, 2240, 2000], defaultMaterial: 'SUS_304_306_Brushed_2B', color: '#d6d0c2'
+});
 // ASSET_CATALOG 스키마 정규화 (dims <-> sizeMm, title <-> name, assetId <-> id 완벽 호환)
 ASSET_CATALOG.forEach(item => {
   item.assetId = item.assetId || item.id;
@@ -1849,7 +1918,7 @@ function init3D() {
   controls.maxPolarAngle = Math.PI / 2 - 0.02;
   controls.minDistance = 1000;
   controls.maxDistance = 150000;
-  initOrbitPivot();
+  initCursorOrbit();
 
   // TransformControls (Blender / Unreal Engine 3D Gizmo)
   transformControl = new THREE.TransformControls(camera, renderer.domElement);
@@ -2382,23 +2451,14 @@ function focusSelected() {
 }
 
 // ----------------------------------------------------------------------------
-// Click-point orbit pivot (Blender / Unreal-style, game camera):
-// a clean left-click on any surface makes THAT point the orbit pivot, and a drag
-// then revolves the camera around it. The pivot move is a smooth glide (a pan:
-// target and camera shift together, so the view angle and distance never jump),
-// and it is cancelled the moment the user starts dragging, so a rotate is always
-// a pure rotation — the camera is never shoved while the mouse moves.
-// (This replaces the old behaviour that glided the pivot to the SELECTION the
-// instant a rotate-drag began, which is what threw the camera backwards.)
-// A click that hits nothing (sky / empty space) leaves the pivot alone.
+// Orbit pivot for the right-drag cursor orbit (Blender / Unreal-style, game
+// camera): right-drag orbits around the exact point under the cursor. Left-click
+// used to glide this pivot to the clicked point as well, but that panned the
+// camera (target + camera move together), so clicking a near object shoved the
+// camera backwards — removed 2026-11-19 (B안). Left-click now selects only.
 // ----------------------------------------------------------------------------
-const orbitPivot = { enabled: true, glide: null };
-function selectionCenter(obj) {
-  const box = new THREE.Box3().setFromObject(obj);
-  return box.isEmpty() ? obj.getWorldPosition(new THREE.Vector3()) : box.getCenter(new THREE.Vector3());
-}
 // Raycast the building + placed assets for the orbit pivot. Unlike selection the
-// floor counts: clicking the floor is the natural way to orbit around a spot on it.
+// floor counts: right-dragging from the floor orbits around a spot on it.
 function pickPivotPoint() {
   const roots = [placedAssetsGroup];
   if (factoryMeshGroup) roots.push(factoryMeshGroup);
@@ -2407,19 +2467,6 @@ function pickPivotPoint() {
     if (h.object && h.object.isMesh && h.object.visible) return h.point.clone();
   }
   return null;
-}
-// Glide the pivot to a point (pan: target + camera move together). A new call
-// replaces a running glide, so a fresh click always wins.
-function setOrbitPivot(point) {
-  if (!orbitPivot.enabled || !point) return;
-  if (point.distanceTo(controls.target) < 1) return;
-  orbitPivot.glide = { to: point.clone() };
-}
-function initOrbitPivot() {
-  // User input always wins: once a drag / wheel / pan starts, stop gliding so the
-  // camera motion is purely what the user is doing.
-  controls.addEventListener('start', () => { orbitPivot.glide = null; });
-  initCursorOrbit();
 }
 
 // ---------------------------------------------------------------------------
@@ -2451,7 +2498,6 @@ function initCursorOrbit() {
     raycaster.setFromCamera(mouse, camera);
     cursorOrbit.pivot = pickPivotPoint() || controls.target.clone();
     cursorOrbit.active = true; cursorOrbit.lastX = e.clientX; cursorOrbit.lastY = e.clientY;
-    orbitPivot.glide = null;
     marker.position.copy(cursorOrbit.pivot); marker.visible = true;
     try { el.setPointerCapture(e.pointerId); } catch (err) { /* synthetic events */ }
   });
@@ -2494,16 +2540,6 @@ function updateCursorOrbit(dt) {
   const d = camera.position.distanceTo(co.pivot);
   co.marker.scale.setScalar(Math.max(12, d * 0.006));
 }
-function updateOrbitPivot(dt) {
-  const g = orbitPivot.glide;
-  if (!g) return;
-  const rest = g.to.clone().sub(controls.target);
-  const step = rest.length() < 1 ? rest : rest.multiplyScalar(1 - Math.exp(-dt / 0.18));
-  controls.target.add(step);
-  camera.position.add(step);                       // pan: the view keeps its angle and distance
-  if (g.to.distanceTo(controls.target) < 1) orbitPivot.glide = null;
-}
-window.orbitPivot = orbitPivot;
 
 // ----------------------------------------------------------------------------
 // Building parts (architecture shell from factory_precision.obj / model.obj): select each part, move it,
@@ -2958,9 +2994,10 @@ function setupInteractions(container) {
 
     const target = pickSelectable(e.altKey);
     if (target) selectAssetObject(target);
-    // Click-point orbit pivot: the clicked surface point becomes the rotation
-    // centre (smooth glide, no jump). A miss leaves the pivot alone.
-    setOrbitPivot(pickPivotPoint());
+    // Left-click selects only: it no longer moves the camera or the orbit pivot.
+    // (Removed 2026-11-19: the old click-point pivot glide panned the camera,
+    // so clicking a near object shoved the camera backwards. Orbiting around a
+    // point under the cursor is right-drag only now; F frames the selection.)
   });
 
   container.addEventListener('mousemove', onMouseMove);
@@ -3697,7 +3734,6 @@ function animate() {
 
   try {
     updateWASDCameraMovement(dt);
-    updateOrbitPivot(dt);
     updateCursorOrbit(dt);
   } catch (camErr) {
     console.warn('updateWASDCameraMovement warning:', camErr);
