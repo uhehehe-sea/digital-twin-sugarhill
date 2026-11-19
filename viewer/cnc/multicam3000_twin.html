@@ -456,7 +456,7 @@ function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)retur
 new ResizeObserver(resize).observe(stage);resize();setView('iso',true);
 
 /* ---------- 운전 상태 ---------- */
-let P=build(),mode='auto',playing=!window.matchMedia('(prefers-reduced-motion: reduce)').matches,t=0,prev={x:50,y:120,z:0},spin=0,ex=0;
+let P=build(),mode='auto',playing=false,t=0,prev={x:50,y:120,z:0},spin=0,ex=0; // 자동 시연 끔 (2026-11-19 사용자 지시): 접속 시 정지 상태로 시작, 재생 버튼으로만 시연 시작
 const man={x:50,y:120,z:0,rpm:0,hood:1,pins:1,cutA:0,cutB:0,rot:0,adv:0,vac:false,tool:0,chuck:false,sblock:false,phase:'수동 조그',msg:''};
 const LAMPS=['VAC_ON','PIN_UP','SP_RUN','HOOD_DN','CHUCK_OPEN','X_MOVE','Y_MOVE','Z_MOVE'],lampEl={};
 LAMPS.forEach(n=>{const d=document.createElement('div');d.className='lamp';d.innerHTML='<i></i>'+n;$('lamps').appendChild(d);lampEl[n]=d;});

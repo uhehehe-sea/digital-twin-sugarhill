@@ -22,7 +22,7 @@
   //   lathe  : CNC lathe — turned (round) parts only; flat panels are rejected
   //   am     : metal powder-bed printer
   const MACHINE_KINDS = {
-    cnc_router_3axis: 'router', CNC_5AXIS_MILL: 'router',
+    cnc_router_3axis: 'router', CNC_5AXIS_MILL: 'router', multicam_3000: 'router',
     cnc_sealjet_630pro: 'lathe', cnc_sealjet_200pro: 'lathe',
     slm_eos_m290: 'am', slm_trumpf_truprint3000: 'am', '3DP_METAL_DMLS': 'am'
   };

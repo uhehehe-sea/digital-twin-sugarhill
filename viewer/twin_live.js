@@ -49,11 +49,17 @@
   function buildRouter(obj) {
     const rig = obj.userData.rig;
     if (!rig) return null;
-    // cutter glow + chip spray at the tool tip (visible only while cutting)
-    const tip = glow(new THREE.SphereGeometry(14, 12, 8), 0xfbbf24, 0.9);
-    tip.position.set(rig.toolOffsetX, 0, rig.toolTipZ);
-    tip.visible = false;
-    rig.spindle.add(tip);
+    // cutter glow + chip spray at the tool tip (visible only while cutting).
+    // The MultiCam rig has no spindle node (multicam_live.js owns its rig),
+    // so the tip is only added when a spindle exists; the rest of the code
+    // already tolerates a null tip.
+    let tip = null;
+    if (rig.spindle) {
+      tip = glow(new THREE.SphereGeometry(14, 12, 8), 0xfbbf24, 0.9);
+      tip.position.set(rig.toolOffsetX, 0, rig.toolTipZ);
+      tip.visible = false;
+      rig.spindle.add(tip);
+    }
     return { kind: 'router', obj, rig, tip, beacons: findTagged(obj, 'beacon'), screens: findTagged(obj, 'screen') };
   }
 
@@ -96,6 +102,14 @@
 
   // Router axes are relative to the part centre; the part sits at the table centre (local 0,0).
   function driveRouter(a, m, job, now) {
+    // MultiCam 3000: the rig is driven by multicam_live.js from window.cnc.state()
+    // (iframe demo, or real PLC/Arduino signals). The production twin only READS
+    // the same state for telemetry — it never moves this rig itself.
+    if (m.assetId === 'multicam_3000') {
+      const s = (typeof window.cnc === 'object' && window.cnc && typeof window.cnc.state === 'function') ? window.cnc.state() : null;
+      if (s) return { spindle_rpm: s.rpm || 0, axis_x_mm: s.x, axis_y_mm: s.y, axis_z_mm: s.z, vacuum_on: !!s.vac };
+      return { spindle_rpm: 0, axis_x_mm: 50, axis_y_mm: 120, axis_z_mm: 0, vacuum_on: false };
+    }
     // nested-sheet jobs replay their G-code (twin_nest.js)
     if (job && job.prog && window.TwinNest) return window.TwinNest.drive(a, m, job);
     const rig = a.rig;
