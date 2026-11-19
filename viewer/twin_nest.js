@@ -645,8 +645,18 @@
     v.parts.forEach((pm, i) => {
       const wp = v.machineObj.localToWorld(new THREE.Vector3(-900 + (i % 4) * 600, -(D / 2 + 700 + Math.floor(i / 4) * 450), v.t / 2));
       const q = new THREE.Quaternion(); pm.getWorldQuaternion(q);
-      v.g.remove(pm); scene.add(pm);
+      // Finished parts must live under placedAssetsGroup (not scene) with
+      // isEditableAsset, or pickSelectable() can never select them: it only
+      // raycasts placedAssetsGroup + factoryMeshGroup and requires a top-level
+      // child with isEditableAsset. placedAssetsGroup is a direct child of
+      // scene with identity transform, so the world position/quaternion carry
+      // over unchanged. The part is deliberately NOT added to placedObjects:
+      // serializeCurrentScene would save it with no assetId, and
+      // rebuildPlacedAssetsFromList would then fail to respawn it on load.
+      v.g.remove(pm); placedAssetsGroup.add(pm);
       pm.position.copy(wp); pm.quaternion.copy(q);
+      if (!pm.name) pm.name = pm.userData.part || 'Finished_Part';
+      pm.userData.isEditableAsset = true;
       pm.userData.processedBy = v.machineObj.name; pm.userData.processedAt = new Date().toISOString();
     });
     v.machineObj.remove(v.g);
