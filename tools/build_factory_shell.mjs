@@ -249,6 +249,23 @@ EXITS.forEach((e, i) => {                                    // steel man door, 
   box(`Ceiling_Gas_UnitHeater_${i + 1}_Rod_B`, x + 276, y - 12, z + 520, x + 300, y + 12, roofZ(y) - PURLIN_D);
 });
 const MZ = ST.mezzanine, SR = ST.stair, RR = ST.restrooms;
+/** Prism across X from xa to xb whose YZ outline is pts ([y, z] pairs, any order around). */
+function prismX(name, xa, xb, pts) {
+  let A = 0; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; A += p[0] * q[1] - q[0] * p[1]; }
+  const P = A > 0 ? pts.slice().reverse() : pts, a = P.map(([y, z]) => [xa, y, z]), b = P.map(([y, z]) => [xb, y, z]), n = P.length;
+  const faces = [a, [b[0], ...b.slice(1).reverse()]];
+  for (let i = 0; i < n; i++) { const j = (i + 1) % n; faces.push([a[i], b[i], b[j], a[j]]); }
+  solid(name, faces);
+}
+// Switchback (U) stair, photos of 2026-11-23: lower flight on the hall side rising toward the restrooms to a
+// mid landing, 180° turn, upper flight against the mezzanine face rising back to a landing in front of the office door.
+const SB = SR && SR.type === 'switchback' ? (() => {
+  const deck = MZ ? mm(MZ.deckM) : 3050, n1 = SR.risersLower || 11, n2 = SR.risersUpper || 6, rise = deck / (n1 + n2), tread = mm(SR.treadM || 0.28);
+  const lane = mm(SR.laneM || 1.2), gap = mm(SR.gapM || 0.2), xL0 = mm(SR.xM), xL1 = xL0 + lane, xU0 = xL1 + gap, xU1 = xU0 + lane;
+  const yEnd = mm(SR.endYM), midEnd = yEnd + mm(SR.midLandingM || 1.2), foot = midEnd + (n1 - 1) * tread;
+  const upTop = midEnd + (n2 - 1) * tread, landEnd = upTop + mm(SR.topLandingM || 2.4);
+  return { deck, n1, n2, rise, tread, xL0, xL1, xU0, xU1, yEnd, midEnd, foot, upTop, landEnd, midZ: n1 * rise };
+})() : null;
 if (MZ) {
   const x0 = mm(MZ.x0M), x1 = LX, yN = mm(MZ.depthM), deck = mm(MZ.deckM), wallH = mm(MZ.officeWallM || 2.7), slabT = 150, beamD = 280;
   const under = deck - slabT - beamD;                        // clear height under the beams
@@ -279,18 +296,64 @@ if (MZ) {
     const xc = x0 + (k + 0.5) * (x1 - x0) / nWin;
     box(`Mezz_Upper_Window_N${k + 1}`, xc - winW / 2, yN - 4, deck + 1000, xc + winW / 2, yN + 12, deck + 2100);
   }
-  if (SR) {                                                  // office door opening onto the stair landing
+  if (SB) {                                                  // office door at the far end of the upper landing
+    const dy = SB.landEnd - 300 - 950;
+    box('Mezz_Upper_Door_Grey', x0 - 14, dy, deck, x0 + 4, dy + 950, deck + 2100);
+  } else if (SR) {                                           // office door opening onto the stair landing
     const topY = mm(SR.footYM) - (SR.risers - 1) * mm(SR.treadM), dy = topY - 1300;
     box('Mezz_Upper_Door_Grey', x0 - 14, dy, deck, x0 + 4, dy + 950, deck + 2100);
   }
   // chain-link cage under the deck: along the open north edge, and the west edge where the stair does not cover it
-  const cageH = under, westFrom = SR ? mm(SR.footYM) : 0;
+  const cageH = under, westFrom = SB ? SB.landEnd : SR ? mm(SR.footYM) : 0;
   box('Cage_Mesh_North_Panel', x0, yN - 60, 0, x1, yN - 40, cageH);
   if (yN - 200 - westFrom > 500) box('Cage_Mesh_West_Panel', x0 + 40, westFrom, 0, x0 + 60, yN - 200, cageH);
   const nc = Math.max(1, Math.round((x1 - x0) / 3000));
   for (let i = 1; i < nc; i++) { const x = Math.round(x0 + i * (x1 - x0) / nc); box(`Cage_Post_N${i}`, x - 30, yN - 80, 0, x + 30, yN - 20, cageH); }
 }
-if (SR) {
+if (SB) {
+  const { deck, n1, n2, rise, tread, xL0, xL1, xU0, xU1, yEnd, midEnd, foot, upTop, landEnd, midZ } = SB;
+  const pT = 100, guard = 1000, cap = 40, soffit = 300;
+  // lower flight: open-riser black treads, foot toward the cage, rising toward the restrooms (−Y)
+  for (let i = 0; i < n1 - 1; i++) { const yA = foot - i * tread; box(`Stair_BlackStep_${i + 1}`, xL0 + pT, yA - tread, (i + 1) * rise - 40, xL1 - 60, yA, (i + 1) * rise); }
+  box('Stair_BlackLanding_Mid', xL0 + pT, yEnd, midZ - 60, xU1, midEnd, midZ);
+  // upper flight: rises back toward +Y against the mezzanine face
+  for (let j = 0; j < n2 - 1; j++) { const yA = midEnd + j * tread, z = (n1 + 1 + j) * rise; box(`Stair_BlackStep_${n1 + j}`, xU0 + pT, yA, z - 40, xU1 - 60, yA + tread, z); }
+  box('Stair_BlackLanding_Deck', xU0 + pT, upTop, deck - 60, xU1, landEnd, deck);
+  // hall side of the lower flight: one cream panel to the floor, sloped along the flight, level along the mid landing
+  prismX('Stair_WhiteWall_West', xL0, xL0 + pT, [[foot, 0], [yEnd, 0], [yEnd, midZ + guard], [midEnd, midZ + guard], [foot, rise + guard]]);
+  slopedY('Stair_BlackCap_West_Slope', xL0 - 15, xL0 + pT + 15, midEnd, foot, midZ + guard + cap, rise + guard + cap, cap);
+  box('Stair_BlackCap_West_Level', xL0 - 15, yEnd, midZ + guard, xL0 + pT + 15, midEnd, midZ + guard + cap);
+  // end of the mid landing where it stands proud of the restroom front
+  const endX1 = RR ? Math.max(xL0 + pT, Math.min(xU1, mm(RR.x0M))) : xU1;
+  box('Stair_WhiteWall_MidEnd', xL0, yEnd - pT, 0, endX1, yEnd, midZ + guard);
+  // inner side of the lower flight: black stringer, handrail and posts (open, as in the photos)
+  slopedY('Stair_BlackStringer_LowerInner', xL1 - 60, xL1, midEnd, foot, midZ, rise, 260);
+  slopedY('Stair_BlackHandrail_LowerInner', xL1 - 50, xL1, midEnd, foot, midZ + guard, rise + guard, 50);
+  box('Stair_BlackPost_Foot', xL1 - 60, foot - 60, 0, xL1, foot, rise + guard);
+  box('Stair_BlackPost_MidInner', xL1 - 60, midEnd, 0, xL1, midEnd + 60, midZ + guard);
+  // inner side of the upper flight: cream panel with a sloped soffit, carried on as the landing guard
+  prismX('Stair_WhiteWall_UpperInner', xU0, xU0 + pT, [[midEnd, midZ - soffit], [upTop, deck - soffit], [landEnd, deck - soffit], [landEnd, deck + guard], [upTop, deck + guard], [midEnd, midZ + guard]]);
+  slopedY('Stair_BlackCap_UpperInner_Slope', xU0 - 15, xU0 + pT + 15, midEnd, upTop, midZ + guard + cap, deck + guard + cap, cap);
+  box('Stair_BlackCap_UpperInner_Level', xU0 - 15, upTop, deck + guard, xU0 + pT + 15, landEnd, deck + guard + cap);
+  box('Stair_BlackFascia_Landing', xU0 - 20, upTop, deck - soffit - 80, xU0, landEnd, deck - soffit + 40);
+  // landing end toward the cage: black framed panel; landing posts down to the floor
+  box('Stair_BlackPanel_LandingEnd', xU0, landEnd - 60, deck - soffit, xU1, landEnd, deck + guard + cap);
+  [[xU0, landEnd - 60], [xU0 + 90, landEnd - 60], [xU0, upTop]].forEach(([x, y], k) => box(`Stair_BlackPost_Landing${k + 1}`, x, y, 0, x + 80, y + 80, deck - soffit));
+  // mezzanine side of the upper flight: black rail with balusters
+  slopedY('Stair_BlackStringer_UpperOuter', xU1 - 60, xU1, midEnd, upTop, midZ, deck, 260);
+  slopedY('Stair_BlackHandrail_UpperOuter', xU1 - 60, xU1, midEnd, upTop, midZ + guard, deck + guard, 60);
+  const nb = Math.max(2, Math.round((upTop - midEnd) / 300));
+  for (let k = 1; k < nb; k++) { const y = midEnd + k * (upTop - midEnd) / nb, z = midZ + (deck - midZ) * k / nb; box(`Stair_BlackBaluster_${k}`, xU1 - 45, y - 15, z, xU1 - 15, y + 15, z + guard - 60); }
+  // fixtures on the restroom front wall under the upper flight (photo 2): bi-level fountain, eyewash sink, towel box, first-aid cabinet
+  if (RR) {
+    const yw = mm(RR.depthYM), xs = Math.max(xU1 + 200, mm(RR.x0M) + 300);
+    box('Restroom_Sink_White_Fountain_Low', xs, yw, 750, xs + 450, yw + 450, 900);
+    box('Restroom_Sink_White_Fountain_High', xs + 450, yw, 950, xs + 900, yw + 450, 1100);
+    box('Restroom_Sink_White_Eyewash', xs + 1250, yw, 800, xs + 1750, yw + 400, 950);
+    box('Restroom_Box_TowelDispenser', xs + 1050, yw, 1300, xs + 1350, yw + 220, 1650);
+    box('Restroom_Box_FirstAidCabinet', xs + 1500, yw, 1350, xs + 2000, yw + 120, 1950);
+  }
+} else if (SR) {
   const x0 = mm(SR.xM), w = mm(SR.widthM), x1 = x0 + w, foot = mm(SR.footYM), n = SR.risers, tread = mm(SR.treadM);
   const deck = MZ ? mm(MZ.deckM) : 3050, rise = deck / n, top = foot - (n - 1) * tread;          // y of the last nosing
   const landEnd = RR ? mm(RR.depthYM) : top - 1500, panelT = 100, guard = 1000;

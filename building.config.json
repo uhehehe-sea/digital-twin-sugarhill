@@ -40,12 +40,17 @@
       "_note": "second-floor office over a chain-link cage; from x0 to the end wall, from the entrance wall to the centre post line"
     },
     "stair": {
-      "xM": 40.5,
-      "widthM": 1.4,
-      "footYM": 12.2,
-      "risers": 17,
+      "type": "switchback",
+      "xM": 39.4,
+      "laneM": 1.2,
+      "gapM": 0.2,
+      "endYM": 6.0,
+      "midLandingM": 1.2,
+      "risersLower": 11,
+      "risersUpper": 6,
       "treadM": 0.28,
-      "_note": "straight black steel stair on the hall side of the mezzanine, rising toward the entrance wall; cream panel on the hall side"
+      "topLandingM": 2.4,
+      "_note": "West stair by the restrooms, corrected from the photos of 2026-11-23 (IMG_6972/6974/6975): U-shaped switchback, not one straight flight. Lower flight on the hall side, foot toward the cage, rises toward the restrooms to a mid landing (about 2 m, roughly at restroom-roof height); 180-degree turn; upper flight against the mezzanine face rises back to a landing in front of the office door, carried on black posts. Cream full-height panel on the hall side of the lower flight, open black handrail on its inner side, cream panel with sloped soffit on the upper flight's inner side, black baluster rail on its mezzanine side. The stair block stands proud of the restroom front (xM 39.4 vs restroom 40.5). Fountain, eyewash sink and first-aid cabinet on the restroom front wall under the upper flight."
     },
     "restrooms": {
       "x0M": 40.5,
@@ -172,6 +177,7 @@
     "postLinesM": "medium-high — one interior post row 14.5 m from the cargo-door wall = the centre line of a 100 ft building",
     "lengthM": "medium — 5 bays from the far end to the sectional door column, the door/roll-up bay, and about 2 more to the office end: 8 bays = 200 ft. Could be 7 bays (53.34)",
     "roofSlope": "low — looks like a low-slope 1:12 metal building roof",
-    "structures": "medium for where the west stair, restrooms and mezzanine are; glass entrance: wall high, position along it medium; cargo-wall order (sectional gate, exit door, roll-up door) high, positions medium; fans, louvers, heaters, far exits: count and wall medium, exact positions low; east stair: exists (high), shape and size ASSUMED; mezzanine length, restroom depth, office wall height low"
+    "structures": "medium for where the west stair, restrooms and mezzanine are; glass entrance: wall high, position along it medium; cargo-wall order (sectional gate, exit door, roll-up door) high, positions medium; fans, louvers, heaters, far exits: count and wall medium, exact positions low; east stair: exists (high), shape and size ASSUMED; mezzanine length, restroom depth, office wall height low",
+    "stair": "shape high (two photos, 2026-11-23); riser split 11 + 6 from the mid-landing guard sitting level with the restroom roof (medium); lane widths, landing lengths and how far the block stands proud of the restrooms are estimates from the photos (medium-low) — tape-measure the foot position, total length and the stair width to lock them"
   }
 }

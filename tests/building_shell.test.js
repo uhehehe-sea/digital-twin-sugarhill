@@ -143,3 +143,22 @@ test('fixed items: the shipped config puts the glass entrance in the office-end 
   const keep = /^(Floor_Slab|Joint_|Col_|Roof_|Girt_|Wall_|LinerPanel_|HighBay_|SafetyLine_|Floor_Stop_Decal|Door_Sectional|RollUp_Door_|Exit_|Shutter_Fan|WallVent_|Main_Glass_Entry_|Ceiling_Gas_UnitHeater|Mezzanine_|Mezz_|Stair_|Restroom_|Cage_|Wood_Guardrail_)/;
   assert.deepEqual([...b.parts.keys()].filter(n => !keep.test(n)), []);
 });
+
+test('west stair (shipped config): switchback — lower flight to a mid landing, upper flight back up to the office-door landing', () => {
+  const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'building.config.json'), 'utf8'));
+  const b = build(cfg), S = cfg.structures, SR = S.stair, deck = S.mezzanine.deckM * 1000, rise = deck / (SR.risersLower + SR.risersUpper);
+  const steps = names(b, /^Stair_BlackStep_\d+$/);
+  assert.equal(steps.length, SR.risersLower + SR.risersUpper - 2, 'one riser of each flight ends on a landing');
+  const mid = b.parts.get('Stair_BlackLanding_Mid'), top = b.parts.get('Stair_BlackLanding_Deck');
+  assert.ok(Math.abs(mid.max[2] - SR.risersLower * rise) < 0.2);
+  assert.equal(top.max[2], deck);
+  const s1 = b.parts.get('Stair_BlackStep_1'), sLast = b.parts.get(`Stair_BlackStep_${SR.risersLower - 1}`), u1 = b.parts.get(`Stair_BlackStep_${SR.risersLower}`);
+  assert.ok(sLast.min[1] < s1.min[1], 'lower flight rises toward the restrooms (−Y)');
+  assert.ok(u1.min[0] > s1.max[0], 'upper flight is on the mezzanine side of the lower flight');
+  assert.ok(top.min[1] > mid.max[1], 'upper landing is back toward the cage');
+  assert.equal(Math.round(top.max[0]), S.mezzanine.x0M * 1000, 'upper landing meets the mezzanine face');
+  const door = b.parts.get('Mezz_Upper_Door_Grey');
+  assert.ok(door.min[1] >= top.min[1] && door.max[1] <= top.max[1], 'office door opens onto the upper landing');
+  assert.ok(b.parts.get('Stair_WhiteWall_West').min[0] < S.restrooms.x0M * 1000, 'stair block stands proud of the restroom front');
+  for (const [n, p] of b.parts) assert.equal(p.noNormal, 0, n);
+});
