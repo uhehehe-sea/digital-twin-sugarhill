@@ -997,6 +997,8 @@ function addCylPartX(group, x, cy, cz, r, dx, colorHex, roughness = 0.25, metaln
 }
 
 function buildAssetMeshGroup(assetDef) {
+  // The user's own OBJ files (📥 내 OBJ, user_assets.js) carry their own geometry.
+  if (assetDef.userObj && window.UserAssets) return window.UserAssets.buildGroup(assetDef);
   const g = new THREE.Group();
   const [W, D, H] = assetDef.dims;
   const cx = -W / 2;
@@ -2134,6 +2136,7 @@ function renderAssetDrawer(category = 'ALL', btnEl = null) {
       spawnAssetInstance(asset.assetId, null, targetPos, [0, 0, 0], [1, 1, 1], asset.defaultMaterial, true);
     });
 
+    if (asset.userObj && window.UserAssets) window.UserAssets.decorateCard(card, asset);
     container.appendChild(card);
   });
 }
@@ -2228,7 +2231,12 @@ let instanceCounter = 1;
 
 function spawnAssetInstance(assetId, customName = null, pos = [10000, 7000, 0], rotDeg = [0, 0, 0], scale = [1, 1, 1], materialId = null, selectNow = true) {
   const assetDef = ASSET_CATALOG.find(a => a.assetId === assetId);
-  if (!assetDef) return null;
+  if (!assetDef) {
+    // A saved layout can name a user OBJ before user_assets.js has finished reading IndexedDB:
+    // it queues the spawn and replays it once the model is loaded.
+    if (window.UserAssets) window.UserAssets.deferSpawn([assetId, customName, pos, rotDeg, scale, materialId, selectNow]);
+    return null;
+  }
 
   const group = buildAssetMeshGroup(assetDef);
   const instName = customName || `${assetDef.assetId}_${String(instanceCounter++).padStart(2, '0')}`;
@@ -2968,6 +2976,13 @@ function setupInteractions(container) {
 
   container.addEventListener('drop', (e) => {
     e.preventDefault();
+    // Files from the desktop (.obj / .mtl) → 📥 내 OBJ import dialog (user_assets.js).
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length && window.UserAssets) {
+      const pt = isLaserMeasureActive ? null : computeDropPointFromEvent(e);
+      stopDraggingAsset();
+      window.UserAssets.handleFiles(e.dataTransfer.files, pt);
+      return;
+    }
     const assetId = e.dataTransfer.getData('text/plain') || (draggingAssetDef && draggingAssetDef.assetId);
     if (assetId) {
       const pt = computeDropPointFromEvent(e);

@@ -1289,6 +1289,8 @@
         <button class="btn-tb" onclick="renderAssetDrawer('STORAGE_RACK', this)">보관 설비</button>
         <button class="btn-tb" onclick="renderAssetDrawer('OFFICE_STATION', this)">오피스</button>
         <button class="btn-tb" onclick="renderAssetDrawer('SAFETY_FACILITY', this)">안전 환경</button>
+        <button class="btn-tb" id="btn-drawer-user-obj" onclick="renderAssetDrawer('USER_OBJ', this)" title="내가 가져온 OBJ (이 브라우저에 저장됨)">📥 내 OBJ (0)</button>
+        <button class="btn-tb" onclick="window.UserAssets && UserAssets.openFilePicker()" style="border-color:#7c3aed; color:#c4b5fd;" title="OBJ(+MTL) 파일 선택 — 3D 화면에 파일을 끌어 놓아도 됩니다">📂 OBJ 가져오기</button>
       </div>
 
       <div style="display:flex; align-items:center; gap:6px;">
@@ -1707,6 +1709,8 @@
   <script defer src="lib/sheet_carve.js"></script>
   <script defer src="lib/dxf_import.js"></script>
   <script defer src="editor_v2.js"></script>
+  <script defer src="lib/user_obj_core.js"></script>
+  <script defer src="user_assets.js"></script>
   <script defer src="visual_upgrade.js"></script>
   <script defer src="twin_live.js"></script>
   <script defer src="sand3d.js"></script>
